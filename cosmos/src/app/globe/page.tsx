@@ -23,6 +23,8 @@ interface LabelDatum {
   size: number;
   news: NewsItem[];
   isNew: boolean;
+  /** 描画中のHTML要素(可視判定に使う) */
+  el?: HTMLElement;
 }
 
 // 各国の重心座標
@@ -57,6 +59,7 @@ export default function GlobePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(null);
   const prevWordsRef = useRef<Set<string>>(new Set());
+  const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
   const [status, setStatus] = useState("loading...");
 
@@ -100,6 +103,7 @@ export default function GlobePage() {
       if (disposed || !globeRef.current) return;
 
       const labels = buildLabels(data);
+      labelsRef.current = labels;
       globeRef.current.htmlElementsData(labels);
       // 新着ワードにパルスリングを立てる(ライブ感)
       globeRef.current.ringsData(labels.filter((l) => l.isNew));
@@ -127,17 +131,18 @@ export default function GlobePage() {
           const label = d as LabelDatum;
           const el = document.createElement("div");
           el.textContent = label.word;
+          // pointer-events: none = テキストの上でもドラッグ/ズームが効く。
+          // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
           el.style.cssText = [
             `font-size: ${Math.round(8 + label.size * 7)}px`,
             `color: ${label.isNew ? "#7CFC9B" : "#ffd58a"}`,
             "font-family: sans-serif",
             "white-space: nowrap",
-            "cursor: pointer",
-            "pointer-events: auto",
+            "pointer-events: none",
             "text-shadow: 0 0 4px rgba(0,0,0,0.9)",
             "transform: translate(-50%, -50%)",
           ].join(";");
-          el.onclick = () => setSelected(label);
+          label.el = el;
           return el;
         })
         .ringColor(() => (t: number) => `rgba(124,252,155,${1 - t})`)
@@ -145,9 +150,57 @@ export default function GlobePage() {
         .ringPropagationSpeed(1.2)
         .ringRepeatPeriod(1200);
 
-      globe.controls().autoRotate = true;
-      globe.controls().autoRotateSpeed = 0.5;
+      // 慣性つきの操作感: 投げた方向にすーっと回る
+      const controls = globe.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.25;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      // 操作中は自動回転を止め、8秒放置で再開
+      let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+      controls.addEventListener("start", () => {
+        controls.autoRotate = false;
+        if (resumeTimer) clearTimeout(resumeTimer);
+      });
+      controls.addEventListener("end", () => {
+        if (resumeTimer) clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+          controls.autoRotate = true;
+        }, 8000);
+      });
+
       globe.pointOfView({ lat: 25, lng: 110, altitude: 2.2 });
+
+      // クリック解決: ドラッグでなければ、クリック地点に最も近い可視ラベルを選ぶ
+      const el = containerRef.current;
+      let downAt: { x: number; y: number } | null = null;
+      el.addEventListener("pointerdown", (e: PointerEvent) => {
+        downAt = { x: e.clientX, y: e.clientY };
+      });
+      el.addEventListener("pointerup", (e: PointerEvent) => {
+        if (!downAt) return;
+        const moved =
+          Math.abs(e.clientX - downAt.x) + Math.abs(e.clientY - downAt.y);
+        downAt = null;
+        if (moved > 5) return;
+
+        let best: LabelDatum | null = null;
+        let bestDist = Infinity;
+        for (const label of labelsRef.current) {
+          // 地球の裏側にあるラベルはthree-globeが非表示にしているので除外
+          if (label.el && label.el.style.visibility === "hidden") continue;
+          const c = globe.getScreenCoords(label.lat, label.lng, 0.012);
+          const dist = Math.hypot(c.x - e.clientX, c.y - e.clientY);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = label;
+          }
+        }
+        // ラベルの見た目サイズ程度の許容半径
+        if (best && bestDist < 14 + best.size * 12) {
+          setSelected(best);
+        }
+      });
 
       globeRef.current = globe;
       await load();
