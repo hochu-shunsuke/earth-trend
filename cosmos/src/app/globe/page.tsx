@@ -99,6 +99,7 @@ export default function GlobePage() {
       }
       // ミニマル: 球体を背景色で自発光させて(照明無視)、裏側のドットを隠すオクルーダーにする
       const bg = v("--bg", "#0a0a0a");
+      const sphere = light ? "#f0f0f0" : "#161616"; // 背景から少しずらして輪郭を出す
       globe
         .globeImageUrl(null)
         .showGlobe(true)
@@ -111,15 +112,17 @@ export default function GlobePage() {
       const tint = () => {
         const mat = globe.globeMaterial();
         if (!mat) return;
-        mat.color?.set(bg);
-        mat.emissive?.set(bg);
+        mat.color?.set(sphere);
+        mat.emissive?.set(sphere);
         mat.specular?.set("#000000");
       };
       tint();
       setTimeout(tint, 250);
     }
     // ラベルを再構築して色をスタイル/テーマに追従させる
-    globe.htmlElementsData([...labelsRef.current]);
+    // (同一オブジェクトだとライブラリが再生成をスキップするためクローンする)
+    labelsRef.current = labelsRef.current.map((l) => ({ ...l, el: undefined }));
+    globe.htmlElementsData(labelsRef.current);
   }, []);
 
   useEffect(() => {
@@ -197,7 +200,7 @@ export default function GlobePage() {
             ? css.getPropertyValue("--new").trim() || "#46d27d"
             : real
               ? "#ffd58a"
-              : css.getPropertyValue("--trend").trim() || "#ff8a3d";
+              : css.getPropertyValue("--accent").trim() || "#52a8ff";
           el.style.cssText = [
             `font-size: ${Math.round(8 + label.size * 7)}px`,
             `color: ${color}`,
