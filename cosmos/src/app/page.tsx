@@ -232,13 +232,54 @@ export default function Home() {
       return null;
     };
 
+    // マルチポインタ管理(マウス・タッチ共通)。2本指=ピンチズーム+パン
+    const pointers = new Map<number, { x: number; y: number }>();
     let down: { sx: number; sy: number; moved: boolean } | null = null;
+    let multiTouched = false;
 
     const onPointerDown = (e: PointerEvent) => {
-      down = { sx: e.offsetX, sy: e.offsetY, moved: false };
+      pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
       canvas.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) {
+        down = { sx: e.offsetX, sy: e.offsetY, moved: false };
+        multiTouched = false;
+      } else {
+        // 2本目が触れたらクリック判定は放棄
+        down = null;
+        multiTouched = true;
+      }
     };
     const onPointerMove = (e: PointerEvent) => {
+      const prev = pointers.get(e.pointerId);
+      if (!prev) return;
+
+      if (pointers.size === 2) {
+        // ピンチ: 2点の前回位置から距離比と中点移動を出して適用
+        const ids = [...pointers.keys()];
+        const otherId = ids[0] === e.pointerId ? ids[1] : ids[0];
+        const other = pointers.get(otherId)!;
+        const cur = { x: e.offsetX, y: e.offsetY };
+
+        const prevDist = Math.hypot(prev.x - other.x, prev.y - other.y);
+        const curDist = Math.hypot(cur.x - other.x, cur.y - other.y);
+        const prevMid = { x: (prev.x + other.x) / 2, y: (prev.y + other.y) / 2 };
+        const curMid = { x: (cur.x + other.x) / 2, y: (cur.y + other.y) / 2 };
+
+        const t = transformRef.current;
+        const factor = prevDist > 0 ? curDist / prevDist : 1;
+        const k = Math.min(5, Math.max(0.15, t.k * factor));
+        // 前回中点の下にあった世界座標を、新しい中点の下に保つ
+        const wx = (prevMid.x - t.x) / t.k;
+        const wy = (prevMid.y - t.y) / t.k;
+        t.k = k;
+        t.x = curMid.x - wx * k;
+        t.y = curMid.y - wy * k;
+
+        pointers.set(e.pointerId, cur);
+        return;
+      }
+
+      pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
       if (!down) return;
       const dx = e.offsetX - down.sx;
       const dy = e.offsetY - down.sy;
@@ -249,10 +290,15 @@ export default function Home() {
       }
     };
     const onPointerUp = (e: PointerEvent) => {
-      if (down && !down.moved) {
+      pointers.delete(e.pointerId);
+      if (down && !down.moved && !multiTouched) {
         const node = hitTest(e.offsetX, e.offsetY);
         if (node) void onNodeHit(node);
       }
+      if (pointers.size === 0) down = null;
+    };
+    const onPointerCancel = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
       down = null;
     };
     const onWheel = (e: WheelEvent) => {
@@ -271,6 +317,7 @@ export default function Home() {
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerCancel);
     canvas.addEventListener("wheel", onWheel, { passive: false });
 
     // 初回ロード
@@ -282,6 +329,7 @@ export default function Home() {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("wheel", onWheel);
     };
     // マウント時に一度だけ初期化する(意図的)
@@ -296,7 +344,10 @@ export default function Home() {
 
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#0a0a1a" }}>
-      <canvas ref={canvasRef} style={{ display: "block", cursor: "grab" }} />
+      <canvas
+        ref={canvasRef}
+        style={{ display: "block", cursor: "grab", touchAction: "none" }}
+      />
 
       {/* コントロールバー */}
       <div
