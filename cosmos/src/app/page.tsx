@@ -411,6 +411,42 @@ export default function Home() {
     void loadTrends(m);
   };
 
+  // 今見えている宇宙をPNGとして書き出す(シェア装置)
+  const exportImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const out = document.createElement("canvas");
+    out.width = canvas.width;
+    out.height = canvas.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(canvas, 0, 0);
+
+    // ウォーターマーク(出典がシェアと共に運ばれる)
+    const dpr = window.devicePixelRatio || 1;
+    const { w, h } = sizeRef.current;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const stamp = `earth-trend ${modeRef.current} ${new Date().toLocaleDateString()}`;
+    ctx.font = "bold 13px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    const tw = ctx.measureText(stamp).width;
+    ctx.fillRect(w - tw - 20, h - 26, tw + 12, 20);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText(stamp, w - 14, h - 10);
+
+    out.toBlob((b) => {
+      if (!b) return;
+      const url = URL.createObjectURL(b);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `earth-trend-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#0a0a1a" }}>
       <canvas
@@ -438,6 +474,7 @@ export default function Home() {
           US
         </button>
         {/* JP×US比較はデータの入口が狭く絵が安定しないためv2で再設計(コードとAPIは温存) */}
+        <button onClick={exportImage}>画像で保存</button>
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
       </div>
