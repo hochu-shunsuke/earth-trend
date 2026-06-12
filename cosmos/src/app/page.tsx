@@ -437,9 +437,7 @@ export default function Home() {
         <button onClick={() => switchMode("US")} style={{ fontWeight: mode === "US" ? "bold" : "normal" }}>
           US
         </button>
-        <button onClick={() => switchMode("BOTH")} style={{ fontWeight: mode === "BOTH" ? "bold" : "normal" }}>
-          JP×US
-        </button>
+        {/* JP×US比較はデータの入口が狭く絵が安定しないためv2で再設計(コードとAPIは温存) */}
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
       </div>
