@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Converter from "@/components/Converter";
+import ToolJsonLd from "@/components/ToolJsonLd";
+import { TOOLS } from "@/lib/tools";
 
 export const metadata: Metadata = {
   title: "LINEスタンプ画像 一括変換・審査前チェック",
@@ -10,6 +12,7 @@ export const metadata: Metadata = {
 export default function LineStampPage() {
   return (
     <main className="px-4 py-12">
+      <ToolJsonLd tool={TOOLS.find((t) => t.slug === "line-stamp")!} />
         {/* ヒーロー */}
         <header className="mx-auto max-w-3xl text-center">
           <h1 className="text-3xl font-bold leading-snug sm:text-4xl">
