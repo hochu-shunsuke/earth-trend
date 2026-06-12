@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
-  const hl = req.nextUrl.searchParams.get("hl") === "en" ? "en" : "ja";
+  const ALLOWED_HL = new Set(["ja", "en", "ko", "zh-TW", "de", "fr", "pt-BR"]);
+  const hlRaw = req.nextUrl.searchParams.get("hl") ?? "ja";
+  const hl = ALLOWED_HL.has(hlRaw) ? hlRaw : "ja";
   if (!q || q.length > 100) {
     return NextResponse.json({ error: "bad query" }, { status: 400 });
   }

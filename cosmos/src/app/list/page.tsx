@@ -35,7 +35,8 @@ export default async function ListPage({
   return (
     <>
       <SiteHeader />
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}>
+      {/* ヘッダーはfixedなので、その高さ(48px)ぶん下げる */}
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "72px 16px 24px" }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
           急上昇ワード <span className="muted">— {GEO_LABELS[geo]}</span>
         </h1>

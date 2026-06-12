@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import { GEO_LABELS, GEO_HL } from "@/lib/trends";
 import {
   forceSimulation,
   forceLink,
@@ -31,7 +32,7 @@ interface TrendItem {
 interface GNode {
   id: string;
   isTrend: boolean;
-  geo: "JP" | "US";
+  geo: string;
   news: NewsItem[];
   r: number;
   x: number;
@@ -49,7 +50,7 @@ interface GLink {
   shared?: boolean;
 }
 
-type Mode = "JP" | "US" | "BOTH";
+type Mode = string; // 国コード or "BOTH"(比較・現在UI非公開)
 
 function trendRadius(traffic: string): number {
   const n = parseInt(traffic.replace(/[^0-9]/g, ""), 10) || 0;
@@ -82,7 +83,7 @@ export default function Home() {
   } | null>(null);
 
   // AI一行解説(キャッシュはサーバー側。失敗時は静かに諦める)
-  const loadExplain = async (word: string, geo: "JP" | "US") => {
+  const loadExplain = async (word: string, geo: string) => {
     try {
       const res = await fetch(
         `/api/explain?word=${encodeURIComponent(word)}&geo=${geo}`,
@@ -116,7 +117,7 @@ export default function Home() {
     expandedRef.current = new Set();
     const { w, h } = sizeRef.current;
 
-    const toNode = (it: TrendItem, geo: "JP" | "US", cx: number): GNode => ({
+    const toNode = (it: TrendItem, geo: string, cx: number): GNode => ({
       id: it.word,
       isTrend: true,
       geo,
@@ -184,7 +185,7 @@ export default function Home() {
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
 
-    const hl = node.geo === "US" ? "en" : "ja";
+    const hl = GEO_HL[node.geo] ?? "ja";
     try {
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(node.id)}&hl=${hl}`);
       if (!res.ok) return;
@@ -479,12 +480,18 @@ export default function Home() {
           alignItems: "center",
         }}
       >
-        <button className="btn" data-active={mode === "JP"} onClick={() => switchMode("JP")}>
-          日本
-        </button>
-        <button className="btn" data-active={mode === "US"} onClick={() => switchMode("US")}>
-          アメリカ
-        </button>
+        <select
+          className="btn"
+          value={mode}
+          onChange={(e) => switchMode(e.target.value)}
+          aria-label="国を選択"
+        >
+          {Object.entries(GEO_LABELS).map(([code, label]) => (
+            <option key={code} value={code}>
+              {label}
+            </option>
+          ))}
+        </select>
         {/* JP×US比較はデータの入口が狭く絵が安定しないためv2で再設計(コードとAPIは温存) */}
         <button className="btn" onClick={exportImage}>
           画像で保存

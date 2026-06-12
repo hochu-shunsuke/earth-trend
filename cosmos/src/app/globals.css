@@ -38,6 +38,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 html,
 body {
   height: 100%;
@@ -61,8 +65,13 @@ a:hover {
   text-underline-offset: 2px;
 }
 
-/* 共通ヘッダー */
+/* 共通ヘッダー(全ページ同一: 固定・高さ48px) */
 .site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -100,12 +109,9 @@ a:hover {
   color: var(--fg);
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
-.site-header.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+/* セレクタ(ボタンと同じ見た目・矢印はネイティブ) */
+select.btn {
+  padding-right: 6px;
 }
 
 /* ボタン */

@@ -25,6 +25,31 @@ export const ALLOWED_GEO = new Set([
   "BR",
 ]);
 
+export const GEO_LABELS: Record<string, string> = {
+  JP: "日本",
+  US: "アメリカ",
+  GB: "イギリス",
+  IN: "インド",
+  KR: "韓国",
+  TW: "台湾",
+  DE: "ドイツ",
+  FR: "フランス",
+  BR: "ブラジル",
+};
+
+/** サジェストAPIに渡す言語(国の主要言語) */
+export const GEO_HL: Record<string, string> = {
+  JP: "ja",
+  US: "en",
+  GB: "en",
+  IN: "en",
+  KR: "ko",
+  TW: "zh-TW",
+  DE: "de",
+  FR: "fr",
+  BR: "pt-BR",
+};
+
 /** Google TrendsのRSSから急上昇ワードを取得(Next fetchキャッシュ10分) */
 export async function fetchTrends(geo: string): Promise<TrendItem[]> {
   const res = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {

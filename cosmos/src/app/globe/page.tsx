@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -63,6 +63,52 @@ export default function GlobePage() {
   const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
   const [status, setStatus] = useState("loading...");
+  const [gstyle, setGstyle] = useState<"real" | "line">("real");
+  const gstyleRef = useRef<"real" | "line">("real");
+  const countriesRef = useRef<object[] | null>(null);
+
+  // スタイル(リアル/ライン)とテーマに応じて地球の見た目を再適用する
+  const applyStyle = useCallback(async () => {
+    const globe = globeRef.current;
+    if (!globe) return;
+    const css = getComputedStyle(document.documentElement);
+    const v = (n: string, f: string) => css.getPropertyValue(n).trim() || f;
+    const light = document.documentElement.dataset.theme !== "dark";
+
+    if (gstyleRef.current === "real") {
+      globe
+        .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
+        .showGlobe(true)
+        .showAtmosphere(true)
+        .backgroundColor("#000003")
+        .hexPolygonsData([]);
+      globe.globeMaterial()?.color?.set("#ffffff");
+    } else {
+      if (!countriesRef.current) {
+        try {
+          const res = await fetch(
+            "https://globe.gl/example/datasets/ne_110m_admin_0_countries.geojson",
+          );
+          const geo = await res.json();
+          countriesRef.current = geo.features ?? [];
+        } catch {
+          countriesRef.current = [];
+        }
+      }
+      // 球体は描かず、国土のドットだけで地球を表す(ミニマル)
+      globe
+        .globeImageUrl(null)
+        .showGlobe(false)
+        .showAtmosphere(false)
+        .backgroundColor(v("--bg", "#0a0a0a"))
+        .hexPolygonsData(countriesRef.current ?? [])
+        .hexPolygonResolution(3)
+        .hexPolygonMargin(0.6)
+        .hexPolygonColor(() => (light ? "#9a9a9a" : "#4a4a4a"));
+    }
+    // ラベルを再構築して色をスタイル/テーマに追従させる
+    globe.htmlElementsData([...labelsRef.current]);
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -121,8 +167,6 @@ export default function GlobePage() {
       const globe = new Globe(containerRef.current)
         .width(window.innerWidth)
         .height(window.innerHeight)
-        .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
-        .backgroundColor("#0a0a1a")
         .atmosphereColor("#4fc3f7")
         .atmosphereAltitude(0.18)
         // 3Dテキストはラテン文字しか描けないため、HTML要素レイヤーで多言語ラベルを描く
@@ -134,13 +178,21 @@ export default function GlobePage() {
           el.textContent = label.word;
           // pointer-events: none = テキストの上でもドラッグ/ズームが効く。
           // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
+          const css = getComputedStyle(document.documentElement);
+          const real = gstyleRef.current === "real";
+          const light = document.documentElement.dataset.theme !== "dark";
+          const color = label.isNew
+            ? css.getPropertyValue("--new").trim() || "#46d27d"
+            : real
+              ? "#ffd58a"
+              : css.getPropertyValue("--trend").trim() || "#ff8a3d";
           el.style.cssText = [
             `font-size: ${Math.round(8 + label.size * 7)}px`,
-            `color: ${label.isNew ? "#7CFC9B" : "#ffd58a"}`,
+            `color: ${color}`,
             "font-family: sans-serif",
             "white-space: nowrap",
             "pointer-events: none",
-            "text-shadow: 0 0 4px rgba(0,0,0,0.9)",
+            `text-shadow: ${real || !light ? "0 0 4px rgba(0,0,0,0.9)" : "none"}`,
             "transform: translate(-50%, -50%)",
           ].join(";");
           label.el = el;
@@ -149,7 +201,10 @@ export default function GlobePage() {
         .ringColor(() => (t: number) => `rgba(124,252,155,${1 - t})`)
         .ringMaxRadius(4)
         .ringPropagationSpeed(1.2)
-        .ringRepeatPeriod(1200);
+        .ringRepeatPeriod(1200)
+        .onGlobeReady(() => {
+          void applyStyle();
+        });
 
       // 慣性つきの操作感: 投げた方向にすーっと回る
       const controls = globe.controls();
@@ -204,30 +259,70 @@ export default function GlobePage() {
       });
 
       globeRef.current = globe;
+      await applyStyle();
       await load();
       interval = setInterval(load, 10 * 60 * 1000); // 10分ごとに更新(新着はパルス)
     })();
 
+    // テーマ切替に追従(ラインスタイルは背景・国土色が変わる)
+    const mo = new MutationObserver(() => {
+      void applyStyle();
+    });
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
     return () => {
       disposed = true;
       if (interval) clearInterval(interval);
+      mo.disconnect();
       globeRef.current?._destructor?.();
       globeRef.current = null;
     };
-  }, []);
+  }, [applyStyle]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#000" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        overflow: "hidden",
+        background: gstyle === "real" ? "#000003" : "var(--bg)",
+      }}
+    >
       <div ref={containerRef} />
 
       <SiteHeader overlay />
 
-      <span
-        className="muted"
-        style={{ position: "absolute", top: 60, left: 16, fontSize: 12, color: "#8f8f8f" }}
+      <div
+        style={{
+          position: "absolute",
+          top: 60,
+          left: 12,
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+        }}
       >
-        {status}
-      </span>
+        <select
+          className="btn"
+          value={gstyle}
+          onChange={(e) => {
+            const v = e.target.value as "real" | "line";
+            setGstyle(v);
+            gstyleRef.current = v;
+            void applyStyle();
+          }}
+          aria-label="地球儀のスタイル"
+        >
+          <option value="real">リアル</option>
+          <option value="line">ライン</option>
+        </select>
+        <span className="muted" style={{ fontSize: 12 }}>
+          {status}
+        </span>
+      </div>
 
       {selected && (
         <div

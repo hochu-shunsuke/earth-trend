@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchTrends } from "@/lib/trends";
+import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
 
 // ワード単位のメモリキャッシュ(6時間)。Fluid Computeはインスタンスを共有するため有効に効く。
 // CDN側にも s-maxage を付けるので、生成回数は「国×ワード×6時間に1回」が上限になる
@@ -20,15 +20,12 @@ async function getNewsTitles(geo: string, word: string): Promise<string[]> {
 async function generateSummary(
   word: string,
   titles: string[],
-  lang: "ja" | "en",
 ): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
-  const prompt =
-    lang === "ja"
-      ? `検索ワード「${word}」が今急上昇しています。以下のニュース見出しを根拠に、なぜ急上昇しているのかを日本語1文(50字以内)で説明してください。前置きや引用符は不要、説明文のみ。\n\n${titles.join("\n")}`
-      : `The search term "${word}" is trending now. Based on these headlines, explain why in one short English sentence (max 20 words). No preamble.\n\n${titles.join("\n")}`;
+  // 見出しが何語でも解説は日本語で返す(海外トレンドを日本語で読めるのが価値)
+  const prompt = `検索ワード「${word}」が今急上昇しています。以下のニュース見出しを根拠に、なぜ急上昇しているのかを日本語1文(60字以内)で説明してください。前置きや引用符は不要、説明文のみ。\n\n${titles.join("\n")}`;
 
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
@@ -50,7 +47,8 @@ async function generateSummary(
 
 export async function GET(req: NextRequest) {
   const word = req.nextUrl.searchParams.get("word")?.trim();
-  const geo = req.nextUrl.searchParams.get("geo")?.toUpperCase() === "US" ? "US" : "JP";
+  const geoRaw = req.nextUrl.searchParams.get("geo")?.toUpperCase() ?? "JP";
+  const geo = ALLOWED_GEO.has(geoRaw) ? geoRaw : "JP";
   if (!word || word.length > 100) {
     return NextResponse.json({ error: "bad word" }, { status: 400 });
   }
@@ -73,7 +71,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const summary = await generateSummary(word, titles, geo === "JP" ? "ja" : "en");
+  const summary = await generateSummary(word, titles);
   if (summary) {
     memCache.set(cacheKey, { summary, exp: Date.now() + TTL_MS });
   }
