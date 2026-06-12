@@ -69,8 +69,29 @@ export default function Home() {
   const [geo, setGeo] = useState<Geo>("JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<{ word: string; news: NewsItem[] } | null>(null);
-  const [lastClicked, setLastClicked] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{
+    word: string;
+    news: NewsItem[];
+    summary?: string | null;
+  } | null>(null);
+
+  // AI一行解説(キャッシュはサーバー側。失敗時は静かに諦める)
+  const loadExplain = async (word: string) => {
+    try {
+      const res = await fetch(
+        `/api/explain?word=${encodeURIComponent(word)}&geo=${geoRef.current}`,
+      );
+      if (!res.ok) return;
+      const data: { summary: string | null } = await res.json();
+      if (data.summary) {
+        setSelected((prev) =>
+          prev && prev.word === word ? { ...prev, summary: data.summary } : prev,
+        );
+      }
+    } catch {
+      /* 解説なしで続行 */
+    }
+  };
 
   // シミュレーションへ現在の配列を結び直して再加熱
   const reheat = (alpha: number) => {
@@ -86,7 +107,6 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setSelected(null);
-    setLastClicked(null);
     expandedRef.current = new Set();
     try {
       const res = await fetch(`/api/trends?geo=${g}`);
@@ -113,8 +133,12 @@ export default function Home() {
 
   // ノードクリック時: ニュース表示+サジェスト展開
   const onNodeHit = async (node: GNode) => {
-    setLastClicked(node.id);
-    setSelected(node.isTrend && node.news.length > 0 ? { word: node.id, news: node.news } : null);
+    // ニュースパネルは「トレンド星をクリックしたとき」だけ更新。
+    // サジェスト(水色)やニュース無しの星では現在の表示を保持する
+    if (node.isTrend && node.news.length > 0) {
+      setSelected({ word: node.id, news: node.news });
+      void loadExplain(node.id);
+    }
 
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
@@ -370,7 +394,6 @@ export default function Home() {
         </button>
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
-        {lastClicked && <span style={{ color: "#8f8" }}>clicked: {lastClicked}</span>}
       </div>
 
       {/* ニュースパネル */}
@@ -389,6 +412,9 @@ export default function Home() {
           }}
         >
           <strong>{selected.word}</strong>
+          {selected.summary && (
+            <p style={{ margin: "6px 0", color: "#ffd58a" }}>{selected.summary}</p>
+          )}
           <ul style={{ paddingLeft: 16 }}>
             {selected.news.map((n, i) => (
               <li key={i} style={{ marginBottom: 4 }}>

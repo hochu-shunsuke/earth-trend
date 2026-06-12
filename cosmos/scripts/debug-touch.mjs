@@ -37,7 +37,7 @@ if (target) {
   await page.touchscreen.tap(target.x, target.y);
   await new Promise((r) => setTimeout(r, 3000));
   const clicked = await page.evaluate(() =>
-    document.body.innerText.includes("clicked:")
+    document.body.innerText.includes("close")
   );
   console.log("TAP REGISTERED:", clicked);
   await page.screenshot({ path: "/tmp/cosmos-mobile.png" });

@@ -57,7 +57,7 @@ if (target) {
   await page.mouse.click(target.x, target.y);
   await new Promise((r) => setTimeout(r, 3000));
   const clicked = await page.evaluate(() =>
-    document.body.innerText.includes("clicked:")
+    document.body.innerText.includes("close")
   );
   console.log("CLICK REGISTERED:", clicked);
   await page.screenshot({ path: "/tmp/cosmos-after.png" });
