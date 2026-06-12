@@ -82,7 +82,9 @@ export default function GlobePage() {
         .showAtmosphere(true)
         .backgroundColor("#000003")
         .hexPolygonsData([]);
-      globe.globeMaterial()?.color?.set("#ffffff");
+      const mat = globe.globeMaterial();
+      mat?.color?.set("#ffffff");
+      mat?.emissive?.set("#000000");
     } else {
       if (!countriesRef.current) {
         try {
@@ -95,16 +97,26 @@ export default function GlobePage() {
           countriesRef.current = [];
         }
       }
-      // 球体は描かず、国土のドットだけで地球を表す(ミニマル)
+      // ミニマル: 球体を背景色で自発光させて(照明無視)、裏側のドットを隠すオクルーダーにする
+      const bg = v("--bg", "#0a0a0a");
       globe
         .globeImageUrl(null)
-        .showGlobe(false)
+        .showGlobe(true)
         .showAtmosphere(false)
-        .backgroundColor(v("--bg", "#0a0a0a"))
+        .backgroundColor(bg)
         .hexPolygonsData(countriesRef.current ?? [])
         .hexPolygonResolution(3)
         .hexPolygonMargin(0.6)
         .hexPolygonColor(() => (light ? "#9a9a9a" : "#4a4a4a"));
+      const tint = () => {
+        const mat = globe.globeMaterial();
+        if (!mat) return;
+        mat.color?.set(bg);
+        mat.emissive?.set(bg);
+        mat.specular?.set("#000000");
+      };
+      tint();
+      setTimeout(tint, 250);
     }
     // ラベルを再構築して色をスタイル/テーマに追従させる
     globe.htmlElementsData([...labelsRef.current]);
