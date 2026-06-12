@@ -76,6 +76,7 @@ export default function Home() {
   const [selected, setSelected] = useState<{
     word: string;
     news: NewsItem[];
+    isTrend: boolean;
     summary?: string | null;
   } | null>(null);
 
@@ -173,10 +174,9 @@ export default function Home() {
 
   // ノードクリック時: ニュース表示+サジェスト展開
   const onNodeHit = async (node: GNode) => {
-    // ニュースパネルは「トレンド星をクリックしたとき」だけ更新。
-    // サジェスト(水色)やニュース無しの星では現在の表示を保持する
+    // どの星を押してもパネルを更新する(トレンド=ニュース+AI解説、サジェスト=検索リンク)
+    setSelected({ word: node.id, news: node.news, isTrend: node.isTrend });
     if (node.isTrend && node.news.length > 0) {
-      setSelected({ word: node.id, news: node.news });
       void loadExplain(node.id, node.geo);
     }
 
@@ -479,7 +479,7 @@ export default function Home() {
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
       </div>
 
-      {/* ニュースパネル */}
+      {/* 詳細パネル。外枠はクリックを透過させ、裏の星を塞がない */}
       {selected && (
         <div
           style={{
@@ -489,30 +489,53 @@ export default function Home() {
             width: 320,
             maxHeight: "80vh",
             overflowY: "auto",
-            padding: 8,
-            color: "#fff",
-            background: "rgba(0,0,0,0.8)",
+            pointerEvents: "none",
           }}
         >
-          <strong>{selected.word}</strong>
-          {selected.summary && (
-            <p style={{ margin: "6px 0", color: "#ffd58a" }}>{selected.summary}</p>
-          )}
-          <ul style={{ paddingLeft: 16 }}>
-            {selected.news.map((n, i) => (
-              <li key={i} style={{ marginBottom: 4 }}>
-                {n.url ? (
-                  <a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4fc3f7" }}>
-                    {n.title}
-                  </a>
-                ) : (
-                  n.title
-                )}
-                {n.source && <span style={{ color: "#aaa", fontSize: "0.85em" }}> ({n.source})</span>}
-              </li>
-            ))}
-          </ul>
-          <button onClick={() => setSelected(null)}>close</button>
+          <div
+            style={{
+              pointerEvents: "auto",
+              padding: 8,
+              color: "#fff",
+              background: "#16161f",
+            }}
+          >
+            <strong>{selected.word}</strong>
+            {selected.summary && (
+              <p style={{ margin: "6px 0", color: "#ffd58a" }}>{selected.summary}</p>
+            )}
+            {selected.news.length > 0 && (
+              <ul style={{ paddingLeft: 16 }}>
+                {selected.news.map((n, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    {n.url ? (
+                      <a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4fc3f7" }}>
+                        {n.title}
+                      </a>
+                    ) : (
+                      n.title
+                    )}
+                    {n.source && <span style={{ color: "#aaa", fontSize: "0.85em" }}> ({n.source})</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!selected.isTrend && (
+              <p style={{ margin: "6px 0" }}>
+                「{selected.word}」は検索者が次に調べている言葉です。
+                <br />
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#4fc3f7" }}
+                >
+                  Googleで検索結果を見る →
+                </a>
+              </p>
+            )}
+            <button onClick={() => setSelected(null)}>close</button>
+          </div>
         </div>
       )}
     </div>
