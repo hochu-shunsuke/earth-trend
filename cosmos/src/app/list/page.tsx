@@ -34,7 +34,8 @@ export default async function ListPage({
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: 16 }}>
       <nav style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-        <Link href="/">← グラフで見る</Link>
+        <Link href="/">グラフ</Link>
+        <Link href="/globe">地球儀</Link>
       </nav>
 
       <h1>急上昇ワード — {GEO_LABELS[geo]}</h1>

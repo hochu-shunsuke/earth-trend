@@ -476,7 +476,10 @@ export default function Home() {
         {/* JP×US比較はデータの入口が狭く絵が安定しないためv2で再設計(コードとAPIは温存) */}
         <button onClick={exportImage}>画像で保存</button>
         <a href="/list" style={{ color: "#9ecbff" }}>
-          リストで見る
+          リスト
+        </a>
+        <a href="/globe" style={{ color: "#9ecbff" }}>
+          地球儀
         </a>
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
