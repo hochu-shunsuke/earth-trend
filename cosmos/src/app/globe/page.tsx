@@ -179,7 +179,6 @@ export default function GlobePage() {
           // pointer-events: none = テキストの上でもドラッグ/ズームが効く。
           // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
           const css = getComputedStyle(document.documentElement);
-          const light = document.documentElement.dataset.theme !== "dark";
           // 球体はライトでも濃色なので、ラベルは常に明るい青+影で浮かせる
           const color = label.isNew
             ? css.getPropertyValue("--new").trim() || "#46d27d"
