@@ -1,20 +1,8 @@
-import Link from "next/link";
+import GeoSelect from "@/components/GeoSelect";
 import SiteHeader from "@/components/SiteHeader";
-import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
+import { ALLOWED_GEO, GEO_LABELS, fetchTrends } from "@/lib/trends";
 
 export const revalidate = 600;
-
-const GEO_LABELS: Record<string, string> = {
-  JP: "日本",
-  US: "アメリカ",
-  GB: "イギリス",
-  IN: "インド",
-  KR: "韓国",
-  TW: "台湾",
-  DE: "ドイツ",
-  FR: "フランス",
-  BR: "ブラジル",
-};
 
 export default async function ListPage({
   searchParams,
@@ -36,17 +24,20 @@ export default async function ListPage({
     <>
       <SiteHeader />
       {/* ヘッダーはfixedなので、その高さ(48px)ぶん下げる */}
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "72px 16px 24px" }}>
+      <main
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+          padding: "72px 16px 24px",
+          overflowWrap: "anywhere",
+        }}
+      >
         <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
           急上昇ワード <span className="muted">— {GEO_LABELS[geo]}</span>
         </h1>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 24 }}>
-          {Object.keys(GEO_LABELS).map((g) => (
-            <Link key={g} href={`/list?geo=${g}`} className="btn" data-active={g === geo}>
-              {GEO_LABELS[g]}
-            </Link>
-          ))}
+        <div style={{ marginBottom: 24 }}>
+          <GeoSelect geo={geo} />
         </div>
 
         {!items && (
@@ -68,7 +59,7 @@ export default async function ListPage({
                 <span className="muted" style={{ minWidth: 24, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                   {idx + 1}
                 </span>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
                     <a
                       href={`https://www.google.com/search?q=${encodeURIComponent(it.word)}`}

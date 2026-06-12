@@ -5,7 +5,6 @@ await p.setViewport({ width: 1400, height: 900 });
 await p.evaluateOnNewDocument(() => localStorage.setItem("theme", "dark"));
 await p.goto("http://localhost:3100/globe", { waitUntil: "networkidle2" });
 await new Promise(r => setTimeout(r, 6000));
-await p.select("select", "line");
 await new Promise(r => setTimeout(r, 8000));
 await p.screenshot({ path: "/tmp/globe-line-dark.png" });
 await b.close();

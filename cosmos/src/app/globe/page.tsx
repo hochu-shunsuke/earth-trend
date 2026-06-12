@@ -63,8 +63,6 @@ export default function GlobePage() {
   const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
   const [status, setStatus] = useState("loading...");
-  const [gstyle, setGstyle] = useState<"real" | "line">("real");
-  const gstyleRef = useRef<"real" | "line">("real");
   const countriesRef = useRef<object[] | null>(null);
 
   // スタイル(リアル/ライン)とテーマに応じて地球の見た目を再適用する
@@ -75,51 +73,38 @@ export default function GlobePage() {
     const v = (n: string, f: string) => css.getPropertyValue(n).trim() || f;
     const light = document.documentElement.dataset.theme !== "dark";
 
-    if (gstyleRef.current === "real") {
-      globe
-        .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-night.jpg")
-        .showGlobe(true)
-        .showAtmosphere(true)
-        .backgroundColor("#000003")
-        .hexPolygonsData([]);
-      const mat = globe.globeMaterial();
-      mat?.color?.set("#ffffff");
-      mat?.emissive?.set("#000000");
-    } else {
-      if (!countriesRef.current) {
-        try {
-          const res = await fetch(
-            "https://globe.gl/example/datasets/ne_110m_admin_0_countries.geojson",
-          );
-          const geo = await res.json();
-          countriesRef.current = geo.features ?? [];
-        } catch {
-          countriesRef.current = [];
-        }
+    if (!countriesRef.current) {
+      try {
+        const res = await fetch(
+          "https://globe.gl/example/datasets/ne_110m_admin_0_countries.geojson",
+        );
+        const geo = await res.json();
+        countriesRef.current = geo.features ?? [];
+      } catch {
+        countriesRef.current = [];
       }
-      // ミニマル: 球体を背景色で自発光させて(照明無視)、裏側のドットを隠すオクルーダーにする
-      const bg = v("--bg", "#0a0a0a");
-      const sphere = light ? "#f0f0f0" : "#161616"; // 背景から少しずらして輪郭を出す
-      globe
-        .globeImageUrl(null)
-        .showGlobe(true)
-        .showAtmosphere(false)
-        .backgroundColor(bg)
-        .hexPolygonsData(countriesRef.current ?? [])
-        .hexPolygonResolution(3)
-        .hexPolygonMargin(0.6)
-        .hexPolygonColor(() => (light ? "#9a9a9a" : "#4a4a4a"));
-      const tint = () => {
-        const mat = globe.globeMaterial();
-        if (!mat) return;
-        mat.color?.set(sphere);
-        mat.emissive?.set(sphere);
-        mat.specular?.set("#000000");
-      };
-      tint();
-      setTimeout(tint, 250);
     }
-    // ラベルを再構築して色をスタイル/テーマに追従させる
+    const bg = v("--bg", "#0a0a0a");
+    const sphere = light ? "#f0f0f0" : "#161616"; // 背景から少しずらして輪郭を出す
+    globe
+      .showGlobe(true)
+      .showAtmosphere(false)
+      .backgroundColor(bg)
+      .hexPolygonsData(countriesRef.current ?? [])
+      .hexPolygonResolution(3)
+      .hexPolygonMargin(0.6)
+      .hexPolygonColor(() => (light ? "#9a9a9a" : "#4a4a4a"));
+    // 球体は背景に馴染む自発光(照明無視)で、裏側のドット/ラベルを隠すオクルーダー
+    const tint = () => {
+      const mat = globe.globeMaterial();
+      if (!mat) return;
+      mat.color?.set(sphere);
+      mat.emissive?.set(sphere);
+      mat.specular?.set("#000000");
+    };
+    tint();
+    setTimeout(tint, 250);
+    // ラベルを再構築して色をテーマに追従させる
     // (同一オブジェクトだとライブラリが再生成をスキップするためクローンする)
     labelsRef.current = labelsRef.current.map((l) => ({ ...l, el: undefined }));
     globe.htmlElementsData(labelsRef.current);
@@ -182,8 +167,6 @@ export default function GlobePage() {
       const globe = new Globe(containerRef.current)
         .width(window.innerWidth)
         .height(window.innerHeight)
-        .atmosphereColor("#4fc3f7")
-        .atmosphereAltitude(0.18)
         // 3Dテキストはラテン文字しか描けないため、HTML要素レイヤーで多言語ラベルを描く
         .htmlAltitude(0.012)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -194,20 +177,18 @@ export default function GlobePage() {
           // pointer-events: none = テキストの上でもドラッグ/ズームが効く。
           // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
           const css = getComputedStyle(document.documentElement);
-          const real = gstyleRef.current === "real";
           const light = document.documentElement.dataset.theme !== "dark";
           const color = label.isNew
             ? css.getPropertyValue("--new").trim() || "#46d27d"
-            : real
-              ? "#ffd58a"
-              : css.getPropertyValue("--accent").trim() || "#52a8ff";
+            : css.getPropertyValue("--accent").trim() || "#52a8ff";
           el.style.cssText = [
             `font-size: ${Math.round(8 + label.size * 7)}px`,
+            "font-weight: 600",
             `color: ${color}`,
             "font-family: sans-serif",
             "white-space: nowrap",
             "pointer-events: none",
-            `text-shadow: ${real || !light ? "0 0 4px rgba(0,0,0,0.9)" : "none"}`,
+            `text-shadow: ${light ? "none" : "0 0 4px rgba(0,0,0,0.9)"}`,
             "transform: translate(-50%, -50%)",
           ].join(";");
           label.el = el;
@@ -303,7 +284,7 @@ export default function GlobePage() {
         position: "fixed",
         inset: 0,
         overflow: "hidden",
-        background: gstyle === "real" ? "#000003" : "var(--bg)",
+        background: "var(--bg)",
       }}
     >
       <div ref={containerRef} />
@@ -320,20 +301,7 @@ export default function GlobePage() {
           alignItems: "center",
         }}
       >
-        <select
-          className="btn"
-          value={gstyle}
-          onChange={(e) => {
-            const v = e.target.value as "real" | "line";
-            setGstyle(v);
-            gstyleRef.current = v;
-            void applyStyle();
-          }}
-          aria-label="地球儀のスタイル"
-        >
-          <option value="real">リアル</option>
-          <option value="line">ライン</option>
-        </select>
+
         <span className="muted" style={{ fontSize: 12 }}>
           {status}
         </span>

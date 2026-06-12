@@ -6,7 +6,6 @@ await p.evaluateOnNewDocument(() => localStorage.setItem("theme", "light"));
 const errs = []; p.on("pageerror", e => errs.push(e.message));
 await p.goto("http://localhost:3100/globe", { waitUntil: "networkidle2" });
 await new Promise(r => setTimeout(r, 6000));
-await p.select("select", "line");
 await new Promise(r => setTimeout(r, 8000));
 await p.screenshot({ path: "/tmp/globe-line-light.png" });
 console.log("ERRORS:", errs.length ? errs.join("; ") : "(none)");
