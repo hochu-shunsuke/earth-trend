@@ -7,6 +7,7 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
+  forceX,
   type Simulation,
   type ForceLink,
 } from "d3-force";
@@ -29,6 +30,7 @@ interface TrendItem {
 interface GNode {
   id: string;
   isTrend: boolean;
+  geo: "JP" | "US";
   news: NewsItem[];
   r: number;
   x: number;
@@ -42,9 +44,11 @@ interface GNode {
 interface GLink {
   source: string | GNode;
   target: string | GNode;
+  /** JP×USで同一トピックを結ぶ橋 */
+  shared?: boolean;
 }
 
-type Geo = "JP" | "US";
+type Mode = "JP" | "US" | "BOTH";
 
 function trendRadius(traffic: string): number {
   const n = parseInt(traffic.replace(/[^0-9]/g, ""), 10) || 0;
@@ -63,10 +67,10 @@ export default function Home() {
   const transformRef = useRef({ x: 0, y: 0, k: 1 }); // screen = world*k + (x,y)
   const sizeRef = useRef({ w: 800, h: 600 });
   const expandedRef = useRef<Set<string>>(new Set());
-  const geoRef = useRef<Geo>("JP");
+  const modeRef = useRef<Mode>("JP");
 
   // UIパネル用の状態だけReactで
-  const [geo, setGeo] = useState<Geo>("JP");
+  const [mode, setMode] = useState<Mode>("JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<{
@@ -76,10 +80,10 @@ export default function Home() {
   } | null>(null);
 
   // AI一行解説(キャッシュはサーバー側。失敗時は静かに諦める)
-  const loadExplain = async (word: string) => {
+  const loadExplain = async (word: string, geo: "JP" | "US") => {
     try {
       const res = await fetch(
-        `/api/explain?word=${encodeURIComponent(word)}&geo=${geoRef.current}`,
+        `/api/explain?word=${encodeURIComponent(word)}&geo=${geo}`,
       );
       if (!res.ok) return;
       const data: { summary: string | null } = await res.json();
@@ -102,26 +106,62 @@ export default function Home() {
     sim.alpha(alpha).restart();
   };
 
-  // トレンド読み込み
-  const loadTrends = async (g: Geo) => {
+  // トレンド読み込み(単国 or JP×US比較)
+  const loadTrends = async (m: Mode) => {
     setLoading(true);
     setError(null);
     setSelected(null);
     expandedRef.current = new Set();
+    const { w, h } = sizeRef.current;
+
+    const toNode = (it: TrendItem, geo: "JP" | "US", cx: number): GNode => ({
+      id: it.word,
+      isTrend: true,
+      geo,
+      news: it.news,
+      r: trendRadius(it.traffic),
+      x: cx + (Math.random() - 0.5) * w * 0.35,
+      y: h / 2 + (Math.random() - 0.5) * h * 0.6,
+    });
+
     try {
-      const res = await fetch(`/api/trends?geo=${g}`);
-      if (!res.ok) throw new Error(`trends ${res.status}`);
-      const data: { items: TrendItem[] } = await res.json();
-      const { w, h } = sizeRef.current;
-      nodesRef.current = data.items.map((it) => ({
-        id: it.word,
-        isTrend: true,
-        news: it.news,
-        r: trendRadius(it.traffic),
-        x: w / 2 + (Math.random() - 0.5) * w * 0.6,
-        y: h / 2 + (Math.random() - 0.5) * h * 0.6,
-      }));
-      linksRef.current = [];
+      if (m === "BOTH") {
+        const res = await fetch(`/api/compare`);
+        if (!res.ok) throw new Error(`compare ${res.status}`);
+        const data: {
+          jp: TrendItem[];
+          us: TrendItem[];
+          pairs: [string, string][];
+        } = await res.json();
+
+        const nodes: GNode[] = data.jp.map((it) => toNode(it, "JP", w * 0.28));
+        const ids = new Set(nodes.map((n) => n.id));
+        for (const it of data.us) {
+          if (!ids.has(it.word)) {
+            ids.add(it.word);
+            nodes.push(toNode(it, "US", w * 0.72));
+          }
+        }
+        nodesRef.current = nodes;
+        linksRef.current = data.pairs
+          .filter(([a, b]) => ids.has(a) && ids.has(b) && a !== b)
+          .map(([a, b]) => ({ source: a, target: b, shared: true }));
+
+        // 左右に分離する力(比較モードのみ)
+        simRef.current?.force(
+          "split",
+          forceX<GNode>((n) => (n.geo === "US" ? w * 0.72 : w * 0.28)).strength(
+            (n) => (n.isTrend ? 0.08 : 0),
+          ),
+        );
+      } else {
+        const res = await fetch(`/api/trends?geo=${m}`);
+        if (!res.ok) throw new Error(`trends ${res.status}`);
+        const data: { items: TrendItem[] } = await res.json();
+        nodesRef.current = data.items.map((it) => toNode(it, m, w / 2));
+        linksRef.current = [];
+        simRef.current?.force("split", null);
+      }
       transformRef.current = { x: 0, y: 0, k: 1 };
       reheat(1);
     } catch (e) {
@@ -137,13 +177,13 @@ export default function Home() {
     // サジェスト(水色)やニュース無しの星では現在の表示を保持する
     if (node.isTrend && node.news.length > 0) {
       setSelected({ word: node.id, news: node.news });
-      void loadExplain(node.id);
+      void loadExplain(node.id, node.geo);
     }
 
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
 
-    const hl = geoRef.current === "US" ? "en" : "ja";
+    const hl = node.geo === "US" ? "en" : "ja";
     try {
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(node.id)}&hl=${hl}`);
       if (!res.ok) return;
@@ -155,6 +195,7 @@ export default function Home() {
           nodesRef.current.push({
             id: s,
             isTrend: false,
+            geo: node.geo,
             news: [],
             r: 7,
             x: node.x + (Math.random() - 0.5) * 60,
@@ -205,13 +246,13 @@ export default function Home() {
       ctx.fillRect(0, 0, w, h);
       ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
 
-      // リンク
-      ctx.strokeStyle = "rgba(120,140,200,0.35)";
-      ctx.lineWidth = 1;
+      // リンク(JP×USの橋は金色で強調)
       for (const l of linksRef.current) {
         const s = l.source as GNode;
         const tg = l.target as GNode;
         if (typeof s === "string" || typeof tg === "string") continue;
+        ctx.strokeStyle = l.shared ? "rgba(255,210,90,0.8)" : "rgba(120,140,200,0.35)";
+        ctx.lineWidth = l.shared ? 2 : 1;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(tg.x, tg.y);
@@ -224,7 +265,11 @@ export default function Home() {
       for (const n of nodesRef.current) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = n.isTrend ? "#ff6b35" : "#4fc3f7";
+        ctx.fillStyle = n.isTrend
+          ? n.geo === "US"
+            ? "#b388ff"
+            : "#ff6b35"
+          : "#4fc3f7";
         ctx.fill();
 
         const fontSize = Math.max(11, 12 / t.k);
@@ -360,10 +405,10 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const switchGeo = (g: Geo) => {
-    setGeo(g);
-    geoRef.current = g;
-    void loadTrends(g);
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    modeRef.current = m;
+    void loadTrends(m);
   };
 
   return (
@@ -386,11 +431,14 @@ export default function Home() {
           background: "rgba(0,0,0,0.5)",
         }}
       >
-        <button onClick={() => switchGeo("JP")} style={{ fontWeight: geo === "JP" ? "bold" : "normal" }}>
+        <button onClick={() => switchMode("JP")} style={{ fontWeight: mode === "JP" ? "bold" : "normal" }}>
           JP
         </button>
-        <button onClick={() => switchGeo("US")} style={{ fontWeight: geo === "US" ? "bold" : "normal" }}>
+        <button onClick={() => switchMode("US")} style={{ fontWeight: mode === "US" ? "bold" : "normal" }}>
           US
+        </button>
+        <button onClick={() => switchMode("BOTH")} style={{ fontWeight: mode === "BOTH" ? "bold" : "normal" }}>
+          JP×US
         </button>
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "#f66" }}>Error: {error}</span>}

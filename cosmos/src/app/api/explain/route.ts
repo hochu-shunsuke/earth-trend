@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { XMLParser } from "fast-xml-parser";
+import { fetchTrends } from "@/lib/trends";
 
 // ワード単位のメモリキャッシュ(6時間)。Fluid Computeはインスタンスを共有するため有効に効く。
 // CDN側にも s-maxage を付けるので、生成回数は「国×ワード×6時間に1回」が上限になる
@@ -7,25 +7,14 @@ const memCache = new Map<string, { summary: string; exp: number }>();
 const TTL_MS = 6 * 60 * 60 * 1000;
 
 async function getNewsTitles(geo: string, word: string): Promise<string[]> {
-  const res = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {
-    next: { revalidate: 600 },
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; earth-trend)" },
-  });
-  if (!res.ok) return [];
-  const doc = new XMLParser({ ignoreAttributes: false }).parse(await res.text());
-  const raw = doc?.rss?.channel?.item ?? [];
-  const items = Array.isArray(raw) ? raw : [raw];
-  const hit = items.find(
-    (it: Record<string, unknown>) => String(it.title ?? "") === word,
-  );
-  if (!hit) return [];
-  const newsRaw = hit["ht:news_item"] ?? [];
-  const newsArr = Array.isArray(newsRaw) ? newsRaw : [newsRaw];
-  return newsArr
-    .filter(Boolean)
-    .map((n: Record<string, unknown>) => String(n["ht:news_item_title"] ?? ""))
-    .filter((t: string) => t.length > 0)
-    .slice(0, 3);
+  try {
+    const items = await fetchTrends(geo);
+    const hit = items.find((it) => it.word === word);
+    if (!hit) return [];
+    return hit.news.map((n) => n.title).filter((t) => t.length > 0).slice(0, 3);
+  } catch {
+    return [];
+  }
 }
 
 async function generateSummary(
