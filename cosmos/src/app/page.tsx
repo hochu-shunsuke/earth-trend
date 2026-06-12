@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import SiteHeader from "@/components/SiteHeader";
 import {
   forceSimulation,
   forceLink,
@@ -237,21 +238,32 @@ export default function Home() {
       .alphaDecay(0.03);
     simRef.current = sim;
 
-    // --- 描画ループ ---
+    // --- 描画ループ(色はCSS変数から毎フレーム取得=テーマ即時反映) ---
     let raf = 0;
     const draw = () => {
+      const css = getComputedStyle(document.documentElement);
+      const pal = {
+        canvas: css.getPropertyValue("--canvas").trim() || "#0a0a0a",
+        trend: css.getPropertyValue("--trend").trim() || "#ff8a3d",
+        trendUs: "#9b6dff",
+        suggest: css.getPropertyValue("--suggest").trim() || "#52a8ff",
+        linkLine: css.getPropertyValue("--link-line").trim() || "rgba(255,255,255,0.16)",
+        labelBg: css.getPropertyValue("--label-bg").trim() || "rgba(0,0,0,0.72)",
+        labelFg: css.getPropertyValue("--label-fg").trim() || "#ededed",
+      };
+
       const t = transformRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#0a0a1a";
+      ctx.fillStyle = pal.canvas;
       ctx.fillRect(0, 0, w, h);
       ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
 
-      // リンク(JP×USの橋は金色で強調)
+      // リンク(JP×USの橋は強調)
       for (const l of linksRef.current) {
         const s = l.source as GNode;
         const tg = l.target as GNode;
         if (typeof s === "string" || typeof tg === "string") continue;
-        ctx.strokeStyle = l.shared ? "rgba(255,210,90,0.8)" : "rgba(120,140,200,0.35)";
+        ctx.strokeStyle = l.shared ? "rgba(255,180,60,0.8)" : pal.linkLine;
         ctx.lineWidth = l.shared ? 2 : 1;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
@@ -267,17 +279,17 @@ export default function Home() {
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fillStyle = n.isTrend
           ? n.geo === "US"
-            ? "#b388ff"
-            : "#ff6b35"
-          : "#4fc3f7";
+            ? pal.trendUs
+            : pal.trend
+          : pal.suggest;
         ctx.fill();
 
         const fontSize = Math.max(11, 12 / t.k);
         ctx.font = `${fontSize}px sans-serif`;
         const tw = ctx.measureText(n.id).width;
-        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillStyle = pal.labelBg;
         ctx.fillRect(n.x - tw / 2 - 2, n.y + n.r + 3, tw + 4, fontSize + 4);
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = pal.labelFg;
         ctx.fillText(n.id, n.x, n.y + n.r + 5);
       }
       raf = requestAnimationFrame(draw);
@@ -448,41 +460,37 @@ export default function Home() {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#0a0a1a" }}>
+    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}>
       <canvas
         ref={canvasRef}
         style={{ display: "block", cursor: "grab", touchAction: "none" }}
       />
 
-      {/* コントロールバー */}
+      <SiteHeader overlay />
+
+      {/* コントロール */}
       <div
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          padding: 8,
+          top: 60,
+          left: 12,
           display: "flex",
-          gap: 8,
-          color: "#fff",
-          background: "rgba(0,0,0,0.5)",
+          gap: 6,
+          alignItems: "center",
         }}
       >
-        <button onClick={() => switchMode("JP")} style={{ fontWeight: mode === "JP" ? "bold" : "normal" }}>
-          JP
+        <button className="btn" data-active={mode === "JP"} onClick={() => switchMode("JP")}>
+          日本
         </button>
-        <button onClick={() => switchMode("US")} style={{ fontWeight: mode === "US" ? "bold" : "normal" }}>
-          US
+        <button className="btn" data-active={mode === "US"} onClick={() => switchMode("US")}>
+          アメリカ
         </button>
         {/* JP×US比較はデータの入口が狭く絵が安定しないためv2で再設計(コードとAPIは温存) */}
-        <button onClick={exportImage}>画像で保存</button>
-        <a href="/list" style={{ color: "#9ecbff" }}>
-          リスト
-        </a>
-        <a href="/globe" style={{ color: "#9ecbff" }}>
-          地球儀
-        </a>
-        {loading && <span>Loading...</span>}
-        {error && <span style={{ color: "#f66" }}>Error: {error}</span>}
+        <button className="btn" onClick={exportImage}>
+          画像で保存
+        </button>
+        {loading && <span className="muted">Loading...</span>}
+        {error && <span style={{ color: "#e5484d" }}>Error: {error}</span>}
       </div>
 
       {/* 詳細パネル。外枠はクリックを透過させ、裏の星を塞がない */}
@@ -490,57 +498,60 @@ export default function Home() {
         <div
           style={{
             position: "absolute",
-            top: 40,
-            right: 0,
+            top: 60,
+            right: 12,
             width: 320,
-            maxHeight: "80vh",
+            maxHeight: "calc(100vh - 80px)",
             overflowY: "auto",
             pointerEvents: "none",
           }}
         >
-          <div
-            style={{
-              pointerEvents: "auto",
-              padding: 8,
-              color: "#fff",
-              background: "#16161f",
-            }}
-          >
-            <strong>{selected.word}</strong>
+          <div className="panel" style={{ pointerEvents: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <strong>{selected.word}</strong>
+              <button
+                className="btn"
+                style={{ padding: "1px 8px" }}
+                onClick={() => setSelected(null)}
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+            </div>
             {selected.summary && (
-              <p style={{ margin: "6px 0", color: "#ffd58a" }}>{selected.summary}</p>
+              <p style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
+                {selected.summary}
+              </p>
             )}
             {selected.news.length > 0 && (
-              <ul style={{ paddingLeft: 16 }}>
+              <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
                 {selected.news.map((n, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
+                  <li key={i} style={{ marginBottom: 6 }}>
                     {n.url ? (
-                      <a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4fc3f7" }}>
+                      <a href={n.url} target="_blank" rel="noopener noreferrer">
                         {n.title}
                       </a>
                     ) : (
                       n.title
                     )}
-                    {n.source && <span style={{ color: "#aaa", fontSize: "0.85em" }}> ({n.source})</span>}
+                    {n.source && <span className="muted" style={{ fontSize: "0.85em" }}> ({n.source})</span>}
                   </li>
                 ))}
               </ul>
             )}
             {!selected.isTrend && (
-              <p style={{ margin: "6px 0" }}>
-                「{selected.word}」は検索者が次に調べている言葉です。
+              <p style={{ margin: "8px 0" }}>
+                <span className="muted">「{selected.word}」は検索者が次に調べている言葉です。</span>
                 <br />
                 <a
                   href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: "#4fc3f7" }}
                 >
                   Googleで検索結果を見る →
                 </a>
               </p>
             )}
-            <button onClick={() => setSelected(null)}>close</button>
           </div>
         </div>
       )}

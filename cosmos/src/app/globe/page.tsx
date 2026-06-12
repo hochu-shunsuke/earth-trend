@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 
 interface NewsItem {
   title: string;
@@ -216,79 +217,77 @@ export default function GlobePage() {
   }, []);
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#0a0a1a" }}>
+    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#000" }}>
       <div ref={containerRef} />
 
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          padding: 8,
-          display: "flex",
-          gap: 12,
-          color: "#fff",
-          background: "rgba(0,0,0,0.5)",
-          alignItems: "center",
-        }}
+      <SiteHeader overlay />
+
+      <span
+        className="muted"
+        style={{ position: "absolute", top: 60, left: 16, fontSize: 12, color: "#8f8f8f" }}
       >
-        <Link href="/" style={{ color: "#9ecbff" }}>グラフ</Link>
-        <a href="/list" style={{ color: "#9ecbff" }}>リスト</a>
-        <span style={{ fontSize: "0.85em", color: "#aaa" }}>{status}</span>
-      </div>
+        {status}
+      </span>
 
       {selected && (
         <div
           style={{
             position: "absolute",
-            top: 40,
-            right: 0,
+            top: 60,
+            right: 12,
             width: 320,
-            maxHeight: "80vh",
+            maxHeight: "calc(100vh - 80px)",
             overflowY: "auto",
-            padding: 8,
-            color: "#fff",
-            background: "#16161f",
           }}
         >
-          <strong>{selected.word}</strong>
-          <span style={{ marginLeft: 6, color: "#aaa" }}>
-            ({GEO_CENTER[selected.geo]?.label ?? selected.geo})
-          </span>
-          {selected.news.length > 0 && (
-            <ul style={{ paddingLeft: 16 }}>
-              {selected.news.slice(0, 3).map((n, i) => (
-                <li key={i} style={{ marginBottom: 4 }}>
-                  {n.url ? (
-                    <a href={n.url} target="_blank" rel="noopener noreferrer" style={{ color: "#4fc3f7" }}>
-                      {n.title}
-                    </a>
-                  ) : (
-                    n.title
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          <p style={{ margin: "6px 0" }}>
-            <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "#4fc3f7" }}
-            >
-              Googleで検索 →
-            </a>
-            {(selected.geo === "JP" || selected.geo === "US") && (
-              <>
-                {" / "}
-                <Link href="/" style={{ color: "#4fc3f7" }}>
-                  グラフで掘る →
-                </Link>
-              </>
+          <div className="panel">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span>
+                <strong>{selected.word}</strong>
+                <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
+                  {GEO_CENTER[selected.geo]?.label ?? selected.geo}
+                </span>
+              </span>
+              <button
+                className="btn"
+                style={{ padding: "1px 8px" }}
+                onClick={() => setSelected(null)}
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+            </div>
+            {selected.news.length > 0 && (
+              <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
+                {selected.news.slice(0, 3).map((n, i) => (
+                  <li key={i} style={{ marginBottom: 6 }}>
+                    {n.url ? (
+                      <a href={n.url} target="_blank" rel="noopener noreferrer">
+                        {n.title}
+                      </a>
+                    ) : (
+                      n.title
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
-          </p>
-          <button onClick={() => setSelected(null)}>close</button>
+            <p style={{ margin: "8px 0 0" }}>
+              <a
+                href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Googleで検索 →
+              </a>
+              {(selected.geo === "JP" || selected.geo === "US") && (
+                <>
+                  {" / "}
+                  <Link href="/">グラフで掘る →</Link>
+                </>
+              )}
+            </p>
+          </div>
         </div>
       )}
     </div>

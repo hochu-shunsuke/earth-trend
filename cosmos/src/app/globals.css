@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
+/* デザイントークン: モノクロ基調(Vercel系)。色はライト/ダークの2テーマのみ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #ffffff;
+  --fg: #171717;
+  --muted: #666666;
+  --border: #e5e5e5;
+  --panel: #ffffff;
+  --canvas: #fafafa;
+  --accent: #0068d6;
+  --trend: #d35400;
+  --suggest: #0068d6;
+  --new: #0c9f4f;
+  --link-line: rgba(0, 0, 0, 0.14);
+  --label-bg: rgba(255, 255, 255, 0.82);
+  --label-fg: #171717;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --fg: #ededed;
+  --muted: #8f8f8f;
+  --border: #262626;
+  --panel: #111111;
+  --canvas: #0a0a0a;
+  --accent: #52a8ff;
+  --trend: #ff8a3d;
+  --suggest: #52a8ff;
+  --new: #46d27d;
+  --link-line: rgba(255, 255, 255, 0.16);
+  --label-bg: rgba(0, 0, 0, 0.72);
+  --label-fg: #ededed;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 共通ヘッダー */
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.site-header .brand {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg);
+  margin-right: 12px;
+  letter-spacing: -0.01em;
+}
+.site-header .brand:hover {
+  text-decoration: none;
+}
+.site-header nav {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+.site-header nav a {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.site-header nav a:hover {
+  color: var(--fg);
+  text-decoration: none;
+}
+.site-header nav a[data-active="true"] {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+}
+.site-header.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+/* ボタン */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn:hover {
+  border-color: var(--muted);
+}
+.btn[data-active="true"] {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+/* パネル */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.muted {
+  color: var(--muted);
 }
