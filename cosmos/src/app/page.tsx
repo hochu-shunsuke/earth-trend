@@ -36,8 +36,13 @@ interface GraphNode {
 }
 
 interface GraphLink {
-  source: string;
-  target: string;
+  // force-graphは描画後にsource/targetをノードオブジェクトに差し替える
+  source: string | GraphNode;
+  target: string | GraphNode;
+}
+
+function linkId(v: string | GraphNode): string {
+  return typeof v === "string" ? v : v.id;
 }
 
 interface GraphData {
@@ -63,19 +68,16 @@ function nodeColor(node: GraphNode): string {
   return node.isTrend ? "#ff6b35" : "#4fc3f7";
 }
 
-function drawNodeCanvas(
+// 円はライブラリ標準描画(当たり判定内蔵)に任せ、ここではラベルだけ上描きする
+function drawNodeLabel(
   node: GraphNode,
   ctx: CanvasRenderingContext2D,
   globalScale: number
 ) {
   const label = node.label;
   const fontSize = Math.max(8, 12 / globalScale);
-  const r = nodeVal(node);
-
-  ctx.beginPath();
-  ctx.arc(node.x ?? 0, node.y ?? 0, r, 0, 2 * Math.PI);
-  ctx.fillStyle = nodeColor(node);
-  ctx.fill();
+  // ライブラリの半径 = nodeRelSize(既定4) * sqrt(nodeVal)
+  const r = 4 * Math.sqrt(nodeVal(node));
 
   ctx.font = `${fontSize}px sans-serif`;
   ctx.textAlign = "center";
@@ -94,18 +96,6 @@ function drawNodeCanvas(
   ctx.fillText(label, node.x ?? 0, by + bh / 2);
 }
 
-// クリック判定領域(ノード円+少し余裕)を単色で塗る。replaceモード時は必須
-function paintPointerArea(
-  node: GraphNode,
-  color: string,
-  ctx: CanvasRenderingContext2D
-) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(node.x ?? 0, node.y ?? 0, nodeVal(node) + 4, 0, 2 * Math.PI);
-  ctx.fill();
-}
-
 // --- メインコンポーネント ---
 
 export default function Home() {
@@ -115,8 +105,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsItem[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [lastClicked, setLastClicked] = useState<string | null>(null);
 
-  const nodeMapRef = useRef<Map<string, GraphNode>>(new Map());
+  const expandedRef = useRef<Set<string>>(new Set());
 
   // geo変更時のトレンド取得
   const handleGeoChange = useCallback(async (g: Geo) => {
@@ -125,7 +116,7 @@ export default function Home() {
     setGraphData({ nodes: [], links: [] });
     setSelectedNews([]);
     setSelectedWord(null);
-    nodeMapRef.current = new Map();
+    expandedRef.current = new Set();
 
     try {
       const res = await fetch(`/api/trends?geo=${g}`);
@@ -140,10 +131,6 @@ export default function Home() {
         news: item.news,
         expanded: false,
       }));
-
-      const map = new Map<string, GraphNode>();
-      nodes.forEach((n) => map.set(n.id, n));
-      nodeMapRef.current = map;
 
       setGraphData({ nodes: [...nodes], links: [] });
     } catch (e) {
@@ -166,6 +153,7 @@ export default function Home() {
   const handleNodeClick = useCallback(
     async (rawNode: object) => {
       const node = rawNode as GraphNode;
+      setLastClicked(node.id);
 
       if (node.isTrend && node.news.length > 0) {
         setSelectedWord(node.label);
@@ -175,12 +163,9 @@ export default function Home() {
         setSelectedNews([]);
       }
 
-      if (node.expanded) return;
-
-      const existing = nodeMapRef.current.get(node.id);
-      if (existing) {
-        existing.expanded = true;
-      }
+      // 展開済み管理はRefで(更新関数の外で判定し、更新関数は純粋に保つ)
+      if (expandedRef.current.has(node.id)) return;
+      expandedRef.current.add(node.id);
 
       const hl = geo === "US" ? "en" : "ja";
       try {
@@ -191,31 +176,32 @@ export default function Home() {
         const data: { q: string; suggestions: string[] } = await res.json();
 
         setGraphData((prev) => {
+          const ids = new Set(prev.nodes.map((n) => n.id));
+          const linkKeys = new Set(
+            prev.links.map((l) => `${linkId(l.source)}→${linkId(l.target)}`)
+          );
           const newNodes = [...prev.nodes];
           const newLinks = [...prev.links];
 
-          data.suggestions.forEach((suggestion) => {
-            if (!nodeMapRef.current.has(suggestion)) {
-              const newNode: GraphNode = {
+          for (const suggestion of data.suggestions) {
+            if (!ids.has(suggestion)) {
+              ids.add(suggestion);
+              newNodes.push({
                 id: suggestion,
                 label: suggestion,
                 isTrend: false,
                 traffic: 0,
                 news: [],
                 expanded: false,
-              };
-              nodeMapRef.current.set(suggestion, newNode);
-              newNodes.push(newNode);
+              });
             }
-            const linkExists = newLinks.some(
-              (l) =>
-                (l.source === node.id && l.target === suggestion) ||
-                (l.source === suggestion && l.target === node.id)
-            );
-            if (!linkExists) {
+            const k1 = `${node.id}→${suggestion}`;
+            const k2 = `${suggestion}→${node.id}`;
+            if (!linkKeys.has(k1) && !linkKeys.has(k2)) {
+              linkKeys.add(k1);
               newLinks.push({ source: node.id, target: suggestion });
             }
-          });
+          }
 
           return { nodes: newNodes, links: newLinks };
         });
@@ -273,6 +259,7 @@ export default function Home() {
         </button>
         {loading && <span>Loading...</span>}
         {error && <span style={{ color: "red" }}>Error: {error}</span>}
+        {lastClicked && <span style={{ color: "#8f8" }}>clicked: {lastClicked}</span>}
       </div>
 
       {/* ニュースパネル */}
@@ -340,13 +327,9 @@ export default function Home() {
         nodeColor={(n: any) => nodeColor(n as GraphNode)}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nodeCanvasObject={(n: any, ctx: CanvasRenderingContext2D, scale: number) =>
-          drawNodeCanvas(n as GraphNode, ctx, scale)
+          drawNodeLabel(n as GraphNode, ctx, scale)
         }
-        nodeCanvasObjectMode={() => "replace"}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        nodePointerAreaPaint={(n: any, color: string, ctx: CanvasRenderingContext2D) =>
-          paintPointerArea(n as GraphNode, color, ctx)
-        }
+        nodeCanvasObjectMode={() => "after"}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onNodeClick={(n: any) => handleNodeClick(n as object)}
         linkColor={() => "#555555"}
