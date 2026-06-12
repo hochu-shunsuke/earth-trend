@@ -85,7 +85,7 @@ export default function GlobePage() {
       }
     }
     const bg = v("--bg", "#0a0a0a");
-    const sphere = light ? "#f0f0f0" : "#161616"; // 背景から少しずらして輪郭を出す
+    const sphere = light ? "#262626" : "#161616"; // ライトも濃い球(白背景に浮かぶ) // 背景から少しずらして輪郭を出す
     // 大陸は塗らず輪郭線だけ(塗りを球と同色にして線だけ見せる)
     globe
       .showGlobe(true)
@@ -94,7 +94,7 @@ export default function GlobePage() {
       .polygonsData(countriesRef.current ?? [])
       .polygonCapColor(() => "rgba(0,0,0,0)")
       .polygonSideColor(() => "rgba(0,0,0,0)")
-      .polygonStrokeColor(() => (light ? "#9a9a9a" : "#555555"))
+      .polygonStrokeColor(() => (light ? "#7a7a7a" : "#555555"))
       .polygonAltitude(0.006);
     // 球体は背景に馴染む自発光(照明無視)で、裏側のドット/ラベルを隠すオクルーダー
     const tint = () => {
@@ -180,9 +180,10 @@ export default function GlobePage() {
           // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
           const css = getComputedStyle(document.documentElement);
           const light = document.documentElement.dataset.theme !== "dark";
+          // 球体はライトでも濃色なので、ラベルは常に明るい青+影で浮かせる
           const color = label.isNew
             ? css.getPropertyValue("--new").trim() || "#46d27d"
-            : css.getPropertyValue("--accent").trim() || "#52a8ff";
+            : "#52a8ff";
           el.style.cssText = [
             `font-size: ${Math.round(8 + label.size * 7)}px`,
             "font-weight: 600",
@@ -190,7 +191,7 @@ export default function GlobePage() {
             "font-family: sans-serif",
             "white-space: nowrap",
             "pointer-events: none",
-            `text-shadow: ${light ? "none" : "0 0 4px rgba(0,0,0,0.9)"}`,
+            "text-shadow: 0 0 4px rgba(0,0,0,0.7)",
             "transform: translate(-50%, -50%)",
           ].join(";");
           label.el = el;
