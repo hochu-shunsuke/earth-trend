@@ -94,6 +94,18 @@ function drawNodeCanvas(
   ctx.fillText(label, node.x ?? 0, by + bh / 2);
 }
 
+// クリック判定領域(ノード円+少し余裕)を単色で塗る。replaceモード時は必須
+function paintPointerArea(
+  node: GraphNode,
+  color: string,
+  ctx: CanvasRenderingContext2D
+) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(node.x ?? 0, node.y ?? 0, nodeVal(node) + 4, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
 // --- メインコンポーネント ---
 
 export default function Home() {
@@ -331,6 +343,10 @@ export default function Home() {
           drawNodeCanvas(n as GraphNode, ctx, scale)
         }
         nodeCanvasObjectMode={() => "replace"}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        nodePointerAreaPaint={(n: any, color: string, ctx: CanvasRenderingContext2D) =>
+          paintPointerArea(n as GraphNode, color, ctx)
+        }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onNodeClick={(n: any) => handleNodeClick(n as object)}
         linkColor={() => "#555555"}
