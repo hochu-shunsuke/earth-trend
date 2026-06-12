@@ -86,14 +86,16 @@ export default function GlobePage() {
     }
     const bg = v("--bg", "#0a0a0a");
     const sphere = light ? "#f0f0f0" : "#161616"; // 背景から少しずらして輪郭を出す
+    // 大陸は塗らず輪郭線だけ(塗りを球と同色にして線だけ見せる)
     globe
       .showGlobe(true)
       .showAtmosphere(false)
       .backgroundColor(bg)
-      .hexPolygonsData(countriesRef.current ?? [])
-      .hexPolygonResolution(3)
-      .hexPolygonMargin(0.6)
-      .hexPolygonColor(() => (light ? "#9a9a9a" : "#4a4a4a"));
+      .polygonsData(countriesRef.current ?? [])
+      .polygonCapColor(() => "rgba(0,0,0,0)")
+      .polygonSideColor(() => "rgba(0,0,0,0)")
+      .polygonStrokeColor(() => (light ? "#9a9a9a" : "#555555"))
+      .polygonAltitude(0.006);
     // 球体は背景に馴染む自発光(照明無視)で、裏側のドット/ラベルを隠すオクルーダー
     const tint = () => {
       const mat = globe.globeMaterial();
@@ -218,7 +220,7 @@ export default function GlobePage() {
         if (resumeTimer) clearTimeout(resumeTimer);
         resumeTimer = setTimeout(() => {
           controls.autoRotate = true;
-        }, 8000);
+        }, 3000);
       });
 
       globe.pointOfView({ lat: 25, lng: 110, altitude: 2.2 });
