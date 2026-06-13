@@ -231,10 +231,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         // 着地では詳細シートは開かない(画面半分を占有しない)。詳細はタップで初めて出す
         const node = seedNode;
         diveTimerRef.current = setTimeout(async () => {
-          await onNodeHit(node, { select: false }); // 展開のみ(子ノードfetch)
-          settleSim(120); // 子ノードを整定させてから目標を確定
-          tweenTo(node.id, 1500); // 緩やかに対象へ寄る
-        }, 650);
+          node.fx = node.x; // 中心を固定→ズーム対象がブレず、固定目標へ正確に着地する
+          node.fy = node.y;
+          await onNodeHit(node, { select: false }); // 子をリング配置で開く(整定不要)
+          tweenTo(node.id, 1500); // 開くのと同時に対象へ緩やかにズーム
+        }, 400);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
@@ -276,22 +277,28 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         mode === "mirror" ? data.suggestions.filter((s) => !CRISIS.test(s)) : data.suggestions;
 
       const ids = new Set(nodesRef.current.map((n) => n.id));
+      // 新規の子だけをリング状に配置する。force任せに広げないので整定が要らず、
+      // 全体が一気に動く「ガコッ」が出ない & 置いた瞬間にズーム対象が確定する
+      const fresh = suggestions.filter((s) => !ids.has(s));
+      const ringR = 78;
+      fresh.forEach((s, i) => {
+        const a = (i / Math.max(1, fresh.length)) * Math.PI * 2 - Math.PI / 2;
+        ids.add(s);
+        nodesRef.current.push({
+          id: s,
+          isSeed: false,
+          geo: node.geo,
+          news: [],
+          r: 7,
+          x: node.x + Math.cos(a) * ringR,
+          y: node.y + Math.sin(a) * ringR,
+        });
+      });
       for (const s of suggestions) {
-        if (!ids.has(s)) {
-          ids.add(s);
-          nodesRef.current.push({
-            id: s,
-            isSeed: false,
-            geo: node.geo,
-            news: [],
-            r: 7,
-            x: node.x + (Math.random() - 0.5) * 60,
-            y: node.y + (Math.random() - 0.5) * 60,
-          });
-        }
         linksRef.current.push({ source: node.id, target: s });
       }
-      reheat(0.7);
+      // 既存ノードを揺らさないよう低めの再加熱(リング配置なので軽く整うだけでよい)
+      reheat(0.35);
     } catch {
       /* サジェスト失敗は無視 */
     }
@@ -332,7 +339,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       const tw = camTweenRef.current;
       if (tw) {
         const p = Math.min(1, (performance.now() - tw.start) / tw.dur);
-        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        // ease-in-out cubic: 入りの加速がより穏やか
+        const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
         transformRef.current = {
           k: tw.from.k + (tw.to.k - tw.from.k) * e,
           x: tw.from.x + (tw.to.x - tw.from.x) * e,
@@ -586,11 +594,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         y: (h / 2 - t.y) / t.k,
       };
       nodesRef.current.push(node);
-      reheat(0.8);
     }
-    // 子ノードが届いてから整定→緩やかに寄せる(急加速しない)
+    node.fx = node.x; // 中心を固定→寄せる対象がブレない
+    node.fy = node.y;
+    // 子をリング配置で開く(整定不要)のと同時に、緩やかに寄せる
     void onNodeHit(node).then(() => {
-      settleSim(120);
       tweenTo(node.id, 1400);
     });
   };
