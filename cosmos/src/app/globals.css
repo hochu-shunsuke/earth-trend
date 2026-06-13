@@ -134,6 +134,48 @@ select.btn {
   border-color: var(--fg);
 }
 
+/* 画面下部中央の浮遊ドック(コマンドパレット風) */
+.dock {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  max-width: calc(100vw - 24px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+.dock .btn {
+  padding: 7px 14px;
+  font-size: 14px;
+}
+.dock input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 15px;
+  width: min(66vw, 340px);
+  padding: 6px 10px;
+}
+.dock input::placeholder {
+  color: var(--muted);
+}
+.dock .word {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 6px;
+  font-weight: 600;
+}
+
 /* パネル */
 .panel {
   background: var(--panel);

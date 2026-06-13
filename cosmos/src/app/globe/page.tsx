@@ -352,22 +352,28 @@ export default function GlobePage() {
                 ))}
               </ul>
             )}
-            <p style={{ margin: "8px 0 0" }}>
-              <a
-                href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Googleで検索 →
-              </a>
-              {" / "}
-              <Link
-                href={`/explore?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
-              >
-                探索する →
-              </Link>
-            </p>
           </div>
+        </div>
+      )}
+
+      {/* 画面下部中央のドック: 選択語のアクション */}
+      {selected && (
+        <div className="dock">
+          <span className="word">{selected.word}</span>
+          <a
+            className="btn"
+            href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Googleで検索
+          </a>
+          <Link
+            className="btn"
+            href={`/explore?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+          >
+            探索する
+          </Link>
         </div>
       )}
     </div>

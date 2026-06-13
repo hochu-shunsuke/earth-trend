@@ -518,27 +518,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             </option>
           ))}
         </select>
-        {mode === "mirror" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addQuestion(input);
-            }}
-            style={{ display: "flex", gap: 6 }}
-          >
-            <input
-              className="btn"
-              style={{ width: 200, cursor: "text" }}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={sel === "en" ? "ask your own…" : "自分の問いを入力…"}
-              aria-label="問いを入力"
-            />
-            <button className="btn" type="submit">
-              潜る
-            </button>
-          </form>
-        )}
         <button className="btn" onClick={exportImage}>
           画像で保存
         </button>
@@ -571,8 +550,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               </button>
             </div>
 
-            {mode === "trends" && selected.news.length > 0 && (
-              <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
+            {selected.news.length > 0 ? (
+              <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
                 {selected.news.map((n, i) => (
                   <li key={i} style={{ marginBottom: 6 }}>
                     {n.url ? (
@@ -591,25 +570,62 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                {mode === "mirror"
+                  ? "世界が実際に検索している言葉。"
+                  : "検索者が次に調べている言葉。"}
+              </p>
             )}
-
-            <p style={{ margin: "8px 0" }}>
-              {mode === "mirror" && (
-                <span className="muted">
-                  これは世界が実際に検索している言葉です。
-                  <br />
-                </span>
-              )}
-              <a
-                href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Googleで検索結果を見る →
-              </a>
-            </p>
           </div>
         </div>
+      )}
+
+      {/* 画面下部中央のドック: 問い=入力(+選択語のGoogle) / トレンド=選択語のアクション */}
+      {mode === "mirror" ? (
+        <div className="dock">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addQuestion(input);
+            }}
+            style={{ display: "flex", gap: 10, alignItems: "center" }}
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={sel === "en" ? "ask your own question…" : "自分の問いを入力…"}
+              aria-label="問いを入力"
+            />
+            <button className="btn" type="submit">
+              潜る
+            </button>
+          </form>
+          {selected && (
+            <a
+              className="btn"
+              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Googleで検索
+            </a>
+          )}
+        </div>
+      ) : (
+        selected && (
+          <div className="dock">
+            <span className="word">{selected.word}</span>
+            <a
+              className="btn"
+              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Googleで検索
+            </a>
+          </div>
+        )
       )}
 
       {/* 自分の問いが危機に関わるとき: グラフでなく、まず人として応える */}
@@ -642,12 +658,12 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         </div>
       )}
 
-      {/* 問いの鏡: 危機に関わる検索への配慮(常設) */}
+      {/* 問いの鏡: 危機に関わる検索への配慮(常設・ドックの上) */}
       {help && (
         <div
           style={{
             position: "absolute",
-            bottom: 10,
+            bottom: 100,
             left: 0,
             right: 0,
             textAlign: "center",

@@ -1,0 +1,10 @@
+import puppeteer from "puppeteer-core";
+const b = await puppeteer.launch({ executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: true });
+const p = await b.newPage(); await p.setViewport({ width: 1200, height: 800 });
+const errs=[]; p.on("pageerror",e=>errs.push(e.message));
+await p.goto("http://localhost:3190/mirror",{waitUntil:"domcontentloaded",timeout:60000});
+await new Promise(r=>setTimeout(r,4000));
+const dock = await p.evaluate(()=>{const d=document.querySelector(".dock");if(!d)return null;const r=d.getBoundingClientRect();return{cx:Math.round(r.x+r.width/2),bottom:Math.round(window.innerHeight-r.bottom),h:Math.round(r.height)};});
+console.log("mirror dock (cx should ~600, centered):", JSON.stringify(dock));
+await p.screenshot({path:"/tmp/dock2-mirror.png"});
+await b.close();
