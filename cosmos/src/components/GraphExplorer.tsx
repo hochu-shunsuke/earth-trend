@@ -235,7 +235,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           node.fy = node.y;
           await onNodeHit(node, { select: false }); // 子をリング配置で開く(整定不要)
           tweenTo(node.id, 1500); // 開くのと同時に対象へ緩やかにズーム
-        }, 400);
+        }, 200);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
