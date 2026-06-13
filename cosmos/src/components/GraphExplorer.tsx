@@ -61,20 +61,9 @@ const MIRROR_LANGS: [string, string][] = [
 ];
 const isLang = (v: string) => MIRROR_LANGS.some(([c]) => c === v);
 
-// 危機に関わる補完は尊厳をもって扱う: 表示せず、相談導線に委ねる(暫定パターン。要強化)
+// 危機に関わる補完はグラフに表示しない(暫定パターン)
 const CRISIS =
   /(死にたい|自殺|消えたい|リスト?カット|死ぬ方法|死ね|自傷|消えてしまいたい|kill myself|suicide|want to die|end my life|self.?harm|kill me)/i;
-
-const HELPLINE: Record<string, { label: string; href: string }> = {
-  ja: {
-    label: "つらいときは、ひとりで抱えないで — いのちの電話",
-    href: "https://www.inochinodenwa.org/",
-  },
-  en: {
-    label: "If you're struggling, you're not alone — find a helpline",
-    href: "https://findahelpline.com/",
-  },
-};
 
 // --- 本体 ---
 
@@ -94,7 +83,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [started, setStarted] = useState(false); // mirror: 最初の問いを入れたか
-  const [crisisNotice, setCrisisNotice] = useState(false);
   const [selected, setSelected] = useState<{
     word: string;
     news: NewsItem[];
@@ -133,8 +121,23 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       transformRef.current = { x: 0, y: 0, k: 1 };
       reheat(1);
       if (seed) {
-        const seedNode = nodesRef.current.find((n) => n.id === seed);
-        if (seedNode) void onNodeHit(seedNode);
+        // キャッシュのタイミング差でトレンド一覧にseedが無いことがある。
+        // その場合はseedノードを自前で作って必ずダイブできるようにする
+        let seedNode = nodesRef.current.find((n) => n.id === seed);
+        if (!seedNode) {
+          seedNode = {
+            id: seed,
+            isSeed: true,
+            geo,
+            news: [],
+            r: 13,
+            x: w / 2,
+            y: h / 2,
+          };
+          nodesRef.current.push(seedNode);
+          reheat(1);
+        }
+        void onNodeHit(seedNode);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
@@ -418,16 +421,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     else void loadTrends(v);
   };
 
-  // 問いの鏡: 自分の問いを起点に潜る(personal stake)。
-  // 自分の入力が危機に関わる場合は、グラフでなく相談導線で尊厳をもって応える
+  // 問いの鏡: 自分の問いを起点に潜る(personal stake)
   const addQuestion = (raw: string) => {
     const text = raw.trim().slice(0, 60);
     if (!text) return;
-    if (CRISIS.test(text)) {
-      setInput("");
-      setCrisisNotice(true);
-      return;
-    }
     setInput("");
     setStarted(true);
     let node = nodesRef.current.find((n) => n.id === text);
@@ -485,7 +482,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   };
 
   const options = mode === "mirror" ? MIRROR_LANGS : Object.entries(GEO_LABELS);
-  const help = mode === "mirror" ? HELPLINE[sel] ?? HELPLINE.ja : null;
 
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}>
@@ -629,60 +625,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             </a>
           </div>
         )
-      )}
-
-      {/* 自分の問いが危機に関わるとき: グラフでなく、まず人として応える */}
-      {crisisNotice && help && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.55)",
-          }}
-        >
-          <div className="panel" style={{ maxWidth: 360, textAlign: "center" }}>
-            <p style={{ margin: "4px 0 12px" }}>
-              そのことを検索してくれて、ここに来てくれてありがとう。
-              <br />
-              ひとりで抱えなくていい。
-            </p>
-            <p style={{ margin: "0 0 12px" }}>
-              <a href={help.href} target="_blank" rel="noopener noreferrer">
-                相談できる窓口を見る →
-              </a>
-            </p>
-            <button className="btn" onClick={() => setCrisisNotice(false)}>
-              閉じる
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 問いの鏡: 危機に関わる検索への配慮(常設・ドックの上) */}
-      {help && started && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 100,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            pointerEvents: "none",
-          }}
-        >
-          <a
-            href={help.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="muted"
-            style={{ pointerEvents: "auto", fontSize: 12 }}
-          >
-            {help.label} ↗
-          </a>
-        </div>
       )}
     </div>
   );

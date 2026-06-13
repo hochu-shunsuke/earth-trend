@@ -57,24 +57,6 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section style={{ marginTop: 24 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600 }}>つらいときは</h2>
-          <p>
-            検索のなかには、苦しい気持ちに触れる言葉もあります。{SITE_NAME}
-            では、そうした検索を面白がるように扱うことはしません。ひとりで抱えきれないと感じたら、
-            どうか専門の窓口を頼ってください。
-          </p>
-          <p>
-            <a href="https://www.inochinodenwa.org/" target="_blank" rel="noopener noreferrer">
-              いのちの電話
-            </a>
-            {" / "}
-            <a href="https://findahelpline.com/" target="_blank" rel="noopener noreferrer">
-              Find a Helpline(海外)
-            </a>
-          </p>
-        </section>
-
         <p style={{ marginTop: 32 }}>
           <Link href="/">← {SITE_NAME} に戻る</Link>
         </p>
