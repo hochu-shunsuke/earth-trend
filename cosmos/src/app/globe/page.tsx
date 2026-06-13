@@ -360,12 +360,12 @@ export default function GlobePage() {
               >
                 Googleで検索 →
               </a>
-              {(selected.geo === "JP" || selected.geo === "US") && (
-                <>
-                  {" / "}
-                  <Link href="/">グラフで掘る →</Link>
-                </>
-              )}
+              {" / "}
+              <Link
+                href={`/explore?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+              >
+                探索する →
+              </Link>
             </p>
           </div>
         </div>

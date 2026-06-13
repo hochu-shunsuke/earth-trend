@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 
 const TABS: [string, string][] = [
-  ["/", "グラフ"],
+  ["/", "脈拍"],
+  ["/explore", "探索"],
   ["/globe", "地球儀"],
-  ["/list", "リスト"],
 ];
 
 export default function SiteHeader({ overlay = false }: { overlay?: boolean }) {
