@@ -53,9 +53,10 @@ async function fetchTrends(geo) {
 }
 
 async function redis(commands) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) throw new Error("UPSTASH env vars missing");
+  // Vercel連携は KV_REST_API_* 形式、手動は UPSTASH_REDIS_REST_* 形式。両対応
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error("Redis REST env vars missing");
   const res = await fetch(`${url}/pipeline`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
