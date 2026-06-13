@@ -54,10 +54,19 @@ function trendRadius(traffic: string): number {
   return Math.max(10, Math.log10(n + 1) * 5 + 6);
 }
 
-// 問いの鏡: 集合的無意識を引き出す語幹(evergreen)
+// 問いの鏡: 集合的無意識を引き出す"入口の問い"(キュレーション層)。
+// 学び: 裸の疑問詞(どうして等)はトレンド名詞を拾って濁る。
+// "未完の感情的な問い"の形にすると、実存的な補完が返る。
 const STEMS: Record<string, string[]> = {
-  ja: ["なぜ私は", "どうすれば", "なぜ人は", "私だけ", "どうして", "意味ってあるの"],
-  en: ["why am i", "how do i", "why do people", "is it normal to", "what if i", "am i the only one"],
+  ja: ["なぜ私は", "どうして私", "人はなぜ", "本当の自分", "普通って", "愛って"],
+  en: [
+    "why am i",
+    "why do i feel",
+    "is it normal to",
+    "what is the point of",
+    "am i the only one who",
+    "why does nobody",
+  ],
 };
 
 const MIRROR_LANGS: [string, string][] = [
@@ -96,6 +105,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const [sel, setSel] = useState<string>(mode === "mirror" ? "ja" : "JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [input, setInput] = useState("");
+  const [crisisNotice, setCrisisNotice] = useState(false);
   const [selected, setSelected] = useState<{
     word: string;
     news: NewsItem[];
@@ -409,6 +420,36 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     else void loadTrends(v);
   };
 
+  // 問いの鏡: 自分の問いを起点に潜る(personal stake)。
+  // 自分の入力が危機に関わる場合は、グラフでなく相談導線で尊厳をもって応える
+  const addQuestion = (raw: string) => {
+    const text = raw.trim().slice(0, 60);
+    if (!text) return;
+    if (CRISIS.test(text)) {
+      setInput("");
+      setCrisisNotice(true);
+      return;
+    }
+    setInput("");
+    let node = nodesRef.current.find((n) => n.id === text);
+    if (!node) {
+      const { w, h } = sizeRef.current;
+      const t = transformRef.current;
+      node = {
+        id: text,
+        isSeed: true,
+        geo: selectRef.current,
+        news: [],
+        r: 13,
+        x: (w / 2 - t.x) / t.k,
+        y: (h / 2 - t.y) / t.k,
+      };
+      nodesRef.current.push(node);
+      reheat(0.8);
+    }
+    void onNodeHit(node);
+  };
+
   const exportImage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -477,14 +518,30 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             </option>
           ))}
         </select>
+        {mode === "mirror" && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addQuestion(input);
+            }}
+            style={{ display: "flex", gap: 6 }}
+          >
+            <input
+              className="btn"
+              style={{ width: 200, cursor: "text" }}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={sel === "en" ? "ask your own…" : "自分の問いを入力…"}
+              aria-label="問いを入力"
+            />
+            <button className="btn" type="submit">
+              潜る
+            </button>
+          </form>
+        )}
         <button className="btn" onClick={exportImage}>
           画像で保存
         </button>
-        {mode === "mirror" && (
-          <span className="muted" style={{ fontSize: 12 }}>
-            問いを押すと、世界の続きが広がる
-          </span>
-        )}
         {loading && <span className="muted">Loading...</span>}
         {error && <span style={{ color: "#e5484d" }}>Error: {error}</span>}
       </div>
@@ -551,6 +608,36 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
                 Googleで検索結果を見る →
               </a>
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* 自分の問いが危機に関わるとき: グラフでなく、まず人として応える */}
+      {crisisNotice && help && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.55)",
+          }}
+        >
+          <div className="panel" style={{ maxWidth: 360, textAlign: "center" }}>
+            <p style={{ margin: "4px 0 12px" }}>
+              そのことを検索してくれて、ここに来てくれてありがとう。
+              <br />
+              ひとりで抱えなくていい。
+            </p>
+            <p style={{ margin: "0 0 12px" }}>
+              <a href={help.href} target="_blank" rel="noopener noreferrer">
+                相談できる窓口を見る →
+              </a>
+            </p>
+            <button className="btn" onClick={() => setCrisisNotice(false)}>
+              閉じる
+            </button>
           </div>
         </div>
       )}
