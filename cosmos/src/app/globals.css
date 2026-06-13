@@ -69,6 +69,7 @@ a:hover {
   right: 0;
   z-index: 20;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
   height: 48px;
@@ -82,20 +83,29 @@ a:hover {
   color: var(--fg);
   margin-right: 12px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .site-header .brand:hover {
   text-decoration: none;
 }
 .site-header nav {
   display: flex;
+  flex-wrap: nowrap;
   gap: 2px;
   flex: 1;
+  min-width: 0;
 }
 .site-header nav a {
   color: var(--muted);
   font-size: 13px;
   padding: 4px 10px;
   border-radius: 6px;
+  white-space: nowrap;
+}
+/* テーマ切替は潰さない(改行/欠けを防ぐ) */
+.site-header > .btn {
+  flex-shrink: 0;
 }
 .site-header nav a:hover {
   color: var(--fg);
@@ -150,6 +160,8 @@ select.btn {
 .dock .btn {
   padding: 7px 14px;
   font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .dock input {
   border: none;
@@ -198,18 +210,23 @@ select.btn {
 /* モバイル: ヘッダーを詰めて折り返しを防ぐ・パネルをコントロールの下へ */
 @media (max-width: 560px) {
   .site-header {
-    padding: 0 10px;
+    padding: 0 8px;
     gap: 2px;
   }
   .site-header .brand {
-    margin-right: 6px;
-    font-size: 13px;
+    margin-right: 4px;
+    font-size: 12px;
   }
   .site-header nav {
     gap: 0;
+    justify-content: center;
   }
   .site-header nav a {
-    padding: 4px 7px;
+    padding: 4px 6px;
+    font-size: 11.5px;
+  }
+  .site-header > .btn {
+    padding: 3px 6px;
     font-size: 12px;
   }
   /* モバイル: 詳細はグラフを覆わない下部シートにする(上半分が隠れる問題の解消) */

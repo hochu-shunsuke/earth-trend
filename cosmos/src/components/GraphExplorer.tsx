@@ -79,22 +79,20 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const selectRef = useRef<string>(mode === "mirror" ? "ja" : "JP");
   // 描画ループ内で「この時刻を過ぎたら一度だけ画面にフィット」する予約。
   // レイアウトが落ち着いてから収めるため、即時でなく遅延で予約する
-  const fitAtRef = useRef(0);
-  // フィットは瞬間移動だと「ガコッ」となるので、現在→目標へ滑らかに補間する
-  const fitAnimRef = useRef<{
-    from: { x: number; y: number; k: number };
-    to: { x: number; y: number; k: number };
-    start: number;
-    dur: number;
-  } | null>(null);
-  // フィット対象。null=全ノード(俯瞰) / id指定=そのノード+隣接(ダイブ先に寄る)
-  const focusIdRef = useRef<string | null>(null);
+  // カメラの「目標」。指定時刻まで毎フレーム目標へ滑らかに追従する(離散tweenだと
+  // forceの揺れと噛んでカクつくため、生きた目標を連続イージングで追う方式にした)。
+  // focus: null=全ノード(俯瞰) / id=そのノード+隣接(寄る)
+  const cameraGoalRef = useRef<{ focus: string | null; until: number } | null>(null);
   // 「俯瞰→ダイブ」の二段カメラ用タイマー(新規ロード/アンマウントで破棄)
   const diveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 詳細パネルの実DOM矩形を読んで、フィット時にその領域を避ける(隠れ防止)
   const panelRef = useRef<HTMLDivElement>(null);
-  const scheduleFit = (delay = 700) => {
-    fitAtRef.current = performance.now() + delay;
+  // カメラ目標を設定(durミリ秒のあいだ追従)
+  const aimCamera = (focus: string | null, dur = 1300) => {
+    cameraGoalRef.current = { focus, until: performance.now() + dur };
+  };
+  const stopCamera = () => {
+    cameraGoalRef.current = null;
   };
 
   const [sel, setSel] = useState<string>(mode === "mirror" ? "ja" : "JP");
@@ -122,7 +120,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     setError(null);
     setSelected(null);
     expandedRef.current = new Set();
-    focusIdRef.current = null;
+    stopCamera();
     if (diveTimerRef.current) clearTimeout(diveTimerRef.current);
     const { w, h } = sizeRef.current;
     try {
@@ -158,18 +156,16 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           nodesRef.current.push(seedNode);
           reheat(1);
         }
-        // 二段カメラ: まず世界全体のトレンドを俯瞰 → 少し置いて選択ノードへ流れるように寄る
-        focusIdRef.current = null;
-        scheduleFit(550); // ①俯瞰(全トレンド)
+        // 二段カメラ: ①まず世界全体のトレンドを俯瞰 → ②選択ノードへ流れるように寄る。
+        // 着地では詳細シートは開かない(=画面半分を占有しない)。詳細はタップで初めて出す
         const node = seedNode;
+        aimCamera(null, 1300); // ①俯瞰(全トレンドを連続追従)
         diveTimerRef.current = setTimeout(() => {
-          void onNodeHit(node); // ②ダイブ(展開+選択)
-          focusIdRef.current = node.id;
-          scheduleFit(550); // ③子ノードが届いた頃に対象へ寄る
-        }, 1250);
+          void onNodeHit(node, { select: false }); // ②展開のみ(シートは開かない)
+          aimCamera(node.id, 1700); // 対象へ寄る
+        }, 1100);
       } else {
-        focusIdRef.current = null;
-        scheduleFit(700);
+        aimCamera(null, 1100);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
@@ -183,9 +179,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     setError(null);
     setSelected(null);
     expandedRef.current = new Set();
-    focusIdRef.current = null;
+    stopCamera();
     if (diveTimerRef.current) clearTimeout(diveTimerRef.current);
-    fitAnimRef.current = null;
     nodesRef.current = [];
     linksRef.current = [];
     transformRef.current = { x: 0, y: 0, k: 1 };
@@ -193,8 +188,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     setStarted(false);
   };
 
-  const onNodeHit = async (node: GNode) => {
-    setSelected({ word: node.id, news: node.news, isSeed: node.isSeed });
+  // select: 詳細シートを開くか。自動ダイブ(着地)では展開だけして開かない
+  const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
+    if (opts?.select !== false) {
+      setSelected({ word: node.id, news: node.news, isSeed: node.isSeed });
+    }
 
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
@@ -258,11 +256,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       .alphaDecay(0.03);
     simRef.current = sim;
 
-    // グラフ全体を、ヘッダー/詳細パネル/ドックに隠れない可視領域へ収める。
-    // 着地直後に半分が画面外…を防ぐ要(モバイルで特に効く)
-    const doFit = (focusId: string | null) => {
+    // 目標の画角(transform)を計算する純関数。focus指定でそのノード+隣接に寄る。
+    // ヘッダー/詳細パネル/ドックに隠れない可視領域へ収める
+    const computeFitTarget = (focusId: string | null) => {
       let ns = nodesRef.current;
-      // ダイブ時は対象ノード+その隣接だけを画角に収める(寄る)
       if (focusId) {
         const ids = new Set<string>([focusId]);
         for (const l of linksRef.current) {
@@ -274,7 +271,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         const sub = nodesRef.current.filter((n) => ids.has(n.id));
         if (sub.length > 0) ns = sub;
       }
-      if (ns.length === 0) return;
+      if (ns.length === 0) return null;
       const { w, h } = sizeRef.current;
       let minX = Infinity,
         minY = Infinity,
@@ -289,13 +286,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       const bw = Math.max(1, maxX - minX);
       const bh = Math.max(1, maxY - minY);
       const mobile = w < 560;
-      // 余白: 上=ヘッダー+コントロール, 下=ドック
       const top = mobile ? 96 : 64;
       let right = 12;
       let bottom = mobile ? 100 : 104;
       const left = 12;
-      // 詳細パネルが出ているなら、その占有帯を避ける。
-      // モバイルではパネルは下部シート → 下を, PCでは右パネル → 右を空ける
       const pr = panelRef.current?.getBoundingClientRect();
       if (pr && pr.width > 0) {
         if (mobile) bottom = Math.max(bottom, h - pr.top + 10);
@@ -308,37 +302,24 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       const cy = (minY + maxY) / 2;
       const vcx = left + availW / 2;
       const vcy = top + availH / 2;
-      const to = { k, x: vcx - cx * k, y: vcy - cy * k };
-      // 目標がほぼ現在と同じなら何もしない(無駄な揺れ防止)
-      const cur = transformRef.current;
-      if (
-        Math.abs(to.k - cur.k) < 0.01 &&
-        Math.abs(to.x - cur.x) < 1 &&
-        Math.abs(to.y - cur.y) < 1
-      ) {
-        return;
-      }
-      fitAnimRef.current = { from: { ...cur }, to, start: performance.now(), dur: 480 };
+      return { k, x: vcx - cx * k, y: vcy - cy * k };
     };
 
     let raf = 0;
     const draw = () => {
-      // 予約された「画面にフィット」を、レイアウトが落ち着いた頃に一度だけ実行
-      if (fitAtRef.current && performance.now() >= fitAtRef.current) {
-        fitAtRef.current = 0;
-        doFit(focusIdRef.current);
-      }
-      // フィットのアニメーション(easeInOut)。瞬間移動の「ガコッ」を消す
-      const fa = fitAnimRef.current;
-      if (fa) {
-        const p = Math.min(1, (performance.now() - fa.start) / fa.dur);
-        const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-        transformRef.current = {
-          k: fa.from.k + (fa.to.k - fa.from.k) * e,
-          x: fa.from.x + (fa.to.x - fa.from.x) * e,
-          y: fa.from.y + (fa.to.y - fa.from.y) * e,
-        };
-        if (p >= 1) fitAnimRef.current = null;
+      // カメラ目標があるあいだ、毎フレーム目標へ滑らかに追従する。
+      // forceで動く生きた目標を連続イージングで吸収するので「カクカク」しない
+      const goal = cameraGoalRef.current;
+      if (goal) {
+        const to = computeFitTarget(goal.focus);
+        if (to) {
+          const t = transformRef.current;
+          const a = 0.14; // 追従の速さ(大きいほど機敏)
+          t.k += (to.k - t.k) * a;
+          t.x += (to.x - t.x) * a;
+          t.y += (to.y - t.y) * a;
+        }
+        if (performance.now() >= goal.until) cameraGoalRef.current = null;
       }
 
       const css = getComputedStyle(document.documentElement);
@@ -463,7 +444,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         t.k = k;
         t.x = curMid.x - wx * k;
         t.y = curMid.y - wy * k;
-        fitAnimRef.current = null; // ピンチ中は自動カメラを止める
+        stopCamera(); // ピンチ中は自動カメラを止める
         pointers.set(e.pointerId, cur);
         return;
       }
@@ -473,7 +454,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       const dy = e.offsetY - down.sy;
       if (Math.abs(dx) + Math.abs(dy) > 4) down.moved = true;
       if (down.moved) {
-        fitAnimRef.current = null; // ユーザー操作中は自動カメラを止める
+        stopCamera(); // ユーザー操作中は自動カメラを止める
         transformRef.current.x += e.movementX;
         transformRef.current.y += e.movementY;
       }
@@ -492,7 +473,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      fitAnimRef.current = null; // ホイール操作中は自動カメラを止める
+      stopCamera(); // ホイール操作中は自動カメラを止める
       const t = transformRef.current;
       const factor = Math.exp(-e.deltaY * 0.0015);
       const k = Math.min(5, Math.max(0.15, t.k * factor));
@@ -515,7 +496,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       canvas.style.height = `${h}px`;
       const center = sim.force("center") as ReturnType<typeof forceCenter>;
       center.x(w / 2).y(h / 2);
-      scheduleFit(120);
+      aimCamera(null, 600); // 回転/リサイズ後は全体を入れ直す
     };
 
     canvas.addEventListener("pointerdown", onPointerDown);
@@ -589,8 +570,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       reheat(0.8);
     }
     void onNodeHit(node);
-    focusIdRef.current = null;
-    scheduleFit(900);
+    aimCamera(node.id, 1200); // 追加した問いとその広がりに寄せる
   };
 
   const exportImage = () => {
@@ -726,15 +706,15 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               </p>
             )}
 
-            {/* 選択語のGoogle検索はパネル内に集約(対象が明確・ドック重複を避ける) */}
+            {/* 選択語のGoogle検索はパネル内に集約(対象は上の見出しで明確。長語でも折り返さない) */}
             <a
               className="btn"
-              style={{ display: "inline-block", marginTop: 10 }}
+              style={{ display: "inline-block", marginTop: 10, whiteSpace: "nowrap" }}
               href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              「{selected.word}」をGoogleで検索
+              Googleで検索 ↗
             </a>
           </div>
         </div>
