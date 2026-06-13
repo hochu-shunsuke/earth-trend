@@ -1,0 +1,25 @@
+name: snapshot
+
+# 注意の時系列をUpstashに蓄積する。コストゼロ運用のためVercel Cron(無料は1日1回)でなくGitHub Actionsを使う。
+on:
+  schedule:
+    - cron: "*/30 * * * *" # 30分ごと(GitHub側の負荷で多少遅延しうる)
+  workflow_dispatch: {} # 手動実行も可
+
+# 同時実行を防ぐ(遅延で重なった場合は新しい方を優先)
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node cosmos/scripts/snapshot.mjs
+        env:
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
