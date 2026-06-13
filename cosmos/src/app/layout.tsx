@@ -43,7 +43,7 @@ export default function RootLayout({
         {/* テーマ初期化(FOUC防止): localStorage→OS設定の順で決める */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme="dark";}})()`,
+            __html: `(function(){try{var p=localStorage.getItem("theme")||"system";var sysDark=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(p==="light"||p==="dark")?p:(sysDark?"dark":"light");}catch(e){document.documentElement.dataset.theme="dark";}})()`,
           }}
         />
         {children}

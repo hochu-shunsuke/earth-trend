@@ -166,9 +166,16 @@ export default function GlobePage() {
       const { default: Globe } = await import("globe.gl");
       if (disposed || !containerRef.current) return;
 
+      // applyStyle(国データ取得を待つ非同期)より前に背景色を確定させ、
+      // ライトモードでの初期黒フラッシュを防ぐ
+      const initialBg =
+        getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() ||
+        "#0a0a0a";
+
       const globe = new Globe(containerRef.current)
         .width(window.innerWidth)
         .height(window.innerHeight)
+        .backgroundColor(initialBg)
         // 3Dテキストはラテン文字しか描けないため、HTML要素レイヤーで多言語ラベルを描く
         .htmlAltitude(0.012)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -223,7 +223,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         seed: css.getPropertyValue("--trend").trim() || "#ff8a3d",
         leaf: css.getPropertyValue("--suggest").trim() || "#52a8ff",
         linkLine: css.getPropertyValue("--link-line").trim() || "rgba(255,255,255,0.16)",
-        labelBg: css.getPropertyValue("--label-bg").trim() || "rgba(0,0,0,0.72)",
         labelFg: css.getPropertyValue("--label-fg").trim() || "#ededed",
       };
 
@@ -259,6 +258,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       ctx.textBaseline = "top";
       const fontSize = Math.max(11, 12 / t.k);
       ctx.font = `${fontSize}px sans-serif`;
+      // 背景ボックスは使わず、背景色の細いハロー(縁取り)だけで視認性を確保
+      ctx.lineWidth = fontSize * 0.32;
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
       const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
       const order = [...nodesRef.current].sort(
         (a, b) => (b.isSeed ? 1 : 0) - (a.isSeed ? 1 : 0),
@@ -273,10 +276,12 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         );
         // 末端(leaf)が既存ラベルと重なるなら消す。親(seed)は常に表示
         if (hit && !n.isSeed) continue;
-        ctx.fillStyle = pal.labelBg;
-        ctx.fillRect(box.x0, box.y0, tw + 4, fontSize + 4);
+        const lx = n.x;
+        const ly = n.y + n.r + 5;
+        ctx.strokeStyle = pal.canvas;
+        ctx.strokeText(n.id, lx, ly);
         ctx.fillStyle = pal.labelFg;
-        ctx.fillText(n.id, n.x, n.y + n.r + 5);
+        ctx.fillText(n.id, lx, ly);
         placed.push(box);
       }
       raf = requestAnimationFrame(draw);

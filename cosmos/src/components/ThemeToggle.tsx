@@ -1,31 +1,53 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
-const subscribe = () => () => {};
-const getSnapshot = () => document.documentElement.dataset.theme ?? "dark";
-const getServerSnapshot = () => null;
+type Pref = "system" | "light" | "dark";
+
+function resolve(p: Pref): "light" | "dark" {
+  if (p === "light" || p === "dark") return p;
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
 export default function ThemeToggle() {
-  // 初期値はDOMから読み(SSR時はnull)、以後はクリックで上書き
-  const initial = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const [override, setOverride] = useState<string | null>(null);
-  const theme = override ?? initial;
+  // 既定はシステム(OS設定に追従)
+  const [pref, setPref] = useState<Pref>("system");
 
-  const toggle = () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
+  useEffect(() => {
+    const stored = (localStorage.getItem("theme") as Pref) || "system";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPref(stored);
+    // システム選択中はOSのテーマ変更に追従する
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      if (((localStorage.getItem("theme") as Pref) || "system") === "system") {
+        document.documentElement.dataset.theme = resolve("system");
+      }
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const change = (p: Pref) => {
+    setPref(p);
     try {
-      localStorage.setItem("theme", next);
+      localStorage.setItem("theme", p);
     } catch {
       /* private mode等は無視 */
     }
-    setOverride(next);
+    document.documentElement.dataset.theme = resolve(p);
   };
 
   return (
-    <button className="btn" onClick={toggle} aria-label="テーマ切替">
-      {theme === null ? "…" : theme === "dark" ? "Light" : "Dark"}
-    </button>
+    <select
+      className="btn"
+      value={pref}
+      onChange={(e) => change(e.target.value as Pref)}
+      aria-label="テーマ"
+    >
+      <option value="system">システム</option>
+      <option value="light">ライト</option>
+      <option value="dark">ダーク</option>
+    </select>
   );
 }
