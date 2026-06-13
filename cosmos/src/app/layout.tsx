@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/Analytics";
+import { SITE_NAME, SITE_URL, SITE_TAGLINE, SITE_DESCRIPTION } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,17 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://earth-trend.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "earth-trend — 世界の検索を、脈拍と問いとして",
-    template: "%s | earth-trend",
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "いま世界が何を検索しているか(脈拍)、そして人類が何を密かに問うているか(問い)を、生きたグラフとして探索する。",
+  description: SITE_DESCRIPTION,
   openGraph: {
-    siteName: "earth-trend",
+    siteName: SITE_NAME,
     type: "website",
     locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 

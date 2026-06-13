@@ -120,7 +120,10 @@ export default async function PulsePage({
         )}
 
         <p className="muted" style={{ marginTop: 24, fontSize: 12 }}>
-          データ: Google Trends(10分ごと更新)
+          データ: Google Trends(10分ごと更新) ・{" "}
+          <Link href="/about" className="muted">
+            このサイトについて
+          </Link>
         </p>
       </main>
     </>

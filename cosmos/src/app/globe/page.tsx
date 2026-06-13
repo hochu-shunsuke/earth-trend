@@ -300,34 +300,15 @@ export default function GlobePage() {
 
       <SiteHeader overlay />
 
-      <div
-        style={{
-          position: "absolute",
-          top: 60,
-          left: 12,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-        }}
-      >
-
+      <div className="canvas-controls">
         <span className="muted" style={{ fontSize: 12 }}>
           {status}
         </span>
       </div>
 
       {selected && (
-        <div
-          style={{
-            position: "absolute",
-            top: 60,
-            right: 12,
-            width: 320,
-            maxHeight: "calc(100vh - 80px)",
-            overflowY: "auto",
-          }}
-        >
-          <div className="panel">
+        <div className="detail-panel">
+          <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span>
                 <strong>{selected.word}</strong>

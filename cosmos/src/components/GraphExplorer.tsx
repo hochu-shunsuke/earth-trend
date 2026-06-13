@@ -517,18 +517,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
 
       <SiteHeader overlay />
 
-      <div
-        style={{
-          position: "absolute",
-          top: 60,
-          left: 12,
-          display: "flex",
-          gap: 6,
-          alignItems: "center",
-          maxWidth: "calc(100vw - 24px)",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="canvas-controls">
         <select
           className="btn"
           value={sel}
@@ -549,17 +538,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       </div>
 
       {selected && (
-        <div
-          style={{
-            position: "absolute",
-            top: 60,
-            right: 12,
-            width: 320,
-            maxHeight: "calc(100vh - 80px)",
-            overflowY: "auto",
-            pointerEvents: "none",
-          }}
-        >
+        <div className="detail-panel">
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <strong>{selected.word}</strong>
