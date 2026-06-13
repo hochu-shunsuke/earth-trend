@@ -358,7 +358,7 @@ export default function GlobePage() {
           </a>
           <Link
             className="btn"
-            href={`/explore?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+            href={`/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
           >
             探索する
           </Link>

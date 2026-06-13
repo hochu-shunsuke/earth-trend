@@ -6,8 +6,8 @@ import ThemeToggle from "./ThemeToggle";
 
 const TABS: [string, string][] = [
   ["/", "脈拍"],
-  ["/mirror", "探求"],
-  ["/explore", "分析"],
+  ["/quest", "探求"],
+  ["/analysis", "分析"],
   ["/globe", "地球儀"],
 ];
 

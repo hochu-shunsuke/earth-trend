@@ -80,7 +80,7 @@ export default async function PulsePage({
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
                     {/* ワード = 探索へのダイブ(脈拍→潜る) */}
                     <Link
-                      href={`/explore?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
+                      href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
                       style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
                     >
                       {it.word}
