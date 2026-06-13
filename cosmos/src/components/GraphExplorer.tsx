@@ -159,13 +159,13 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         // 二段カメラ: ①まず世界全体のトレンドを俯瞰 → ②選択ノードへ流れるように寄る。
         // 着地では詳細シートは開かない(=画面半分を占有しない)。詳細はタップで初めて出す
         const node = seedNode;
-        aimCamera(null, 1300); // ①俯瞰(全トレンドを連続追従)
+        aimCamera(null, 1600); // ①俯瞰(全トレンドを連続追従)
         diveTimerRef.current = setTimeout(() => {
           void onNodeHit(node, { select: false }); // ②展開のみ(シートは開かない)
-          aimCamera(node.id, 1700); // 対象へ寄る
-        }, 1100);
+          aimCamera(node.id, 2100); // 対象へ寄る
+        }, 1400);
       } else {
-        aimCamera(null, 1100);
+        aimCamera(null, 1400);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
@@ -314,7 +314,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         const to = computeFitTarget(goal.focus);
         if (to) {
           const t = transformRef.current;
-          const a = 0.14; // 追従の速さ(大きいほど機敏)
+          const a = 0.09; // 追従の速さ(大きいほど機敏)
           t.k += (to.k - t.k) * a;
           t.x += (to.x - t.x) * a;
           t.y += (to.y - t.y) * a;
@@ -570,7 +570,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       reheat(0.8);
     }
     void onNodeHit(node);
-    aimCamera(node.id, 1200); // 追加した問いとその広がりに寄せる
+    aimCamera(node.id, 1500); // 追加した問いとその広がりに寄せる
   };
 
   const exportImage = () => {
