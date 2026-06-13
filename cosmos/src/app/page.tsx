@@ -1,7 +1,13 @@
 import Link from "next/link";
 import GeoSelect from "@/components/GeoSelect";
 import SiteHeader from "@/components/SiteHeader";
+import type { Metadata } from "next";
 import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
+
+export const metadata: Metadata = {
+  title: "世界の脈拍",
+  description: "いま世界が検索していること。気になった言葉から、その先に何が繋がっているかを探索できる。",
+};
 
 export const revalidate = 600;
 

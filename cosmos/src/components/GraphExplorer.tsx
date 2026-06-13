@@ -54,25 +54,12 @@ function trendRadius(traffic: string): number {
   return Math.max(10, Math.log10(n + 1) * 5 + 6);
 }
 
-// 問いの鏡: 集合的無意識を引き出す"入口の問い"(キュレーション層)。
-// 学び: 裸の疑問詞(どうして等)はトレンド名詞を拾って濁る。
-// "未完の感情的な問い"の形にすると、実存的な補完が返る。
-const STEMS: Record<string, string[]> = {
-  ja: ["なぜ私は", "どうして私", "人はなぜ", "本当の自分", "普通って", "愛って"],
-  en: [
-    "why am i",
-    "why do i feel",
-    "is it normal to",
-    "what is the point of",
-    "am i the only one who",
-    "why does nobody",
-  ],
-};
-
+// 問いの鏡で使う言語(サジェストのhl)。規定の問いは置かず、ユーザー入力で地図を作る
 const MIRROR_LANGS: [string, string][] = [
   ["ja", "日本語"],
   ["en", "English"],
 ];
+const isLang = (v: string) => MIRROR_LANGS.some(([c]) => c === v);
 
 // 危機に関わる補完は尊厳をもって扱う: 表示せず、相談導線に委ねる(暫定パターン。要強化)
 const CRISIS =
@@ -106,6 +93,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [started, setStarted] = useState(false); // mirror: 最初の問いを入れたか
   const [crisisNotice, setCrisisNotice] = useState(false);
   const [selected, setSelected] = useState<{
     word: string;
@@ -155,29 +143,16 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }
   };
 
-  // mirror: 問いの語幹を起点に並べ、最初の一つを自動展開して命を吹き込む
-  const loadStems = async (lang: string) => {
-    setLoading(true);
+  // mirror: 規定の問いは置かない。ユーザーが入力した問いだけで自分の地図を作る
+  const loadStems = async () => {
     setError(null);
     setSelected(null);
     expandedRef.current = new Set();
-    const { w, h } = sizeRef.current;
-    const stems = STEMS[lang] ?? STEMS.ja;
-    nodesRef.current = stems.map((s, i) => ({
-      id: s,
-      isSeed: true,
-      geo: lang,
-      news: [],
-      r: 13,
-      x: w / 2 + Math.cos((i / stems.length) * Math.PI * 2) * 120,
-      y: h / 2 + Math.sin((i / stems.length) * Math.PI * 2) * 120,
-    }));
+    nodesRef.current = [];
     linksRef.current = [];
     transformRef.current = { x: 0, y: 0, k: 1 };
     reheat(1);
-    setLoading(false);
-    const first = nodesRef.current[0];
-    if (first) void onNodeHit(first);
+    setStarted(false);
   };
 
   const onNodeHit = async (node: GNode) => {
@@ -233,7 +208,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     canvas.style.height = `${h}px`;
 
     const sim = forceSimulation<GNode>([])
-      .force("charge", forceManyBody<GNode>().strength(-180))
+      .force("charge", forceManyBody<GNode>().strength(-140))
       .force("link", forceLink<GNode, GLink>([]).id((d) => d.id).distance(70).strength(0.6))
       .force("center", forceCenter(w / 2, h / 2).strength(0.05))
       .force("collide", forceCollide<GNode>((n) => n.r + 16))
@@ -386,11 +361,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     // 初期化: モードで起点が変わる(URLパラメータ反映の一度きりのsetState)
     const params = new URLSearchParams(window.location.search);
     if (mode === "mirror") {
-      const lang = STEMS[params.get("lang") ?? ""] ? params.get("lang")! : "ja";
+      const lang = isLang(params.get("lang") ?? "") ? params.get("lang")! : "ja";
       selectRef.current = lang;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSel(lang);
-      void loadStems(lang);
+      void loadStems();
     } else {
       const raw = (params.get("geo") || "JP").toUpperCase();
       const geoParam = GEO_LABELS[raw] ? raw : "JP";
@@ -416,7 +391,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const switchSelect = (v: string) => {
     setSel(v);
     selectRef.current = v;
-    if (mode === "mirror") void loadStems(v);
+    if (mode === "mirror") void loadStems();
     else void loadTrends(v);
   };
 
@@ -431,6 +406,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       return;
     }
     setInput("");
+    setStarted(true);
     let node = nodesRef.current.find((n) => n.id === text);
     if (!node) {
       const { w, h } = sizeRef.current;
@@ -491,6 +467,30 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}>
       <canvas ref={canvasRef} style={{ display: "block", cursor: "grab", touchAction: "none" }} />
+
+      {/* 問いの鏡: まだ何も入れていないときの導き(規定の問いは置かない) */}
+      {mode === "mirror" && !started && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            padding: 16,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: 20, fontWeight: 600 }}>世界の問い</p>
+          <p className="muted" style={{ maxWidth: 460 }}>
+            あなたの問いを入力すると、世界の検索がその続きを広げていく。
+            <br />
+            気になる問いをいくつも入れて、自分の地図を作ってみてください。
+          </p>
+        </div>
+      )}
 
       <SiteHeader overlay />
 
@@ -594,7 +594,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={sel === "en" ? "ask your own question…" : "自分の問いを入力…"}
+              placeholder={sel === "en" ? "ask your own… (e.g. why am i)" : "問いを入力…（例: なぜ私は）"}
               aria-label="問いを入力"
             />
             <button className="btn" type="submit">

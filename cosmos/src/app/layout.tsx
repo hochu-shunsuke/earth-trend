@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Analytics from "@/components/Analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +14,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "earth-trend — 検索トレンドの宇宙を探索する",
+  metadataBase: new URL("https://earth-trend.vercel.app"),
+  title: {
+    default: "earth-trend — 世界の検索を、脈拍と問いとして",
+    template: "%s | earth-trend",
+  },
   description:
-    "いま世界で検索が急上昇しているワードを、生きたグラフとして探索。クリックすると人々が次に検索する言葉が広がっていく。",
+    "いま世界が何を検索しているか(脈拍)、そして人類が何を密かに問うているか(問い)を、生きたグラフとして探索する。",
+  openGraph: {
+    siteName: "earth-trend",
+    type: "website",
+    locale: "ja_JP",
+  },
 };
 
 export default function RootLayout({
@@ -37,6 +47,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   );
