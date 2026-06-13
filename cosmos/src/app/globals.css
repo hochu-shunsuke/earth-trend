@@ -212,8 +212,21 @@ select.btn {
     padding: 4px 7px;
     font-size: 12px;
   }
+  /* モバイル: 詳細はグラフを覆わない下部シートにする(上半分が隠れる問題の解消) */
   .detail-panel {
-    top: 104px;
+    top: auto;
+    bottom: 84px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 40vh;
+  }
+  /* 分析はドックが無いので、シートを最下部に寄せて余白を作らない */
+  [data-mode="trends"] .detail-panel {
+    bottom: 12px;
+  }
+  .dock {
+    bottom: 16px;
   }
 }
 

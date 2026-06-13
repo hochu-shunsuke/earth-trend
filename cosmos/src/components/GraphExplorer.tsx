@@ -77,6 +77,14 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const sizeRef = useRef({ w: 800, h: 600 });
   const expandedRef = useRef<Set<string>>(new Set());
   const selectRef = useRef<string>(mode === "mirror" ? "ja" : "JP");
+  // 描画ループ内で「この時刻を過ぎたら一度だけ画面にフィット」する予約。
+  // レイアウトが落ち着いてから収めるため、即時でなく遅延で予約する
+  const fitAtRef = useRef(0);
+  // 詳細パネルの実DOM矩形を読んで、フィット時にその領域を避ける(隠れ防止)
+  const panelRef = useRef<HTMLDivElement>(null);
+  const scheduleFit = (delay = 700) => {
+    fitAtRef.current = performance.now() + delay;
+  };
 
   const [sel, setSel] = useState<string>(mode === "mirror" ? "ja" : "JP");
   const [loading, setLoading] = useState(false);
@@ -138,6 +146,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           reheat(1);
         }
         void onNodeHit(seedNode);
+        // ダイブ直後は子ノードがfetchで遅れて来るので、少し長めに待ってから収める
+        scheduleFit(1000);
+      } else {
+        scheduleFit(700);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "load failed");
@@ -201,25 +213,77 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    sizeRef.current = { w, h };
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    let dpr = window.devicePixelRatio || 1;
+    {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      sizeRef.current = { w, h };
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    }
 
     const sim = forceSimulation<GNode>([])
       .force("charge", forceManyBody<GNode>().strength(-120))
       .force("link", forceLink<GNode, GLink>([]).id((d) => d.id).distance(70).strength(0.6))
-      .force("center", forceCenter(w / 2, h / 2).strength(0.09))
+      .force(
+        "center",
+        forceCenter(sizeRef.current.w / 2, sizeRef.current.h / 2).strength(0.09),
+      )
       .force("collide", forceCollide<GNode>((n) => n.r + 16))
       .alphaDecay(0.03);
     simRef.current = sim;
 
+    // グラフ全体を、ヘッダー/詳細パネル/ドックに隠れない可視領域へ収める。
+    // 着地直後に半分が画面外…を防ぐ要(モバイルで特に効く)
+    const doFit = () => {
+      const ns = nodesRef.current;
+      if (ns.length === 0) return;
+      const { w, h } = sizeRef.current;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      for (const n of ns) {
+        if (n.x - n.r < minX) minX = n.x - n.r;
+        if (n.x + n.r > maxX) maxX = n.x + n.r;
+        if (n.y - n.r < minY) minY = n.y - n.r;
+        if (n.y + n.r > maxY) maxY = n.y + n.r;
+      }
+      const bw = Math.max(1, maxX - minX);
+      const bh = Math.max(1, maxY - minY);
+      const mobile = w < 560;
+      // 余白: 上=ヘッダー+コントロール, 下=ドック
+      const top = mobile ? 96 : 64;
+      let right = 12;
+      let bottom = mobile ? 100 : 104;
+      const left = 12;
+      // 詳細パネルが出ているなら、その占有帯を避ける。
+      // モバイルではパネルは下部シート → 下を, PCでは右パネル → 右を空ける
+      const pr = panelRef.current?.getBoundingClientRect();
+      if (pr && pr.width > 0) {
+        if (mobile) bottom = Math.max(bottom, h - pr.top + 10);
+        else right = Math.max(right, w - pr.left + 12);
+      }
+      const availW = Math.max(60, w - left - right);
+      const availH = Math.max(60, h - top - bottom);
+      const k = Math.min(2.2, Math.max(0.2, Math.min(availW / bw, availH / bh) * 0.82));
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      const vcx = left + availW / 2;
+      const vcy = top + availH / 2;
+      transformRef.current = { k, x: vcx - cx * k, y: vcy - cy * k };
+    };
+
     let raf = 0;
     const draw = () => {
+      // 予約された「画面にフィット」を、レイアウトが落ち着いた頃に一度だけ実行
+      if (fitAtRef.current && performance.now() >= fitAtRef.current) {
+        fitAtRef.current = 0;
+        doFit();
+      }
+
       const css = getComputedStyle(document.documentElement);
       const pal = {
         canvas: css.getPropertyValue("--canvas").trim() || "#0a0a0a",
@@ -229,6 +293,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         labelFg: css.getPropertyValue("--label-fg").trim() || "#ededed",
       };
 
+      const { w, h } = sizeRef.current;
       const t = transformRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = pal.canvas;
@@ -378,11 +443,28 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       t.y = e.offsetY - wy * k;
     };
 
+    // 端末回転・ウィンドウ/URLバー伸縮でcanvasを追従(未対応だと歪み・タップ判定ズレ)
+    const onResize = () => {
+      dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      sizeRef.current = { w, h };
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      const center = sim.force("center") as ReturnType<typeof forceCenter>;
+      center.x(w / 2).y(h / 2);
+      scheduleFit(120);
+    };
+
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerCancel);
     canvas.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
 
     // 初期化: モードで起点が変わる(URLパラメータ反映の一度きりのsetState)
     const params = new URLSearchParams(window.location.search);
@@ -409,6 +491,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("wheel", onWheel);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
     };
     // マウント時に一度だけ初期化する(意図的)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,6 +528,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       reheat(0.8);
     }
     void onNodeHit(node);
+    scheduleFit(900);
   };
 
   const exportImage = () => {
@@ -484,7 +569,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const options = mode === "mirror" ? MIRROR_LANGS : Object.entries(GEO_LABELS);
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}>
+    <div
+      data-mode={mode}
+      style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}
+    >
       <canvas ref={canvasRef} style={{ display: "block", cursor: "grab", touchAction: "none" }} />
 
       {/* 問いの鏡: まだ何も入れていないときの導き(規定の問いは置かない) */}
@@ -534,7 +622,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       </div>
 
       {selected && (
-        <div className="detail-panel">
+        <div className="detail-panel" ref={panelRef}>
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <strong>{selected.word}</strong>
@@ -576,24 +664,22 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               </p>
             )}
 
-            {/* 探求(mirror)はドックが入力欄なので、選択語のGoogle検索はここに置いて対象を明確にする */}
-            {mode === "mirror" && (
-              <a
-                className="btn"
-                style={{ display: "inline-block", marginTop: 10 }}
-                href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                「{selected.word}」をGoogleで検索
-              </a>
-            )}
+            {/* 選択語のGoogle検索はパネル内に集約(対象が明確・ドック重複を避ける) */}
+            <a
+              className="btn"
+              style={{ display: "inline-block", marginTop: 10 }}
+              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              「{selected.word}」をGoogleで検索
+            </a>
           </div>
         </div>
       )}
 
-      {/* 画面下部中央のドック: 探求=問いの入力に専念 / 分析=選択語のアクション */}
-      {mode === "mirror" ? (
+      {/* 画面下部中央のドック: 探求=問いの入力欄(分析は選択語アクションをパネルに集約済み) */}
+      {mode === "mirror" && (
         <form
           className="dock"
           onSubmit={(e) => {
@@ -611,20 +697,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             潜る
           </button>
         </form>
-      ) : (
-        selected && (
-          <div className="dock">
-            <span className="word">{selected.word}</span>
-            <a
-              className="btn"
-              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Googleで検索
-            </a>
-          </div>
-        )
       )}
     </div>
   );
