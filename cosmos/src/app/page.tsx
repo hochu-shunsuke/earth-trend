@@ -9,7 +9,6 @@ import {
   forceManyBody,
   forceCenter,
   forceCollide,
-  forceX,
   type Simulation,
   type ForceLink,
 } from "d3-force";
@@ -46,11 +45,7 @@ interface GNode {
 interface GLink {
   source: string | GNode;
   target: string | GNode;
-  /** JP×USで同一トピックを結ぶ橋 */
-  shared?: boolean;
 }
-
-type Mode = string; // 国コード or "BOTH"(比較・現在UI非公開)
 
 function trendRadius(traffic: string): number {
   const n = parseInt(traffic.replace(/[^0-9]/g, ""), 10) || 0;
@@ -69,57 +64,17 @@ export default function Home() {
   const transformRef = useRef({ x: 0, y: 0, k: 1 }); // screen = world*k + (x,y)
   const sizeRef = useRef({ w: 800, h: 600 });
   const expandedRef = useRef<Set<string>>(new Set());
-  const modeRef = useRef<Mode>("JP");
-
-  // AI要約はグラフ表示と同時にバッチ取得してここに保持(クリック時は即表示)
-  const summariesRef = useRef<Map<string, string>>(new Map());
-  const summariesLoadedRef = useRef(false);
+  const modeRef = useRef<string>("JP");
 
   // UIパネル用の状態だけReactで
-  const [mode, setMode] = useState<Mode>("JP");
+  const [mode, setMode] = useState<string>("JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<{
     word: string;
     news: NewsItem[];
     isTrend: boolean;
-    summary?: string | null; // 文字列=要約 / "__loading__"=取得中 / null=なし
   } | null>(null);
-
-  // ワードの要約状態を解決する(取得済み / 取得中 / なし)
-  const resolveSummary = (
-    word: string,
-    news: NewsItem[],
-    isTrend: boolean,
-  ): string | null => {
-    if (!isTrend || news.length === 0) return null;
-    const s = summariesRef.current.get(word);
-    if (s !== undefined) return s;
-    return summariesLoadedRef.current ? null : "__loading__";
-  };
-
-  // 全トレンドの要約をバッチ取得(グラフ描画はブロックしない)
-  const loadSummaries = async (geo: string) => {
-    summariesLoadedRef.current = false;
-    summariesRef.current = new Map();
-    try {
-      const res = await fetch(`/api/summaries?geo=${geo}`);
-      if (res.ok) {
-        const data: { summaries: Record<string, string> } = await res.json();
-        summariesRef.current = new Map(Object.entries(data.summaries));
-      }
-    } catch {
-      /* 要約なしで続行 */
-    } finally {
-      summariesLoadedRef.current = true;
-      // 取得待ちで開いていたパネルを更新
-      setSelected((prev) =>
-        prev
-          ? { ...prev, summary: resolveSummary(prev.word, prev.news, prev.isTrend) }
-          : prev,
-      );
-    }
-  };
 
   // シミュレーションへ現在の配列を結び直して再加熱
   const reheat = (alpha: number) => {
@@ -130,64 +85,28 @@ export default function Home() {
     sim.alpha(alpha).restart();
   };
 
-  // トレンド読み込み(単国 or JP×US比較)
-  const loadTrends = async (m: Mode) => {
+  // トレンド読み込み(指定国)
+  const loadTrends = async (geo: string) => {
     setLoading(true);
     setError(null);
     setSelected(null);
     expandedRef.current = new Set();
     const { w, h } = sizeRef.current;
 
-    const toNode = (it: TrendItem, geo: string, cx: number): GNode => ({
-      id: it.word,
-      isTrend: true,
-      geo,
-      news: it.news,
-      r: trendRadius(it.traffic),
-      x: cx + (Math.random() - 0.5) * w * 0.35,
-      y: h / 2 + (Math.random() - 0.5) * h * 0.6,
-    });
-
     try {
-      if (m === "BOTH") {
-        const res = await fetch(`/api/compare`);
-        if (!res.ok) throw new Error(`compare ${res.status}`);
-        const data: {
-          jp: TrendItem[];
-          us: TrendItem[];
-          pairs: [string, string][];
-        } = await res.json();
-
-        const nodes: GNode[] = data.jp.map((it) => toNode(it, "JP", w * 0.28));
-        const ids = new Set(nodes.map((n) => n.id));
-        for (const it of data.us) {
-          if (!ids.has(it.word)) {
-            ids.add(it.word);
-            nodes.push(toNode(it, "US", w * 0.72));
-          }
-        }
-        nodesRef.current = nodes;
-        linksRef.current = data.pairs
-          .filter(([a, b]) => ids.has(a) && ids.has(b) && a !== b)
-          .map(([a, b]) => ({ source: a, target: b, shared: true }));
-
-        // 左右に分離する力(比較モードのみ)
-        simRef.current?.force(
-          "split",
-          forceX<GNode>((n) => (n.geo === "US" ? w * 0.72 : w * 0.28)).strength(
-            (n) => (n.isTrend ? 0.08 : 0),
-          ),
-        );
-      } else {
-        const res = await fetch(`/api/trends?geo=${m}`);
-        if (!res.ok) throw new Error(`trends ${res.status}`);
-        const data: { items: TrendItem[] } = await res.json();
-        nodesRef.current = data.items.map((it) => toNode(it, m, w / 2));
-        linksRef.current = [];
-        simRef.current?.force("split", null);
-        // 要約は裏でバッチ先読み(描画はブロックしない)
-        void loadSummaries(m);
-      }
+      const res = await fetch(`/api/trends?geo=${geo}`);
+      if (!res.ok) throw new Error(`trends ${res.status}`);
+      const data: { items: TrendItem[] } = await res.json();
+      nodesRef.current = data.items.map((it) => ({
+        id: it.word,
+        isTrend: true,
+        geo,
+        news: it.news,
+        r: trendRadius(it.traffic),
+        x: w / 2 + (Math.random() - 0.5) * w * 0.35,
+        y: h / 2 + (Math.random() - 0.5) * h * 0.6,
+      }));
+      linksRef.current = [];
       transformRef.current = { x: 0, y: 0, k: 1 };
       reheat(1);
     } catch (e) {
@@ -199,13 +118,8 @@ export default function Home() {
 
   // ノードクリック時: ニュース表示+サジェスト展開
   const onNodeHit = async (node: GNode) => {
-    // どの星を押してもパネルを更新する。要約は先読み済みのものを即表示
-    setSelected({
-      word: node.id,
-      news: node.news,
-      isTrend: node.isTrend,
-      summary: resolveSummary(node.id, node.news, node.isTrend),
-    });
+    // どの星を押してもパネルを更新する
+    setSelected({ word: node.id, news: node.news, isTrend: node.isTrend });
 
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
@@ -271,7 +185,6 @@ export default function Home() {
       const pal = {
         canvas: css.getPropertyValue("--canvas").trim() || "#0a0a0a",
         trend: css.getPropertyValue("--trend").trim() || "#ff8a3d",
-        trendUs: "#9b6dff",
         suggest: css.getPropertyValue("--suggest").trim() || "#52a8ff",
         linkLine: css.getPropertyValue("--link-line").trim() || "rgba(255,255,255,0.16)",
         labelBg: css.getPropertyValue("--label-bg").trim() || "rgba(0,0,0,0.72)",
@@ -284,13 +197,13 @@ export default function Home() {
       ctx.fillRect(0, 0, w, h);
       ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
 
-      // リンク(JP×USの橋は強調)
+      // リンク
+      ctx.strokeStyle = pal.linkLine;
+      ctx.lineWidth = 1;
       for (const l of linksRef.current) {
         const s = l.source as GNode;
         const tg = l.target as GNode;
         if (typeof s === "string" || typeof tg === "string") continue;
-        ctx.strokeStyle = l.shared ? "rgba(255,180,60,0.8)" : pal.linkLine;
-        ctx.lineWidth = l.shared ? 2 : 1;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(tg.x, tg.y);
@@ -303,11 +216,7 @@ export default function Home() {
       for (const n of nodesRef.current) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = n.isTrend
-          ? n.geo === "US"
-            ? pal.trendUs
-            : pal.trend
-          : pal.suggest;
+        ctx.fillStyle = n.isTrend ? pal.trend : pal.suggest;
         ctx.fill();
 
         const fontSize = Math.max(11, 12 / t.k);
@@ -443,7 +352,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const switchMode = (m: Mode) => {
+  const switchMode = (m: string) => {
     setMode(m);
     modeRef.current = m;
     void loadTrends(m);
@@ -550,20 +459,6 @@ export default function Home() {
                 ✕
               </button>
             </div>
-            {selected.summary === "__loading__" ? (
-              <p
-                className="muted"
-                style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}
-              >
-                要約中…
-              </p>
-            ) : (
-              selected.summary && (
-                <p style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
-                  {selected.summary}
-                </p>
-              )
-            )}
             {selected.news.length > 0 ? (
               <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
                 {selected.news.map((n, i) => (
