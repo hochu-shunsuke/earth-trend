@@ -662,7 +662,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       )}
 
       {/* 問いの鏡: 危機に関わる検索への配慮(常設・ドックの上) */}
-      {help && (
+      {help && started && (
         <div
           style={{
             position: "absolute",
