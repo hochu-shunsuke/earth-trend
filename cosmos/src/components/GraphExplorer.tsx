@@ -208,9 +208,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     canvas.style.height = `${h}px`;
 
     const sim = forceSimulation<GNode>([])
-      .force("charge", forceManyBody<GNode>().strength(-140))
+      .force("charge", forceManyBody<GNode>().strength(-120))
       .force("link", forceLink<GNode, GLink>([]).id((d) => d.id).distance(70).strength(0.6))
-      .force("center", forceCenter(w / 2, h / 2).strength(0.05))
+      .force("center", forceCenter(w / 2, h / 2).strength(0.09))
       .force("collide", forceCollide<GNode>((n) => n.r + 16))
       .alphaDecay(0.03);
     simRef.current = sim;
@@ -245,21 +245,39 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         ctx.stroke();
       }
 
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
+      // パス1: ノードの円(常に描く)
       for (const n of nodesRef.current) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fillStyle = n.isSeed ? pal.seed : pal.leaf;
         ctx.fill();
+      }
 
-        const fontSize = Math.max(11, 12 / t.k);
-        ctx.font = `${fontSize}px sans-serif`;
+      // パス2: ラベル(衝突回避)。親=seedを優先し、重なる末端=leafから順に消す。
+      // ズームで離れれば自然に復活する
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const fontSize = Math.max(11, 12 / t.k);
+      ctx.font = `${fontSize}px sans-serif`;
+      const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
+      const order = [...nodesRef.current].sort(
+        (a, b) => (b.isSeed ? 1 : 0) - (a.isSeed ? 1 : 0),
+      );
+      for (const n of order) {
         const tw = ctx.measureText(n.id).width;
+        const bx = n.x - tw / 2 - 2;
+        const by = n.y + n.r + 3;
+        const box = { x0: bx, y0: by, x1: bx + tw + 4, y1: by + fontSize + 4 };
+        const hit = placed.some(
+          (q) => !(box.x1 < q.x0 || box.x0 > q.x1 || box.y1 < q.y0 || box.y0 > q.y1),
+        );
+        // 末端(leaf)が既存ラベルと重なるなら消す。親(seed)は常に表示
+        if (hit && !n.isSeed) continue;
         ctx.fillStyle = pal.labelBg;
-        ctx.fillRect(n.x - tw / 2 - 2, n.y + n.r + 3, tw + 4, fontSize + 4);
+        ctx.fillRect(box.x0, box.y0, tw + 4, fontSize + 4);
         ctx.fillStyle = pal.labelFg;
         ctx.fillText(n.id, n.x, n.y + n.r + 5);
+        placed.push(box);
       }
       raf = requestAnimationFrame(draw);
     };
@@ -483,11 +501,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             textAlign: "center",
           }}
         >
-          <p style={{ fontSize: 20, fontWeight: 600 }}>世界の問い</p>
+          <p style={{ fontSize: 20, fontWeight: 600 }}>問いを見つける</p>
           <p className="muted" style={{ maxWidth: 460 }}>
             あなたの問いを入力すると、世界の検索がその続きを広げていく。
             <br />
-            気になる問いをいくつも入れて、自分の地図を作ってみてください。
+            気になる問いをいくつも入れて、自分の地図を作ってみよう。
           </p>
         </div>
       )}
