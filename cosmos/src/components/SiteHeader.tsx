@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 
 const TABS: [string, string][] = [
-  ["/", "脈拍"],
+  ["/", "トレンド"],
   ["/quest", "探求"],
   ["/analysis", "分析"],
   ["/globe", "地球儀"],

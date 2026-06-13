@@ -32,7 +32,7 @@ export default function AboutPage() {
             数字を分析するツールというより、世界の好奇心を覗く鏡のようなものです。
           </p>
           <ul>
-            <li><strong>脈拍</strong> — いま世界が検索していること</li>
+            <li><strong>トレンド</strong> — いま世界が検索していること</li>
             <li><strong>探求</strong> — 人類が密かに問うていること(自分の問いを起点に潜れます)</li>
             <li><strong>分析</strong> — 急上昇ワードから連想を辿る</li>
             <li><strong>地球儀</strong> — 世界の関心を俯瞰する</li>

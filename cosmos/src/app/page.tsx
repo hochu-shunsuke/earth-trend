@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
 
 export const metadata: Metadata = {
-  title: "世界の脈拍",
+  title: "世界のトレンド",
   description: "いま世界が検索していること。気になった言葉から、その先に何が繋がっているかを探索できる。",
 };
 
@@ -43,7 +43,7 @@ export default async function PulsePage({
       >
         <header style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
-            世界の脈拍
+            世界のトレンド
           </h1>
           <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
             いま世界が検索していること。気になった言葉を押すと、その先に何が繋がっているかを探索できる。
