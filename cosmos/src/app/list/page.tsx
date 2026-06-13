@@ -26,6 +26,7 @@ export default async function ListPage({
       {/* ヘッダーはfixedなので、その高さ(48px)ぶん下げる */}
       <main
         style={{
+          width: "100%",
           maxWidth: 720,
           margin: "0 auto",
           padding: "72px 16px 24px",
