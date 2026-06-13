@@ -71,6 +71,10 @@ export default function Home() {
   const expandedRef = useRef<Set<string>>(new Set());
   const modeRef = useRef<Mode>("JP");
 
+  // AI要約はグラフ表示と同時にバッチ取得してここに保持(クリック時は即表示)
+  const summariesRef = useRef<Map<string, string>>(new Map());
+  const summariesLoadedRef = useRef(false);
+
   // UIパネル用の状態だけReactで
   const [mode, setMode] = useState<Mode>("JP");
   const [loading, setLoading] = useState(false);
@@ -79,24 +83,41 @@ export default function Home() {
     word: string;
     news: NewsItem[];
     isTrend: boolean;
-    summary?: string | null;
+    summary?: string | null; // 文字列=要約 / "__loading__"=取得中 / null=なし
   } | null>(null);
 
-  // AI一行解説(キャッシュはサーバー側。失敗時は静かに諦める)
-  const loadExplain = async (word: string, geo: string) => {
+  // ワードの要約状態を解決する(取得済み / 取得中 / なし)
+  const resolveSummary = (
+    word: string,
+    news: NewsItem[],
+    isTrend: boolean,
+  ): string | null => {
+    if (!isTrend || news.length === 0) return null;
+    const s = summariesRef.current.get(word);
+    if (s !== undefined) return s;
+    return summariesLoadedRef.current ? null : "__loading__";
+  };
+
+  // 全トレンドの要約をバッチ取得(グラフ描画はブロックしない)
+  const loadSummaries = async (geo: string) => {
+    summariesLoadedRef.current = false;
+    summariesRef.current = new Map();
     try {
-      const res = await fetch(
-        `/api/explain?word=${encodeURIComponent(word)}&geo=${geo}`,
-      );
-      if (!res.ok) return;
-      const data: { summary: string | null } = await res.json();
-      if (data.summary) {
-        setSelected((prev) =>
-          prev && prev.word === word ? { ...prev, summary: data.summary } : prev,
-        );
+      const res = await fetch(`/api/summaries?geo=${geo}`);
+      if (res.ok) {
+        const data: { summaries: Record<string, string> } = await res.json();
+        summariesRef.current = new Map(Object.entries(data.summaries));
       }
     } catch {
-      /* 解説なしで続行 */
+      /* 要約なしで続行 */
+    } finally {
+      summariesLoadedRef.current = true;
+      // 取得待ちで開いていたパネルを更新
+      setSelected((prev) =>
+        prev
+          ? { ...prev, summary: resolveSummary(prev.word, prev.news, prev.isTrend) }
+          : prev,
+      );
     }
   };
 
@@ -164,6 +185,8 @@ export default function Home() {
         nodesRef.current = data.items.map((it) => toNode(it, m, w / 2));
         linksRef.current = [];
         simRef.current?.force("split", null);
+        // 要約は裏でバッチ先読み(描画はブロックしない)
+        void loadSummaries(m);
       }
       transformRef.current = { x: 0, y: 0, k: 1 };
       reheat(1);
@@ -176,11 +199,13 @@ export default function Home() {
 
   // ノードクリック時: ニュース表示+サジェスト展開
   const onNodeHit = async (node: GNode) => {
-    // どの星を押してもパネルを更新する(トレンド=ニュース+AI解説、サジェスト=検索リンク)
-    setSelected({ word: node.id, news: node.news, isTrend: node.isTrend });
-    if (node.isTrend && node.news.length > 0) {
-      void loadExplain(node.id, node.geo);
-    }
+    // どの星を押してもパネルを更新する。要約は先読み済みのものを即表示
+    setSelected({
+      word: node.id,
+      news: node.news,
+      isTrend: node.isTrend,
+      summary: resolveSummary(node.id, node.news, node.isTrend),
+    });
 
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
@@ -525,12 +550,21 @@ export default function Home() {
                 ✕
               </button>
             </div>
-            {selected.summary && (
-              <p style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
-                {selected.summary}
+            {selected.summary === "__loading__" ? (
+              <p
+                className="muted"
+                style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}
+              >
+                要約中…
               </p>
+            ) : (
+              selected.summary && (
+                <p style={{ margin: "8px 0", paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
+                  {selected.summary}
+                </p>
+              )
             )}
-            {selected.news.length > 0 && (
+            {selected.news.length > 0 ? (
               <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
                 {selected.news.map((n, i) => (
                   <li key={i} style={{ marginBottom: 6 }}>
@@ -545,6 +579,20 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+            ) : (
+              selected.isTrend && (
+                <p className="muted" style={{ margin: "8px 0" }}>
+                  関連ニュースはまだありません。
+                  <br />
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Googleで検索結果を見る →
+                  </a>
+                </p>
+              )
             )}
             {!selected.isTrend && (
               <p style={{ margin: "8px 0" }}>
