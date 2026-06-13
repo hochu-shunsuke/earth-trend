@@ -600,41 +600,42 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
                   : "検索者が次に調べている言葉。"}
               </p>
             )}
+
+            {/* 探求(mirror)はドックが入力欄なので、選択語のGoogle検索はここに置いて対象を明確にする */}
+            {mode === "mirror" && (
+              <a
+                className="btn"
+                style={{ display: "inline-block", marginTop: 10 }}
+                href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                「{selected.word}」をGoogleで検索
+              </a>
+            )}
           </div>
         </div>
       )}
 
-      {/* 画面下部中央のドック: 問い=入力(+選択語のGoogle) / トレンド=選択語のアクション */}
+      {/* 画面下部中央のドック: 探求=問いの入力に専念 / 分析=選択語のアクション */}
       {mode === "mirror" ? (
-        <div className="dock">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addQuestion(input);
-            }}
-            style={{ display: "flex", gap: 10, alignItems: "center" }}
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={sel === "en" ? "ask your own… (e.g. why am i)" : "問いを入力…（例: なぜ私は）"}
-              aria-label="問いを入力"
-            />
-            <button className="btn" type="submit">
-              潜る
-            </button>
-          </form>
-          {selected && (
-            <a
-              className="btn"
-              href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Googleで検索
-            </a>
-          )}
-        </div>
+        <form
+          className="dock"
+          onSubmit={(e) => {
+            e.preventDefault();
+            addQuestion(input);
+          }}
+        >
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={sel === "en" ? "ask your own… (e.g. why am i)" : "問いを入力…（例: なぜ私は）"}
+            aria-label="問いを入力"
+          />
+          <button className="btn" type="submit">
+            潜る
+          </button>
+        </form>
       ) : (
         selected && (
           <div className="dock">

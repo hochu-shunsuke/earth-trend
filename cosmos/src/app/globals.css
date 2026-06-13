@@ -38,10 +38,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html {
-  scrollbar-gutter: stable;
-}
-
 html,
 body {
   height: 100%;
