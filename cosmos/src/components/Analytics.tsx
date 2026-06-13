@@ -1,17 +1,17 @@
 import Script from "next/script";
+import { GA_ID } from "@/lib/site";
 
-// GA4。NEXT_PUBLIC_GA_ID が未設定なら何も読み込まない(公開時に環境変数を入れるだけで有効化)
+// GA4。GA_IDが空なら何も読み込まない
 export default function Analytics() {
-  const id = process.env.NEXT_PUBLIC_GA_ID;
-  if (!id) return null;
+  if (!GA_ID) return null;
   return (
     <>
       <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${id}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
         strategy="afterInteractive"
       />
       <Script id="ga4" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${id}');`}
+        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
       </Script>
     </>
   );
