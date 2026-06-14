@@ -37,6 +37,19 @@ export const GEO_LABELS: Record<string, string> = {
   BR: "ブラジル",
 };
 
+/** 翻訳の原文言語(その国の主要言語)。MyMemory等のlangpairに使う */
+export const GEO_LANG: Record<string, string> = {
+  JP: "ja",
+  US: "en",
+  GB: "en",
+  IN: "en",
+  KR: "ko",
+  TW: "zh-TW",
+  DE: "de",
+  FR: "fr",
+  BR: "pt-BR",
+};
+
 /** サジェストAPIに渡す言語(国の主要言語) */
 export const GEO_HL: Record<string, string> = {
   JP: "ja",

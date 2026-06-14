@@ -13,7 +13,13 @@ export interface RecentTrendItem extends TrendItem {
 
 interface Snapshot {
   ts: number;
-  items: { word: string; traffic: string; news: NewsItem[] }[];
+  // スナップショットのnewsは「タイトル文字列の配列」(snapshot.mjs)。RSS経路は{title,url,source}。
+  items: { word: string; traffic: string; news: (string | NewsItem)[] }[];
+}
+
+// news を {title,url,source} 形へ正規化(snapshotは文字列配列なので吸収)
+function normNews(raw: (string | NewsItem)[] | undefined): NewsItem[] {
+  return (raw ?? []).map((n) => (typeof n === "string" ? { title: n } : n)).filter((n) => n.title);
 }
 
 function redisEnv() {
@@ -80,7 +86,7 @@ export async function fetchRecentTrends(
           byWord.set(it.word, {
             word: it.word,
             traffic: it.traffic,
-            news: it.news ?? [],
+            news: normNews(it.news),
             firstSeen: firstSeen.get(it.word),
             lastSeen: snap.ts,
             _tv: tv,

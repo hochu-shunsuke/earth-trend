@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor, appearedText } from "@/lib/trendsVisual";
+import { GEO_LANG } from "@/lib/trends";
+
+const UI_LANG = "ja"; // 当面の翻訳ターゲット(Phase②でロケール連動にする)
 
 interface NewsItem {
   title: string;
@@ -199,7 +202,7 @@ function ScaleBubbles({
                 }}
               >
                 {showWord && (
-                  <span style={{ fontSize, fontWeight: 600, wordBreak: "break-word" }}>
+                  <span translate="no" style={{ fontSize, fontWeight: 600, wordBreak: "break-word" }}>
                     {it.word}
                   </span>
                 )}
@@ -220,10 +223,41 @@ function ScaleBubbles({
 export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: string }) {
   const [selected, setSelected] = useState<TrendItem | null>(null);
   const [nowSec, setNowSec] = useState(0);
+  // 選択語の翻訳(原語は残し、訳を注釈として添える)
+  const [trans, setTrans] = useState<{ word: string | null; news: (string | null)[] } | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNowSec(Date.now() / 1000);
   }, []);
+
+  const srcLang = GEO_LANG[geo] ?? "auto";
+  const canTranslate = srcLang !== UI_LANG; // 自国語なら翻訳不要
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTrans(null);
+    if (!selected || !canTranslate) return;
+    let cancelled = false;
+    const tr = async (q: string) => {
+      try {
+        const r = await fetch(
+          `/api/translate?q=${encodeURIComponent(q)}&from=${encodeURIComponent(srcLang)}&to=${UI_LANG}`,
+        );
+        const d = (await r.json()) as { translated: string | null };
+        return d.translated;
+      } catch {
+        return null;
+      }
+    };
+    (async () => {
+      const word = await tr(selected.word);
+      const news = await Promise.all(selected.news.slice(0, 3).map((n) => tr(n.title)));
+      if (!cancelled) setTrans({ word, news });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, srcLang, canTranslate]);
 
   return (
     <>
@@ -234,7 +268,11 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span>
-                <strong>{selected.word}</strong>
+                {/* 原語は常に残す(translate=noでブラウザ翻訳でも保護) */}
+                <strong translate="no">{selected.word}</strong>
+                {trans?.word && (
+                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {trans.word}</span>
+                )}
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
                   検索数 {selected.traffic}
                 </span>
@@ -255,23 +293,26 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
             )}
             {selected.news.length > 0 ? (
               <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
-                {selected.news.slice(0, 3).map((n, i) => (
-                  <li key={i} style={{ marginBottom: 6 }}>
-                    {n.url ? (
-                      <a href={n.url} target="_blank" rel="noopener noreferrer">
-                        {n.title}
-                      </a>
-                    ) : (
-                      n.title
-                    )}
-                    {n.source && (
-                      <span className="muted" style={{ fontSize: "0.85em" }}>
-                        {" "}
-                        ({n.source})
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {selected.news.slice(0, 3).map((n, i) => {
+                  const title = trans?.news[i] ?? n.title; // 訳があれば訳、無ければ原文
+                  return (
+                    <li key={i} style={{ marginBottom: 6 }}>
+                      {n.url ? (
+                        <a href={n.url} target="_blank" rel="noopener noreferrer" title={n.title}>
+                          {title}
+                        </a>
+                      ) : (
+                        title
+                      )}
+                      {n.source && (
+                        <span className="muted" style={{ fontSize: "0.85em" }}>
+                          {" "}
+                          ({n.source})
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
@@ -284,7 +325,7 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
 
       {selected && (
         <div className="dock">
-          <span className="word">{selected.word}</span>
+          <span className="word" translate="no">{selected.word}</span>
           <a
             className="btn"
             href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
