@@ -2,15 +2,63 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
+import { toLocale } from "@/lib/i18n";
 
-export const metadata: Metadata = {
-  title: "このサイトについて",
-  description: `${SITE_NAME}は何か、データの出どころ、プライバシーについて。`,
+const CONTENT = {
+  ja: {
+    title: "このサイトについて",
+    desc: `${SITE_NAME}は何か、データの出どころ、プライバシーについて。`,
+    tagline: SITE_TAGLINE,
+    whatTitle: "これは何か",
+    what: `検索は、人類が最も正直に「知りたい」を吐き出している記録です。${SITE_NAME}は、いま世界が何に注意を向け、その関心がどう繋がっているかを、生きたグラフとして眺めるための場所です。数字を分析するツールというより、世界の好奇心を覗く鏡のようなものです。`,
+    views: [
+      ["トレンド", "いま世界が検索していること"],
+      ["探求", "人類が密かに問うていること(自分の問いを起点に潜れます)"],
+      ["分析", "急上昇ワードから連想を辿る"],
+      ["地球儀", "世界の関心を俯瞰する"],
+    ],
+    dataTitle: "データについて",
+    data: `表示しているのは Google トレンド(急上昇検索)と Google の検索オートコンプリート(サジェスト)から取得した公開データで、一定時間ごとにキャッシュして取得しています。本サイトは Google LLC・各社とは一切関係のない、個人による非公式なプロジェクトです。`,
+    privacyTitle: "プライバシー",
+    privacy:
+      "アカウント登録はなく、あなたの個人情報を保存することはありません。サイト改善のため、アクセス状況の匿名的な統計(Google Analytics)を利用する場合があります。",
+  },
+  en: {
+    title: "About",
+    desc: `What ${SITE_NAME} is, where the data comes from, and privacy.`,
+    tagline: "The world's trends and humanity's questions.",
+    whatTitle: "What is this",
+    what: `Search is humanity's most honest record of "what we want to know." ${SITE_NAME} is a place to watch what the world is paying attention to right now, and how that curiosity connects — as a living graph. Less an analytics tool, more a mirror onto the world's curiosity.`,
+    views: [
+      ["Trends", "What the world is searching right now"],
+      ["Quest", "What humanity quietly asks (dive starting from your own question)"],
+      ["Analysis", "Trace associations out from a rising word"],
+      ["Globe", "See the world's attention from above"],
+    ],
+    dataTitle: "About the data",
+    data: `We show public data from Google Trends (trending searches) and Google search autocomplete (suggestions), fetched and cached at regular intervals. This is an unofficial personal project, not affiliated with Google LLC or any company.`,
+    privacyTitle: "Privacy",
+    privacy:
+      "There is no sign-up, and we do not store your personal information. We may use anonymous usage statistics (Google Analytics) to improve the site.",
+  },
 };
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}): Promise<Metadata> {
+  const c = CONTENT[toLocale((await params).lang)];
+  return {
+    title: c.title,
+    description: c.desc,
+    alternates: { canonical: `/${toLocale((await params).lang)}/about`, languages: { ja: "/ja/about", en: "/en/about" } },
+  };
+}
+
 export default async function AboutPage({ params }: { params: Promise<{ lang: string }> }) {
-  const { lang } = await params;
-  const locale = lang === "en" ? "en" : "ja";
+  const locale = toLocale((await params).lang);
+  const c = CONTENT[locale];
   return (
     <>
       <SiteHeader />
@@ -24,39 +72,30 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
         }}
       >
         <h1 style={{ fontSize: 24, fontWeight: 600 }}>{SITE_NAME}</h1>
-        <p className="muted" style={{ marginTop: 4 }}>{SITE_TAGLINE}</p>
+        <p className="muted" style={{ marginTop: 4 }}>
+          {c.tagline}
+        </p>
 
         <section style={{ marginTop: 28 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600 }}>これは何か</h2>
-          <p>
-            検索は、人類が最も正直に「知りたい」を吐き出している記録です。{SITE_NAME}
-            は、いま世界が何に注意を向け、その関心がどう繋がっているかを、生きたグラフとして眺めるための場所です。
-            数字を分析するツールというより、世界の好奇心を覗く鏡のようなものです。
-          </p>
+          <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.whatTitle}</h2>
+          <p>{c.what}</p>
           <ul>
-            <li><strong>トレンド</strong> — いま世界が検索していること</li>
-            <li><strong>探求</strong> — 人類が密かに問うていること(自分の問いを起点に潜れます)</li>
-            <li><strong>分析</strong> — 急上昇ワードから連想を辿る</li>
-            <li><strong>地球儀</strong> — 世界の関心を俯瞰する</li>
+            {c.views.map(([name, desc]) => (
+              <li key={name}>
+                <strong>{name}</strong> — {desc}
+              </li>
+            ))}
           </ul>
         </section>
 
         <section style={{ marginTop: 24 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600 }}>データについて</h2>
-          <p>
-            表示しているのは Google トレンド(急上昇検索)と Google
-            の検索オートコンプリート(サジェスト)から取得した公開データで、一定時間ごとにキャッシュして取得しています。
-            本サイトは Google
-            LLC・各社とは一切関係のない、個人による非公式なプロジェクトです。
-          </p>
+          <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.dataTitle}</h2>
+          <p>{c.data}</p>
         </section>
 
         <section style={{ marginTop: 24 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600 }}>プライバシー</h2>
-          <p>
-            アカウント登録はなく、あなたの個人情報を保存することはありません。
-            サイト改善のため、アクセス状況の匿名的な統計(Google Analytics)を利用する場合があります。
-          </p>
+          <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.privacyTitle}</h2>
+          <p>{c.privacy}</p>
         </section>
 
         <p style={{ marginTop: 32 }}>

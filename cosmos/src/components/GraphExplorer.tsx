@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import { GEO_LABELS, GEO_HL } from "@/lib/trends";
+import { DEFAULT_LOCALE, isLocale, t } from "@/lib/i18n";
 import {
   forceSimulation,
   forceLink,
@@ -68,6 +70,9 @@ const CRISIS =
 // --- 本体 ---
 
 export default function GraphExplorer({ mode }: { mode: Mode }) {
+  const pathSeg = usePathname().split("/")[1];
+  const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
+  const tx = t(locale);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const nodesRef = useRef<GNode[]>([]);
@@ -662,11 +667,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             textAlign: "center",
           }}
         >
-          <p style={{ fontSize: 20, fontWeight: 600 }}>問いを見つける</p>
+          <p style={{ fontSize: 20, fontWeight: 600 }}>{tx.graph.questTitle}</p>
           <p className="muted" style={{ maxWidth: 460 }}>
-            あなたの問いを入力すると、世界の検索がその続きを広げていく。
-            <br />
-            気になる問いをいくつも入れて、自分の地図を作ってみよう。
+            {tx.graph.questBody}
           </p>
         </div>
       )}
@@ -678,7 +681,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           className="btn"
           value={sel}
           onChange={(e) => switchSelect(e.target.value)}
-          aria-label={mode === "mirror" ? "言語を選択" : "国を選択"}
+          aria-label={mode === "mirror" ? tx.graph.selectLanguage : tx.graph.selectCountry}
         >
           {options.map(([code, label]) => (
             <option key={code} value={code}>
@@ -687,7 +690,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           ))}
         </select>
         <button className="btn" onClick={exportImage}>
-          画像で保存
+          {tx.graph.saveImage}
         </button>
         {loading && <span className="muted">Loading...</span>}
         {error && <span style={{ color: "#e5484d" }}>Error: {error}</span>}
@@ -702,7 +705,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
                 className="btn"
                 style={{ padding: "1px 8px" }}
                 onClick={() => setSelected(null)}
-                aria-label="閉じる"
+                aria-label={tx.detail.close}
               >
                 ✕
               </button>
@@ -730,9 +733,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               </ul>
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
-                {mode === "mirror"
-                  ? "世界が実際に検索している言葉。"
-                  : "検索者が次に調べている言葉。"}
+                {mode === "mirror" ? tx.graph.mirrorHint : tx.graph.trendsHint}
               </p>
             )}
 
@@ -744,7 +745,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Googleで検索 ↗
+              {tx.detail.googleSearch} ↗
             </a>
           </div>
         </div>
@@ -762,11 +763,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={sel === "en" ? "ask your own… (e.g. why am i)" : "問いを入力…（例: なぜ私は）"}
-            aria-label="問いを入力"
+            placeholder={tx.graph.inputPlaceholder}
+            aria-label={tx.graph.inputPlaceholder}
           />
           <button className="btn" type="submit">
-            潜る
+            {tx.graph.dive}
           </button>
         </form>
       )}

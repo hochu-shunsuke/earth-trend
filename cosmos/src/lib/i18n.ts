@@ -57,6 +57,18 @@ type Dict = {
     appeared: (s: string) => string; // X は "2時間"等
     close: string;
   };
+  graph: {
+    questTitle: string;
+    questBody: string;
+    selectLanguage: string;
+    selectCountry: string;
+    saveImage: string;
+    dive: string;
+    inputPlaceholder: string;
+    mirrorHint: string;
+    trendsHint: string;
+  };
+  globe: { loading: string; loadFail: string; countries: (n: number) => string };
   langName: string;
 };
 
@@ -88,6 +100,23 @@ export const DICT: Record<Locale, Dict> = {
       appeared: (s) => `約${s}前に登場`,
       close: "閉じる",
     },
+    graph: {
+      questTitle: "問いを見つける",
+      questBody:
+        "あなたの問いを入力すると、世界の検索がその続きを広げていく。気になる問いをいくつも入れて、自分の地図を作ってみよう。",
+      selectLanguage: "言語を選択",
+      selectCountry: "国を選択",
+      saveImage: "画像で保存",
+      dive: "潜る",
+      inputPlaceholder: "問いを入力…（例: なぜ私は）",
+      mirrorHint: "世界が実際に検索している言葉。",
+      trendsHint: "検索者が次に調べている言葉。",
+    },
+    globe: {
+      loading: "読み込み中…",
+      loadFail: "データの取得に失敗しました",
+      countries: (n) => `${n}カ国`,
+    },
     langName: "日本語",
   },
   en: {
@@ -116,6 +145,23 @@ export const DICT: Record<Locale, Dict> = {
       explore: "Explore",
       appeared: (s) => `appeared ~${s} ago`,
       close: "Close",
+    },
+    graph: {
+      questTitle: "Find a question",
+      questBody:
+        "Type your question and the world's searches expand what comes next. Add as many as you like and build your own map.",
+      selectLanguage: "Select language",
+      selectCountry: "Select country",
+      saveImage: "Save image",
+      dive: "Dive",
+      inputPlaceholder: "ask your own… (e.g. why am i)",
+      mirrorHint: "What the world is actually searching.",
+      trendsHint: "What searchers look up next.",
+    },
+    globe: {
+      loading: "loading…",
+      loadFail: "Failed to load data",
+      countries: (n) => `${n} countries`,
     },
     langName: "English",
   },

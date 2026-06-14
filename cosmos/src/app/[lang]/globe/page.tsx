@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 
 interface NewsItem {
   title: string;
@@ -60,13 +60,14 @@ function scatter(center: { lat: number; lng: number }, i: number) {
 export default function GlobePage() {
   const pathSeg = usePathname().split("/")[1];
   const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
+  const tx = t(locale);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(null);
   const prevWordsRef = useRef<Set<string>>(new Set());
   const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
-  const [status, setStatus] = useState("loading...");
+  const [status, setStatus] = useState(tx.globe.loading);
   const countriesRef = useRef<object[] | null>(null);
 
   // スタイル(リアル/ライン)とテーマに応じて地球の見た目を再適用する
@@ -149,7 +150,7 @@ export default function GlobePage() {
     const load = async () => {
       const res = await fetch("/api/trends-all");
       if (!res.ok) {
-        setStatus("データ取得に失敗しました");
+        setStatus(tx.globe.loadFail);
         return;
       }
       const { data }: { data: Record<string, TrendItem[]> } = await res.json();
@@ -163,7 +164,7 @@ export default function GlobePage() {
       prevWordsRef.current = new Set(
         labels.map((l) => `${l.geo}:${l.word}`),
       );
-      setStatus(`${labels.length} trends / ${Object.keys(data).length}カ国`);
+      setStatus(`${labels.length} trends / ${tx.globe.countries(Object.keys(data).length)}`);
     };
 
     (async () => {
@@ -300,6 +301,8 @@ export default function GlobePage() {
       globeRef.current?._destructor?.();
       globeRef.current = null;
     };
+    // tx はロケール毎に安定(DICT参照)。マウント時一度きりの初期化なので追従不要
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyStyle]);
 
   return (
@@ -326,16 +329,16 @@ export default function GlobePage() {
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span>
-                <strong>{selected.word}</strong>
+                <strong translate="no">{selected.word}</strong>
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
-                  {GEO_CENTER[selected.geo]?.label ?? selected.geo}
+                  {COUNTRY_LABELS[locale][selected.geo] ?? selected.geo}
                 </span>
               </span>
               <button
                 className="btn"
                 style={{ padding: "1px 8px" }}
                 onClick={() => setSelected(null)}
-                aria-label="閉じる"
+                aria-label={tx.detail.close}
               >
                 ✕
               </button>
@@ -362,20 +365,20 @@ export default function GlobePage() {
       {/* 画面下部中央のドック: 選択語のアクション */}
       {selected && (
         <div className="dock">
-          <span className="word">{selected.word}</span>
+          <span className="word" translate="no">{selected.word}</span>
           <a
             className="btn"
             href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Googleで検索
+            {tx.detail.googleSearch}
           </a>
           <Link
             className="btn"
             href={`/${locale}/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
           >
-            探索する
+            {tx.detail.explore}
           </Link>
         </div>
       )}
