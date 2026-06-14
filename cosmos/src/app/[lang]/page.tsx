@@ -1,13 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import CountryTile from "@/components/CountryTile";
 import { ALLOWED_GEO, GEO_LABELS } from "@/lib/trends";
-import { fetchTrendsUnioned } from "@/lib/history";
+import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { toLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 
 export const revalidate = 600;
+
+// 9国分のデータを10分キャッシュ(訪問あたりのUpstashコストをほぼゼロに。ローンチ耐性)
+const getGalleryData = unstable_cache(
+  async (): Promise<[string, RecentTrendItem[]][]> =>
+    Promise.all(
+      Object.keys(GEO_LABELS).map(async (g) => [g, await fetchTrendsUnioned(g)] as [string, RecentTrendItem[]]),
+    ),
+  ["gallery-data-v2"],
+  { revalidate: 600 },
+);
 
 export async function generateMetadata({
   params,
@@ -39,12 +50,9 @@ export default async function GalleryPage({
   const { geo } = await searchParams;
   if (geo && ALLOWED_GEO.has(geo.toUpperCase())) redirect(`/${locale}/${geo.toLowerCase()}`);
 
-  const geos = Object.keys(GEO_LABELS);
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
-  const data = await Promise.all(
-    geos.map(async (g) => [g, await fetchTrendsUnioned(g)] as const),
-  );
+  const data = await getGalleryData();
 
   return (
     <>

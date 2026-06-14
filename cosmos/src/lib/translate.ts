@@ -38,6 +38,9 @@ export async function translate(
   text: string,
   from: string,
   to: string,
+  // cacheOnly: キャッシュに無ければ翻訳せず null。サーバー描画の一括翻訳で使い、
+  // Google EPへの同時バースト(レート制限の元)を避ける。温めは cron/backfill が担う
+  cacheOnly = false,
 ): Promise<string | null> {
   const t = text.trim();
   if (!t) return text;
@@ -47,6 +50,7 @@ export async function translate(
   const cached = await redis([["GET", key]]);
   const hit = cached?.[0]?.result;
   if (typeof hit === "string" && hit) return hit;
+  if (cacheOnly) return null;
 
   try {
     // sl=auto: 自動検出が堅牢(国の言語と実際の語の言語がずれても拾う)

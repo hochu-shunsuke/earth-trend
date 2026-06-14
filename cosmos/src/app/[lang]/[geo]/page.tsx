@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import GeoSelect from "@/components/GeoSelect";
@@ -7,11 +8,29 @@ import TrendsView from "@/components/TrendsView";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { translate } from "@/lib/translate";
-import { toLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
+import { toLocale, t, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
 
 export const revalidate = 600;
+
+// データ＋翻訳を10分キャッシュ(訪問あたりのUpstash/翻訳コストをほぼゼロに。ローンチ耐性)
+const getCountryItems = unstable_cache(
+  async (code: string, locale: Locale): Promise<TranslatedItem[]> => {
+    const raw = await fetchTrendsUnioned(code);
+    const src = GEO_LANG[code] ?? "auto";
+    if (src === locale) return raw;
+    // cacheOnly: 温め済みの訳だけを使う(同時バーストでGoogleに弾かれるのを防ぐ)
+    return Promise.all(
+      raw.map(async (it) => ({
+        ...it,
+        translation: (await translate(it.word, src, locale, true)) ?? undefined,
+      })),
+    );
+  },
+  ["country-items-v2"],
+  { revalidate: 600 },
+);
 
 // 9カ国を静的生成(SEO: 各国×各ロケールが独立したインデックス可能ランディング)
 export function generateStaticParams() {
@@ -51,19 +70,8 @@ export default async function CountryPage({
   if (!ALLOWED_GEO.has(code)) notFound();
   const country = COUNTRY_LABELS[locale][code];
 
-  const raw = await fetchTrendsUnioned(code);
-  // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)。Upstashキャッシュで新規語だけ実翻訳。
-  // ターゲットは閲覧ロケール。原語言語===ロケールなら翻訳不要
-  const src = GEO_LANG[code] ?? "auto";
-  const items: TranslatedItem[] =
-    src === locale
-      ? raw
-      : await Promise.all(
-          raw.map(async (it) => ({
-            ...it,
-            translation: (await translate(it.word, src, locale)) ?? undefined,
-          })),
-        );
+  // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋10分キャッシュ
+  const items = await getCountryItems(code, locale);
 
   return (
     <>

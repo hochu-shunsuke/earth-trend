@@ -8,8 +8,38 @@
 
 const GEOS = ["JP", "US", "GB", "IN", "KR", "TW", "DE", "FR", "BR"];
 
+// 翻訳の原文言語(その国の主要言語)。UIロケール(ja/en)へ訳してキャッシュを温める
+const GEO_LANG = {
+  JP: "ja", US: "en", GB: "en", IN: "en", KR: "ko",
+  TW: "zh-TW", DE: "de", FR: "fr", BR: "pt-BR",
+};
+const UI_LOCALES = ["ja", "en"];
+// 1回の実行で温める翻訳の上限(Google無料EPに優しく)。残りは次回以降で
+const WARM_CAP = 80;
+
 // 直近どれだけのスナップショットを保持するか(30分間隔で約6週間)。古いものは間引く
 const KEEP_PER_GEO = 2000;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Googleの無料翻訳EP(キー不要)。lib/translate.ts と同じキー(tr2:from:to:text)に貯める
+async function translateGoogle(text, to) {
+  try {
+    const url =
+      `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=auto` +
+      `&tl=${encodeURIComponent(to)}&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; earth-trend)" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const segs = data?.[0];
+    if (!Array.isArray(segs)) return null;
+    const out = segs.map((s) => (Array.isArray(s) ? String(s[0] ?? "") : "")).join("").trim();
+    if (!out || out.toLowerCase() === text.toLowerCase()) return null;
+    return out;
+  } catch {
+    return null;
+  }
+}
 
 function decode(s) {
   return s
@@ -69,6 +99,7 @@ async function redis(commands) {
 async function main() {
   const now = Date.now();
   const ts = Math.floor(now / 1000);
+  let warmed = 0; // この実行で温めた翻訳数(WARM_CAPで上限)
 
   for (const geo of GEOS) {
     let items;
@@ -97,13 +128,34 @@ async function main() {
       cmds.push(["HSETNX", `firstseen:${geo}`, it.word, String(ts)]);
     }
 
+    let res;
     try {
-      await redis(cmds);
+      res = await redis(cmds);
       console.log(`${geo}: stored ${items.length} items`);
     } catch (e) {
       console.error(`store ${geo} failed:`, e.message);
+      continue;
+    }
+
+    // 新規語(HSETNXが1=初出)だけを ja/en に訳してキャッシュを温める(コスト最小・放置で回る)
+    const geoLang = GEO_LANG[geo];
+    for (let i = 0; i < items.length && warmed < WARM_CAP; i++) {
+      if (res?.[3 + i]?.result !== 1) continue; // 既出語は skip
+      const word = items[i].word;
+      for (const to of UI_LOCALES) {
+        if (to === geoLang || warmed >= WARM_CAP) continue;
+        const tr = await translateGoogle(word, to);
+        if (tr) {
+          try {
+            await redis([["SET", `tr2:${geoLang}:${to}:${word}`, tr, "EX", "2592000"]]);
+          } catch {}
+          warmed++;
+          await sleep(150);
+        }
+      }
     }
   }
+  if (warmed) console.log(`warmed ${warmed} translations`);
 }
 
 main().catch((e) => {
