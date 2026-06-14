@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
+import { parseTraffic, freshnessColor, appearedText } from "@/lib/trendsVisual";
 
 interface NewsItem {
   title: string;
@@ -15,33 +16,6 @@ interface TrendItem {
   news: NewsItem[];
   firstSeen?: number; // 最初に観測した時刻(unix秒)。「燃え始め」の近似
   lastSeen?: number;
-}
-
-function parseTraffic(t: string): number {
-  // "50,000+" や "5万+" 等。数字だけ拾う(万は概算で桁を足す)
-  const n = parseInt(t.replace(/[^0-9]/g, ""), 10) || 0;
-  return /万/.test(t) ? n * 10000 : n;
-}
-
-// 色＝新しさ(発生からの経過)。新しいほど暖色、古いほど寒色。
-// サイズ=規模 と直交する2次元目。firstSeen不明時は中立の青
-function freshnessColor(firstSeen: number | undefined, nowSec: number): string {
-  if (!firstSeen) return "hsl(212 60% 46%)";
-  const ageH = Math.max(0, (nowSec - firstSeen) / 3600);
-  const t = Math.min(1, ageH / 24); // 0(新しい)..1(24h以上で古い)
-  const hue = Math.round(28 + t * (212 - 28)); // 28(暖)→212(寒)
-  const light = Math.round(52 - t * 12);
-  return `hsl(${hue} 70% ${light}%)`;
-}
-
-// 「約X前に登場」(我々が最初に観測した時刻。発生そのものではない点に注意)
-function appearedText(firstSeen: number | undefined, nowSec: number): string | null {
-  if (!firstSeen) return null;
-  const m = Math.max(0, Math.floor((nowSec - firstSeen) / 60));
-  if (m < 60) return `約${m}分前に登場`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `約${h}時間前に登場`;
-  return `約${Math.floor(h / 24)}日前に登場`;
 }
 
 // 規模ビュー(パック円): 円の面積=検索ボリューム。隙間が残る=「これが全部ではない」
