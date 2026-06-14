@@ -319,28 +319,51 @@ export default function TrendsView({
               </p>
             )}
             {selected.news.length > 0 ? (
-              <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
+              // 記事は横スワイプのスライドにしてコンパクトに(各スライドは数行でクランプ)
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  overflowX: "auto",
+                  scrollSnapType: "x mandatory",
+                  margin: "8px -2px 0",
+                  padding: "0 2px 4px",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 {selected.news.slice(0, 3).map((n, i) => {
                   const title = newsTr?.[i] ?? n.title; // 訳があれば訳、無ければ原文
+                  // URLが無い(旧データ)はGoogleニュース検索にフォールバック＝必ずリンク
+                  const href = n.url ?? `https://www.google.com/search?q=${encodeURIComponent(n.title)}`;
                   return (
-                    <li key={i} style={{ marginBottom: 6 }}>
-                      {n.url ? (
-                        <a href={n.url} target="_blank" rel="noopener noreferrer" title={n.title}>
-                          {title}
-                        </a>
-                      ) : (
-                        title
-                      )}
+                    <a
+                      key={i}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={n.title}
+                      style={{
+                        flex: selected.news.length > 1 ? "0 0 86%" : "0 0 100%",
+                        scrollSnapAlign: "start",
+                        fontSize: 13,
+                        lineHeight: 1.4,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {title}
                       {n.source && (
                         <span className="muted" style={{ fontSize: "0.85em" }}>
                           {" "}
                           ({n.source})
                         </span>
                       )}
-                    </li>
+                    </a>
                   );
                 })}
-              </ul>
+              </div>
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {d.detail.trendingNow}

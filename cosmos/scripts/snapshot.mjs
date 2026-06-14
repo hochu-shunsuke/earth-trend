@@ -61,9 +61,20 @@ function parseRss(xml) {
     const title = block.match(/<title>([\s\S]*?)<\/title>/);
     if (!title) continue;
     const traffic = block.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/);
-    const news = [...block.matchAll(/<ht:news_item_title>([\s\S]*?)<\/ht:news_item_title>/g)]
-      .map((n) => decode(n[1]))
-      .filter(Boolean)
+    // news_item ブロック単位で title/url/source をまとめて拾う(URLを残す=記事リンク化)
+    const news = [...block.matchAll(/<ht:news_item>([\s\S]*?)<\/ht:news_item>/g)]
+      .map((ni) => {
+        const b = ni[1];
+        const t = b.match(/<ht:news_item_title>([\s\S]*?)<\/ht:news_item_title>/);
+        const u = b.match(/<ht:news_item_url>([\s\S]*?)<\/ht:news_item_url>/);
+        const s = b.match(/<ht:news_item_source>([\s\S]*?)<\/ht:news_item_source>/);
+        return {
+          title: t ? decode(t[1]) : "",
+          url: u ? decode(u[1]) : undefined,
+          source: s ? decode(s[1]) : undefined,
+        };
+      })
+      .filter((n) => n.title)
       .slice(0, 3);
     items.push({
       word: decode(title[1]),
