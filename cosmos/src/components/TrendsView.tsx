@@ -52,21 +52,42 @@ function ScaleBubbles({
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const [nowSec, setNowSec] = useState(0);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 }); // pan/zoom
+  const [hint, setHint] = useState<string | null>(null); // 操作ヒント(一瞬)
   const wrapRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const drag = useRef<{ sx: number; sy: number } | null>(null);
+  const drag = useRef<{ sx: number; sy: number; touch: boolean } | null>(null);
   const moved = useRef(false);
   const pinchPrev = useRef<number | null>(null);
+  const midPrev = useRef<{ x: number; y: number } | null>(null); // 2本指の中点(パン用)
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const twoFingerHint = locale === "en" ? "Use two fingers to move the map" : "2本指で地図を動かせます";
+  const wheelHint = locale === "en" ? "Use ⌘ / Ctrl + scroll to zoom" : "⌘ / Ctrl + スクロールでズーム";
+  const showHint = (msg: string) => {
+    setHint(msg);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHint(null), 1400);
+  };
 
   useEffect(() => {
     // クライアントの現在時刻を一度だけ取る(色/発生時刻の基準)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNowSec(Date.now() / 1000);
-    const calc = () =>
-      setBox({ w: window.innerWidth, h: Math.min(Math.round(window.innerHeight * 0.7), 720) });
+    // 全幅突き抜けをやめ「枠(=ページ幅)」の実寸に合わせる。枠の追従はResizeObserverで
+    const calc = () => {
+      const w = wrapRef.current?.clientWidth ?? Math.min(window.innerWidth, 688);
+      const h = Math.min(Math.round(window.innerHeight * 0.62), 560);
+      setBox({ w: Math.max(1, w), h });
+    };
     calc();
+    const ro = new ResizeObserver(calc);
+    if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", calc);
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    };
   }, []);
 
   // ホイールズーム(React onWheelはpassiveでpreventDefault不可なのでネイティブ登録)
@@ -74,6 +95,12 @@ function ScaleBubbles({
     const el = wrapRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
+      // 素のホイール/2本指スクロールはページスクロールに通す。ズームは ⌘/Ctrl + ホイール
+      // (Macトラックパッドのピンチは ctrlKey=true で来るのでズームになる)
+      if (!(e.ctrlKey || e.metaKey)) {
+        showHint(wheelHint);
+        return;
+      }
       e.preventDefault();
       const rect = el.getBoundingClientRect();
       const px = e.clientX - rect.left;
@@ -87,18 +114,20 @@ function ScaleBubbles({
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [box]);
 
-  if (!box) return null;
-
+  // 枠の実寸を測るため、box未確定でも枠自体は描く(=ここでreturnしない)
   type Datum = { children: TrendItem[] } | TrendItem;
-  const root = pack<Datum>()
-    .size([box.w, box.h])
-    .padding(6)(
-    hierarchy<Datum>({ children: items })
-      .sum((d) => ("traffic" in d ? Math.max(1, parseTraffic(d.traffic)) : 0))
-      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
-  );
+  const root = box
+    ? pack<Datum>()
+        .size([box.w, box.h])
+        .padding(6)(
+        hierarchy<Datum>({ children: items })
+          .sum((d) => ("traffic" in d ? Math.max(1, parseTraffic(d.traffic)) : 0))
+          .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
+      )
+    : null;
 
   const zoomAt = (clientX: number, clientY: number, factor: number) => {
     const rect = wrapRef.current?.getBoundingClientRect();
@@ -111,42 +140,71 @@ function ScaleBubbles({
       return { k, x: px - (px - v.x) * rf, y: py - (py - v.y) * rf };
     });
   };
+  // ボタン用: 枠の中心を基準にズーム / 全体表示に戻す
+  const zoomCenter = (factor: number) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
+  };
+  const resetView = () => setView({ x: 0, y: 0, k: 1 });
   const onPointerDown = (e: React.PointerEvent) => {
     // ※ここでは setPointerCapture しない(タップのネイティブclickを潰さないため)
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) {
-      drag.current = { sx: e.clientX, sy: e.clientY };
+      drag.current = { sx: e.clientX, sy: e.clientY, touch: e.pointerType === "touch" };
       moved.current = false;
     } else {
       drag.current = null;
       const [a, b] = [...pointers.current.values()];
       pinchPrev.current = Math.hypot(a.x - b.x, a.y - b.y);
+      midPrev.current = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     }
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
+      // 2本指: ピンチでズーム + 中点の移動で地図をパン(=「2本指で動かす」)
       const [a, b] = [...pointers.current.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinchPrev.current) zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, d / pinchPrev.current);
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (pinchPrev.current) zoomAt(mid.x, mid.y, d / pinchPrev.current);
+      if (midPrev.current) {
+        const mdx = mid.x - midPrev.current.x;
+        const mdy = mid.y - midPrev.current.y;
+        setView((v) => ({ ...v, x: v.x + mdx, y: v.y + mdy }));
+      }
       pinchPrev.current = d;
+      midPrev.current = mid;
       moved.current = true;
       return;
     }
-    if (drag.current) {
-      if (!moved.current && Math.abs(e.clientX - drag.current.sx) + Math.abs(e.clientY - drag.current.sy) > 4) {
-        // ドラッグ開始時だけ捕捉(以降は要素外でも追従。タップは捕捉しないのでclick有効)
-        moved.current = true;
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (!drag.current) return;
+    const dx = e.clientX - drag.current.sx;
+    const dy = e.clientY - drag.current.sy;
+    const movedEnough = Math.abs(dx) + Math.abs(dy) > 4;
+    if (drag.current.touch) {
+      // スマホは1本指でパンしない=縦はページスクロールに通す。
+      // 横に動かそうとした時だけ「2本指で」ヒント(縦スクロールでは出さない)
+      if (movedEnough && !moved.current) {
+        moved.current = true; // 以後タップ扱いにしない
+        if (Math.abs(dx) > Math.abs(dy)) showHint(twoFingerHint);
       }
-      if (moved.current)
-        setView((v) => ({ ...v, x: v.x + e.movementX, y: v.y + e.movementY }));
+      return;
     }
+    // PCはマウスの1ボタンドラッグでパン(スクロールジェスチャではないので奪ってよい)
+    if (movedEnough && !moved.current) {
+      moved.current = true;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }
+    if (moved.current) setView((v) => ({ ...v, x: v.x + e.movementX, y: v.y + e.movementY }));
   };
   const onPointerEnd = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
-    if (pointers.current.size < 2) pinchPrev.current = null;
+    if (pointers.current.size < 2) {
+      pinchPrev.current = null;
+      midPrev.current = null;
+    }
     if (pointers.current.size === 0) drag.current = null;
   };
 
@@ -155,36 +213,35 @@ function ScaleBubbles({
       <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
         {t(locale).bubbles.legend(items.length)}
       </p>
-      {/* 中央寄せmainを突き抜けて画面いっぱいに広げる。内側をpan/zoom */}
+      {/* 他ページと同じ幅(720px)の枠に収める。縦1本指=ページスクロール / 2本指=移動・ズーム */}
       <div
         ref={wrapRef}
+        className="bubble-box"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={{
           position: "relative",
-          width: "100vw",
-          left: "50%",
-          marginLeft: "-50vw",
-          height: box.h,
+          width: "100%",
+          height: box?.h ?? 420,
           overflow: "hidden",
-          // 縦スワイプはページスクロールに通す(地図が画面を占有してスクロール不能になるのを解消)。
-          // 横ドラッグ/ピンチは地図側で拾う
+          // 縦1本指はページスクロールに通す。地図の移動は2本指/マウスドラッグ、ズームは⌘ホイール
           touchAction: "pan-y",
           userSelect: "none",
           cursor: "grab",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            transformOrigin: "0 0",
-            transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`,
-          }}
-        >
-          {root.leaves().map((leaf) => {
+        {box && root && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              transformOrigin: "0 0",
+              transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`,
+            }}
+          >
+            {root.leaves().map((leaf) => {
             const it = leaf.data as TrendItem;
             const r = leaf.r;
             // フォントは円半径に完全比例(下限なし)＝ズーム倍率に関係なく常に円に収まる。
@@ -232,7 +289,24 @@ function ScaleBubbles({
               </button>
             );
           })}
+          </div>
+        )}
+
+        {/* ズーム操作(枠の右下)。スクロールを奪わない代わりの手段 */}
+        <div className="bubble-zoom">
+          <button className="btn" onClick={() => zoomCenter(1.3)} aria-label="zoom in">
+            +
+          </button>
+          <button className="btn" onClick={() => zoomCenter(1 / 1.3)} aria-label="zoom out">
+            −
+          </button>
+          <button className="btn" onClick={resetView} aria-label="reset">
+            ⤢
+          </button>
         </div>
+
+        {/* 操作ヒント(一瞬): スマホ横1本指ドラッグ / PCの素のホイール時 */}
+        {hint && <div className="map-hint">{hint}</div>}
       </div>
     </>
   );
