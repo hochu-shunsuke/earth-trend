@@ -35,6 +35,7 @@ function trafficNum(t: string): number {
 export async function fetchRecentTrends(
   geo: string,
   ticks = 3,
+  max = 20,
 ): Promise<RecentTrendItem[] | null> {
   const env = redisEnv();
   if (!env) return null;
@@ -93,6 +94,7 @@ export async function fetchRecentTrends(
 
     return [...byWord.values()]
       .sort((a, b) => b._tv - a._tv)
+      .slice(0, max) // 件数は最大 max(=20) に制限
       .map((v) => ({
         word: v.word,
         traffic: v.traffic,
