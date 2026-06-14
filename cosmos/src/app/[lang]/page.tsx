@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
@@ -55,7 +56,13 @@ export default async function GalleryPage({
 
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
-  const data = await getGalleryData();
+  let data = await getGalleryData();
+
+  // 自動ロケーション: Vercelの国ヘッダで、訪問者の国が対象なら先頭に(俯瞰は壊さず関連性UP)
+  const visitorGeo = (await headers()).get("x-vercel-ip-country")?.toUpperCase();
+  if (visitorGeo && data.some(([g]) => g === visitorGeo)) {
+    data = [...data].sort((a) => (a[0] === visitorGeo ? -1 : 0));
+  }
 
   return (
     <>

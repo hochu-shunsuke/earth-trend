@@ -212,27 +212,91 @@ select.btn {
   pointer-events: none;
 }
 
+/* ヘッダー右側の言語/テーマ */
+.site-header .header-right {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+/* ハンバーガー(モバイルのみ表示)とドロワー */
+.hamburger {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.nav-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 240px;
+  max-width: 78vw;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.nav-drawer.open {
+  transform: translateX(0);
+}
+.nav-drawer nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.nav-drawer nav a {
+  color: var(--fg);
+  font-size: 16px;
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+.nav-drawer nav a[data-active="true"] {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+
 /* モバイル: ヘッダーを詰めて折り返しを防ぐ・パネルをコントロールの下へ */
 @media (max-width: 560px) {
   .site-header {
-    padding: 0 8px;
+    padding: 0 12px;
     gap: 2px;
   }
   .site-header .brand {
     margin-right: 4px;
-    font-size: 12px;
+    font-size: 14px;
   }
-  .site-header nav {
-    gap: 0;
-    justify-content: center;
+  /* インラインのナビ/コントロールは隠してハンバーガーに */
+  .site-header .nav-inline,
+  .site-header .header-right {
+    display: none;
   }
-  .site-header nav a {
-    padding: 4px 6px;
-    font-size: 11.5px;
-  }
-  .site-header > .btn {
-    padding: 3px 6px;
-    font-size: 12px;
+  .hamburger {
+    display: block;
   }
   /* モバイル: 詳細はグラフを覆わない下部シートにする(上半分が隠れる問題の解消) */
   .detail-panel {
