@@ -23,7 +23,7 @@ export async function generateMetadata({
     ...META[locale],
     alternates: {
       canonical: `/${locale}/analysis`,
-      languages: { ja: "/ja/analysis", en: "/en/analysis" },
+      languages: { ja: "/ja/analysis", en: "/en/analysis", "x-default": "/en/analysis" },
     },
   };
 }

@@ -30,7 +30,10 @@ export async function generateMetadata({
   return {
     title: d.home.title,
     description: d.home.desc,
-    alternates: { canonical: `/${locale}`, languages: { ja: "/ja", en: "/en" } },
+    alternates: {
+      canonical: `/${locale}`,
+      languages: { ja: "/ja", en: "/en", "x-default": "/en" },
+    },
   };
 }
 

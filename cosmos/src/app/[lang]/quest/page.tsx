@@ -23,7 +23,10 @@ export async function generateMetadata({
   const locale = toLocale((await params).lang);
   return {
     ...META[locale],
-    alternates: { canonical: `/${locale}/quest`, languages: { ja: "/ja/quest", en: "/en/quest" } },
+    alternates: {
+      canonical: `/${locale}/quest`,
+      languages: { ja: "/ja/quest", en: "/en/quest", "x-default": "/en/quest" },
+    },
   };
 }
 

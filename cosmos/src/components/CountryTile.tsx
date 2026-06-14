@@ -37,6 +37,7 @@ export default function CountryTile({
   return (
     <Link
       href={`/${locale}/${geo.toLowerCase()}`}
+      className="card-link"
       style={{
         display: "block",
         border: "1px solid var(--border)",

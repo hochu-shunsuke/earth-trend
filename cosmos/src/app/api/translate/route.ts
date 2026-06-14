@@ -13,7 +13,11 @@ export async function GET(req: Request) {
   const translated = await translate(q, from, to);
   return NextResponse.json(
     { translated },
-    // 訳は安定。CDNでも長めにキャッシュ
-    { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=86400" } },
+    // 訳は安定。ブラウザ(max-age)とCDN(s-maxage)双方でキャッシュ＝再アクセスで再取得しない
+    {
+      headers: {
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+      },
+    },
   );
 }

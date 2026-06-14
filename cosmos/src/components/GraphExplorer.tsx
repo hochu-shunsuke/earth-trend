@@ -542,7 +542,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     // 初期化: モードで起点が変わる(URLパラメータ反映の一度きりのsetState)
     const params = new URLSearchParams(window.location.search);
     if (mode === "mirror") {
-      const lang = isLang(params.get("lang") ?? "") ? params.get("lang")! : "ja";
+      // 探求のサジェスト言語はUIロケールに従う(個別セレクタは廃止)
+      const lang = isLang(locale) ? locale : "ja";
       selectRef.current = lang;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSel(lang);
@@ -677,18 +678,21 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       <SiteHeader overlay />
 
       <div className="canvas-controls">
-        <select
-          className="btn"
-          value={sel}
-          onChange={(e) => switchSelect(e.target.value)}
-          aria-label={mode === "mirror" ? tx.graph.selectLanguage : tx.graph.selectCountry}
-        >
-          {options.map(([code, label]) => (
-            <option key={code} value={code}>
-              {label}
-            </option>
-          ))}
-        </select>
+        {/* 国セレクタは分析のみ。探求はサジェスト言語=UIロケールなのでセレクタ不要 */}
+        {mode === "trends" && (
+          <select
+            className="btn"
+            value={sel}
+            onChange={(e) => switchSelect(e.target.value)}
+            aria-label={tx.graph.selectCountry}
+          >
+            {options.map(([code, label]) => (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
         <button className="btn" onClick={exportImage}>
           {tx.graph.saveImage}
         </button>

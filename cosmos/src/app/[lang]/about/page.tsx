@@ -52,7 +52,10 @@ export async function generateMetadata({
   return {
     title: c.title,
     description: c.desc,
-    alternates: { canonical: `/${toLocale((await params).lang)}/about`, languages: { ja: "/ja/about", en: "/en/about" } },
+    alternates: {
+      canonical: `/${toLocale((await params).lang)}/about`,
+      languages: { ja: "/ja/about", en: "/en/about", "x-default": "/en/about" },
+    },
   };
 }
 

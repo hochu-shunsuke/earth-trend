@@ -60,6 +60,11 @@ a:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* カード型リンク(国タイル等)はテキストリンクの下線を付けない */
+a.card-link,
+a.card-link:hover {
+  text-decoration: none;
+}
 
 /* 共通ヘッダー(全ページ同一: 固定・高さ48px) */
 .site-header {

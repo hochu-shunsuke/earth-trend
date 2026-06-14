@@ -53,7 +53,11 @@ export async function generateMetadata({
     description: d.country.seoHeading(country),
     alternates: {
       canonical: `/${locale}/${geo.toLowerCase()}`,
-      languages: { ja: `/ja/${geo.toLowerCase()}`, en: `/en/${geo.toLowerCase()}` },
+      languages: {
+        ja: `/ja/${geo.toLowerCase()}`,
+        en: `/en/${geo.toLowerCase()}`,
+        "x-default": `/en/${geo.toLowerCase()}`,
+      },
     },
   };
 }
