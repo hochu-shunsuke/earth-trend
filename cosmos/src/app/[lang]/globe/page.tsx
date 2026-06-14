@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
+import NewsCarousel from "@/components/NewsCarousel";
 import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 
 interface NewsItem {
@@ -68,7 +70,14 @@ export default function GlobePage() {
   const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
   const [status, setStatus] = useState(tx.globe.loading);
+  const [mounted, setMounted] = useState(false);
   const countriesRef = useRef<object[] | null>(null);
+
+  // globe.glのラベル層(CSS3D)はz-indexを無視して上に描画する。UIをbodyへポータルして確実に前面へ
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   // スタイル(リアル/ライン)とテーマに応じて地球の見た目を再適用する
   const applyStyle = useCallback(async () => {
@@ -318,70 +327,66 @@ export default function GlobePage() {
 
       <SiteHeader overlay />
 
-      <div className="canvas-controls" style={{ zIndex: 50 }}>
-        <span className="muted" style={{ fontSize: 12 }}>
-          {status}
-        </span>
-      </div>
-
-      {selected && (
-        <div className="detail-panel" style={{ zIndex: 50 }}>
-          <div className="panel" style={{ pointerEvents: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span>
-                <strong translate="no">{selected.word}</strong>
-                <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
-                  {COUNTRY_LABELS[locale][selected.geo] ?? selected.geo}
-                </span>
+      {/* ラベル層(CSS3D)に負けないよう、UIはbodyへポータルして前面に出す */}
+      {mounted &&
+        createPortal(
+          <>
+            <div className="canvas-controls" style={{ zIndex: 60 }}>
+              <span className="muted" style={{ fontSize: 12 }}>
+                {status}
               </span>
-              <button
-                className="btn"
-                style={{ padding: "1px 8px" }}
-                onClick={() => setSelected(null)}
-                aria-label={tx.detail.close}
-              >
-                ✕
-              </button>
             </div>
-            {selected.news.length > 0 && (
-              <ul style={{ paddingLeft: 16, margin: "8px 0" }}>
-                {selected.news.slice(0, 3).map((n, i) => (
-                  <li key={i} style={{ marginBottom: 6 }}>
-                    {n.url ? (
-                      <a href={n.url} target="_blank" rel="noopener noreferrer">
-                        {n.title}
-                      </a>
-                    ) : (
-                      n.title
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* 画面下部中央のドック: 選択語のアクション */}
-      {selected && (
-        <div className="dock" style={{ zIndex: 50 }}>
-          <span className="word" translate="no">{selected.word}</span>
-          <a
-            className="btn"
-            href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {tx.detail.googleSearch}
-          </a>
-          <Link
-            className="btn"
-            href={`/${locale}/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
-          >
-            {tx.detail.explore}
-          </Link>
-        </div>
-      )}
+            {selected && (
+              <div className="detail-panel" style={{ zIndex: 60 }}>
+                <div className="panel" style={{ pointerEvents: "auto" }}>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
+                  >
+                    <span>
+                      <strong translate="no">{selected.word}</strong>
+                      <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
+                        {COUNTRY_LABELS[locale][selected.geo] ?? selected.geo}
+                      </span>
+                    </span>
+                    <button
+                      className="btn"
+                      style={{ padding: "1px 8px" }}
+                      onClick={() => setSelected(null)}
+                      aria-label={tx.detail.close}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {selected.news.length > 0 && <NewsCarousel news={selected.news} />}
+                </div>
+              </div>
+            )}
+
+            {selected && (
+              <div className="dock" style={{ zIndex: 60 }}>
+                <span className="word" translate="no">
+                  {selected.word}
+                </span>
+                <a
+                  className="btn"
+                  href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {tx.detail.googleSearch}
+                </a>
+                <Link
+                  className="btn"
+                  href={`/${locale}/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+                >
+                  {tx.detail.explore}
+                </Link>
+              </div>
+            )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

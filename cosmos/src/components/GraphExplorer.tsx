@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
+import NewsCarousel from "@/components/NewsCarousel";
 import { GEO_LABELS, GEO_HL } from "@/lib/trends";
 import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 import {
@@ -723,25 +724,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
             </div>
 
             {selected.news.length > 0 ? (
-              <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
-                {selected.news.map((n, i) => (
-                  <li key={i} style={{ marginBottom: 6 }}>
-                    {n.url ? (
-                      <a href={n.url} target="_blank" rel="noopener noreferrer">
-                        {n.title}
-                      </a>
-                    ) : (
-                      n.title
-                    )}
-                    {n.source && (
-                      <span className="muted" style={{ fontSize: "0.85em" }}>
-                        {" "}
-                        ({n.source})
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <NewsCarousel news={selected.news} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {mode === "mirror" ? tx.graph.mirrorHint : tx.graph.trendsHint}

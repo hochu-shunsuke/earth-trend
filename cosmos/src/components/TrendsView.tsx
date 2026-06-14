@@ -6,6 +6,7 @@ import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
 import { t, type Locale } from "@/lib/i18n";
+import NewsCarousel from "@/components/NewsCarousel";
 
 // 「登場からの経過」をロケール別の短い文字列に
 function durationStr(sec: number | undefined, nowSec: number, locale: Locale): string | null {
@@ -321,51 +322,7 @@ export default function TrendsView({
               </p>
             )}
             {selected.news.length > 0 ? (
-              // 記事は横スワイプのスライドにしてコンパクトに(各スライドは数行でクランプ)
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  overflowX: "auto",
-                  scrollSnapType: "x mandatory",
-                  margin: "8px -2px 0",
-                  padding: "0 2px 4px",
-                  WebkitOverflowScrolling: "touch",
-                }}
-              >
-                {selected.news.slice(0, 3).map((n, i) => {
-                  const title = newsTr?.[i] ?? n.title; // 訳があれば訳、無ければ原文
-                  // URLが無い(旧データ)はGoogleニュース検索にフォールバック＝必ずリンク
-                  const href = n.url ?? `https://www.google.com/search?q=${encodeURIComponent(n.title)}`;
-                  return (
-                    <a
-                      key={i}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={n.title}
-                      style={{
-                        flex: selected.news.length > 1 ? "0 0 86%" : "0 0 100%",
-                        scrollSnapAlign: "start",
-                        fontSize: 13,
-                        lineHeight: 1.4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 4,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {title}
-                      {n.source && (
-                        <span className="muted" style={{ fontSize: "0.85em" }}>
-                          {" "}
-                          ({n.source})
-                        </span>
-                      )}
-                    </a>
-                  );
-                })}
-              </div>
+              <NewsCarousel news={selected.news} translated={newsTr} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {d.detail.trendingNow}
