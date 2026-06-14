@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { hierarchy, pack } from "d3-hierarchy";
 
 interface NewsItem {
   title: string;
@@ -20,113 +21,176 @@ function parseTraffic(t: string): number {
   return /万/.test(t) ? n * 10000 : n;
 }
 
-// プロト用: リスト / 規模(ビジュアル) をセレクタで切替。装飾は最小・情報設計のみ
-export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: string }) {
-  const [view, setView] = useState<"list" | "scale">("list");
+// 規模ビュー(パック円): 円の面積=検索ボリューム。隙間が残る=「これが全部ではない」
+// を暗に示す(急上昇トップNのみで、全検索の割合ではない)。ツリーマップは割合の
+// 偽の全体性を主張するため不採用(検索データに part-to-whole は無い)。
+function ScaleBubbles({
+  items,
+  onSelect,
+}: {
+  items: TrendItem[];
+  onSelect: (it: TrendItem) => void;
+}) {
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const calc = () =>
+      setBox({ w: window.innerWidth, h: Math.min(Math.round(window.innerHeight * 0.7), 720) });
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
 
-  const max = Math.max(1, ...items.map((it) => parseTraffic(it.traffic)));
+  if (!box) return null;
+
+  type Datum = { children: TrendItem[] } | TrendItem;
+  const root = pack<Datum>()
+    .size([box.w, box.h])
+    .padding(6)(
+    hierarchy<Datum>({ children: items })
+      .sum((d) => ("traffic" in d ? Math.max(1, parseTraffic(d.traffic)) : 0))
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
+  );
+
+  const maxV = root.value || 1;
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <select
-          className="btn"
-          value={view}
-          onChange={(e) => setView(e.target.value as "list" | "scale")}
-          aria-label="表示"
-        >
-          <option value="list">リスト</option>
-          <option value="scale">規模で見る</option>
-        </select>
-      </div>
-
-      {view === "list" ? (
-        <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {items.map((it, idx) => (
-            <li
+      <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
+        円の大きさ＝検索ボリューム。表示は急上昇トップ{items.length}件のみ（全検索の割合ではありません）。
+      </p>
+      {/* 中央寄せmainを突き抜けて画面いっぱいに広げる */}
+      <div
+        style={{
+          position: "relative",
+          width: "100vw",
+          left: "50%",
+          marginLeft: "-50vw",
+          height: box.h,
+        }}
+      >
+        {root.leaves().map((leaf) => {
+          const it = leaf.data as TrendItem;
+          const r = leaf.r;
+          const ratio = (leaf.value ?? 0) / maxV; // 0..1
+          const light = 32 + Math.round(ratio * 26); // 大きいほど明るい単色青
+          const fontSize = Math.max(10, Math.min(28, Math.round(r * 0.34)));
+          const show = r > 26; // 小さい円は文字を出さない(タップで分かる)
+          return (
+            <button
               key={it.word}
+              onClick={() => onSelect(it)}
+              title={`${it.word} ・ ${it.traffic}`}
               style={{
+                position: "absolute",
+                left: leaf.x - r,
+                top: leaf.y - r,
+                width: r * 2,
+                height: r * 2,
+                borderRadius: "50%",
+                border: "none",
+                cursor: "pointer",
+                background: `hsl(212 68% ${light}%)`,
+                color: "#fff",
                 display: "flex",
-                gap: 14,
-                padding: "14px 0",
-                borderBottom: "1px solid var(--border)",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: 6,
+                overflow: "hidden",
+                lineHeight: 1.1,
               }}
             >
-              <span
-                className="muted"
-                style={{ minWidth: 24, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
-              >
-                {idx + 1}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-                  <Link
-                    href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
-                    style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}
-                  >
+              {show && (
+                <>
+                  <span style={{ fontSize, fontWeight: 600, wordBreak: "break-word" }}>
                     {it.word}
-                  </Link>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    検索数 {it.traffic}
                   </span>
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(it.word)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="muted"
-                    style={{ fontSize: 12 }}
-                  >
-                    検索 ↗
-                  </a>
-                </div>
-                {it.news.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
-                    {it.news.slice(0, 2).map((n, i) => (
-                      <li key={i} style={{ fontSize: 13, marginTop: 2 }}>
-                        {n.url ? (
-                          <a href={n.url} target="_blank" rel="noopener noreferrer" className="muted">
-                            {n.title}
-                          </a>
-                        ) : (
-                          <span className="muted">{n.title}</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        // 規模ビュー: 検索ボリュームを文字サイズ+枠で表現。押すとグラフへダイブ
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
-          {items.map((it) => {
-            const ratio = parseTraffic(it.traffic) / max; // 0..1
-            const fontSize = Math.round(14 + ratio * 26); // 14〜40px
-            return (
-              <Link
-                key={it.word}
-                href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
-                style={{
-                  display: "inline-flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                  padding: "10px 14px",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  color: "var(--fg)",
-                  lineHeight: 1.1,
-                }}
-              >
-                <span style={{ fontSize, fontWeight: 600 }}>{it.word}</span>
-                <span className="muted" style={{ fontSize: 11 }}>
-                  {it.traffic}
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>{it.traffic}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// トレンドページ本体: パック円で規模を見せ、タップで詳細(記事+検索+探索)を出す
+// (地球儀ページと同じ操作感)。旧リスト表示は TrendsList.tsx に退避(未使用)。
+export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: string }) {
+  const [selected, setSelected] = useState<TrendItem | null>(null);
+
+  return (
+    <>
+      <ScaleBubbles items={items} onSelect={setSelected} />
+
+      {selected && (
+        <div className="detail-panel">
+          <div className="panel" style={{ pointerEvents: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span>
+                <strong>{selected.word}</strong>
+                <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
+                  検索数 {selected.traffic}
                 </span>
-              </Link>
-            );
-          })}
+              </span>
+              <button
+                className="btn"
+                style={{ padding: "1px 8px" }}
+                onClick={() => setSelected(null)}
+                aria-label="閉じる"
+              >
+                ✕
+              </button>
+            </div>
+            {selected.news.length > 0 ? (
+              <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
+                {selected.news.slice(0, 3).map((n, i) => (
+                  <li key={i} style={{ marginBottom: 6 }}>
+                    {n.url ? (
+                      <a href={n.url} target="_blank" rel="noopener noreferrer">
+                        {n.title}
+                      </a>
+                    ) : (
+                      n.title
+                    )}
+                    {n.source && (
+                      <span className="muted" style={{ fontSize: "0.85em" }}>
+                        {" "}
+                        ({n.source})
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted" style={{ margin: "8px 0 0" }}>
+                いま急上昇している検索。
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selected && (
+        <div className="dock">
+          <span className="word">{selected.word}</span>
+          <a
+            className="btn"
+            href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Googleで検索
+          </a>
+          <Link
+            className="btn"
+            href={`/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
+          >
+            探索する
+          </Link>
         </div>
       )}
     </>
