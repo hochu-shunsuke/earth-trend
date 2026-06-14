@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import { GEO_LABELS, GEO_HL } from "@/lib/trends";
-import { DEFAULT_LOCALE, isLocale, t } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 import {
   forceSimulation,
   forceLink,
@@ -549,8 +549,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       setSel(lang);
       void loadStems();
     } else {
-      const raw = (params.get("geo") || "JP").toUpperCase();
-      const geoParam = GEO_LABELS[raw] ? raw : "JP";
+      // geo未指定時の既定: 英語UIは米国、日本語UIは日本
+      const fallbackGeo = locale === "en" ? "US" : "JP";
+      const raw = (params.get("geo") || fallbackGeo).toUpperCase();
+      const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
       const seedParam = params.get("seed") || undefined;
       selectRef.current = geoParam;
       setSel(geoParam);
@@ -644,7 +646,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }, "image/png");
   };
 
-  const options = mode === "mirror" ? MIRROR_LANGS : Object.entries(GEO_LABELS);
+  const options =
+    mode === "mirror" ? MIRROR_LANGS : Object.entries(COUNTRY_LABELS[locale] ?? GEO_LABELS);
 
   return (
     <div
