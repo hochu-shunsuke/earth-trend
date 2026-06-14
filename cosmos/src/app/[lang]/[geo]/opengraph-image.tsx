@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { hierarchy, pack } from "d3-hierarchy";
 import { ALLOWED_GEO } from "@/lib/trends";
-import { fetchTrendsUnioned } from "@/lib/history";
+import { getTrendsUnionedCached } from "@/lib/history";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { COUNTRY_LABELS } from "@/lib/i18n";
 import { SITE_NAME } from "@/lib/site";
@@ -12,6 +12,8 @@ import { SITE_NAME } from "@/lib/site";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "earth-trend — live search trends";
+// 1時間キャッシュ(毎リクエスト生成を避ける。トレンドは毎時更新で十分新鮮)
+export const revalidate = 3600;
 
 const MAP_W = 620;
 const MAP_H = 560;
@@ -26,7 +28,7 @@ export default async function Image({
   const { geo } = await params;
   const code = (geo || "").toUpperCase();
   const country = COUNTRY_LABELS.en[code] ?? code;
-  const items = ALLOWED_GEO.has(code) ? await fetchTrendsUnioned(code) : [];
+  const items = ALLOWED_GEO.has(code) ? await getTrendsUnionedCached(code) : [];
   const nowSec = Math.floor(Date.now() / 1000);
 
   type Datum = { children: typeof items } | (typeof items)[number];

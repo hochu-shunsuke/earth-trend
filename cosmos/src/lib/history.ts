@@ -127,3 +127,11 @@ export async function fetchTrendsUnioned(geo: string): Promise<RecentTrendItem[]
     return [];
   }
 }
+
+import { unstable_cache } from "next/cache";
+/** OG画像など用: 1国のunionを10分キャッシュ(毎リクエストでUpstashを叩かない) */
+export const getTrendsUnionedCached = unstable_cache(
+  (geo: string) => fetchTrendsUnioned(geo),
+  ["trends-unioned-og"],
+  { revalidate: 600 },
+);
