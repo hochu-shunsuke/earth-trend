@@ -9,7 +9,7 @@ export default function GeoSelect({ geo }: { geo: string }) {
     <select
       className="btn"
       value={geo}
-      onChange={(e) => router.push(`/?geo=${e.target.value}`)}
+      onChange={(e) => router.push(`/${e.target.value.toLowerCase()}`)}
       aria-label="国を選択"
     >
       {Object.entries(GEO_LABELS).map(([code, label]) => (

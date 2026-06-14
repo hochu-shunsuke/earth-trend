@@ -1,4 +1,4 @@
-import type { NewsItem, TrendItem } from "./trends";
+import { fetchTrends, type NewsItem, type TrendItem } from "./trends";
 
 // 蓄積スナップショットを「読み取り時に結合(union)」して、取得頻度を上げずに
 // 件数を増やす(コスト~0)。各語に発生時刻(firstseen)を付ける。
@@ -104,5 +104,20 @@ export async function fetchRecentTrends(
       }));
   } catch {
     return null;
+  }
+}
+
+/** union を試し、ダメなら RSS にフォールバック(常に配列・失敗時は空)。一覧/各国ページ共通 */
+export async function fetchTrendsUnioned(geo: string): Promise<RecentTrendItem[]> {
+  try {
+    const u = await fetchRecentTrends(geo);
+    if (u && u.length) return u;
+  } catch {
+    /* fall through to RSS */
+  }
+  try {
+    return await fetchTrends(geo);
+  } catch {
+    return [];
   }
 }

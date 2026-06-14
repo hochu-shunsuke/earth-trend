@@ -1,54 +1,46 @@
 import Link from "next/link";
-import GeoSelect from "@/components/GeoSelect";
+import { redirect } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import TrendsView from "@/components/TrendsView";
+import CountryTile from "@/components/CountryTile";
 import type { Metadata } from "next";
-import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
-import { fetchRecentTrends } from "@/lib/history";
+import { ALLOWED_GEO, GEO_LABELS } from "@/lib/trends";
+import { fetchTrendsUnioned } from "@/lib/history";
 
 export const metadata: Metadata = {
   title: "世界のトレンド",
-  description: "いま世界が検索していること。気になった言葉から、その先に何が繋がっているかを探索できる。",
+  description:
+    "いま各国が検索していること。9カ国の「注意の地図」を並べて眺め、気になった国から、その先のつながりを探索できる。",
 };
 
 export const revalidate = 600;
 
-// ホーム = 世界の「今日の脈拍」。落ち着いて読む surface であり、各トレンドは探索への入口
-export default async function PulsePage({
+// ホーム = 各国の「注意の地図」一覧。芸術的に並べ、国ごとの詳細(/jp 等)へ降りる入口
+export default async function GalleryPage({
   searchParams,
 }: {
   searchParams: Promise<{ geo?: string }>;
 }) {
-  const params = await searchParams;
-  const raw = (params.geo ?? "JP").toUpperCase();
-  const geo = ALLOWED_GEO.has(raw) ? raw : "JP";
+  // 旧 /?geo=XX リンクは各国ルートへ転送(SEO/互換)
+  const { geo } = await searchParams;
+  if (geo && ALLOWED_GEO.has(geo.toUpperCase())) redirect(`/${geo.toLowerCase()}`);
 
-  // 蓄積スナップショットの読み取り時union(件数増+発生時刻)。無ければRSSにフォールバック
-  let items = null;
-  try {
-    items = await fetchRecentTrends(geo);
-  } catch {
-    items = null;
-  }
-  if (!items || items.length === 0) {
-    try {
-      items = await fetchTrends(geo);
-    } catch {
-      items = null;
-    }
-  }
+  const geos = Object.keys(GEO_LABELS);
+  // 色(新しさ)の基準となる現在時刻。サーバー描画なので一度だけ取得
+  // eslint-disable-next-line react-hooks/purity
+  const nowSec = Math.floor(Date.now() / 1000);
+  const data = await Promise.all(
+    geos.map(async (g) => [g, await fetchTrendsUnioned(g)] as const),
+  );
 
   return (
     <>
       <SiteHeader />
-      {/* ヘッダーはfixedなので、その高さ(48px)ぶん下げる */}
       <main
         style={{
           width: "100%",
-          maxWidth: 720,
+          maxWidth: 1100,
           margin: "0 auto",
           padding: "72px 16px 48px",
-          overflowWrap: "anywhere",
         }}
       >
         <header style={{ marginBottom: 20 }}>
@@ -56,22 +48,24 @@ export default async function PulsePage({
             世界のトレンド
           </h1>
           <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-            いま世界が検索していること。気になった言葉を押すと、その先に何が繋がっているかを探索できる。
+            いま各国が検索していること。気になった国を押すと、その先に何が繋がっているかを探索できる。
           </p>
         </header>
 
-        <div style={{ marginBottom: 20 }}>
-          <GeoSelect geo={geo} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {data.map(([g, items]) => (
+            <CountryTile key={g} geo={g} label={GEO_LABELS[g]} items={items} nowSec={nowSec} />
+          ))}
         </div>
 
-        {!items && (
-          <p className="muted">データの取得に失敗しました。少し待って再読み込みしてください。</p>
-        )}
-
-        {items && <TrendsView items={items} geo={geo} />}
-
         <p className="muted" style={{ marginTop: 24, fontSize: 12 }}>
-          データ: Google Trends(10分ごと更新) ・{" "}
+          大きさ＝検索ボリューム／色＝新しさ。データ: Google Trends（10分ごと更新）・{" "}
           <Link href="/about" className="muted">
             このサイトについて
           </Link>
