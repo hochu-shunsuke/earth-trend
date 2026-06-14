@@ -168,7 +168,9 @@ function ScaleBubbles({
           marginLeft: "-50vw",
           height: box.h,
           overflow: "hidden",
-          touchAction: "none",
+          // 縦スワイプはページスクロールに通す(地図が画面を占有してスクロール不能になるのを解消)。
+          // 横ドラッグ/ピンチは地図側で拾う
+          touchAction: "pan-y",
           userSelect: "none",
           cursor: "grab",
         }}

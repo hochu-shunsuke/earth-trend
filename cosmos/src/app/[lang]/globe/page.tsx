@@ -318,14 +318,14 @@ export default function GlobePage() {
 
       <SiteHeader overlay />
 
-      <div className="canvas-controls" style={{ zIndex: 40 }}>
+      <div className="canvas-controls" style={{ zIndex: 50 }}>
         <span className="muted" style={{ fontSize: 12 }}>
           {status}
         </span>
       </div>
 
       {selected && (
-        <div className="detail-panel" style={{ zIndex: 40 }}>
+        <div className="detail-panel" style={{ zIndex: 50 }}>
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span>
@@ -364,7 +364,7 @@ export default function GlobePage() {
 
       {/* 画面下部中央のドック: 選択語のアクション */}
       {selected && (
-        <div className="dock" style={{ zIndex: 40 }}>
+        <div className="dock" style={{ zIndex: 50 }}>
           <span className="word" translate="no">{selected.word}</span>
           <a
             className="btn"

@@ -285,7 +285,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       // 新規の子だけをリング状に配置する。force任せに広げないので整定が要らず、
       // 全体が一気に動く「ガコッ」が出ない & 置いた瞬間にズーム対象が確定する
       const fresh = suggestions.filter((s) => !ids.has(s));
-      const ringR = 78;
+      // リング半径を子の数に応じて広げる(角度の混雑=重なり/交差を減らす)
+      const ringR = Math.max(72, 9 * fresh.length);
       fresh.forEach((s, i) => {
         const a = (i / Math.max(1, fresh.length)) * Math.PI * 2 - Math.PI / 2;
         ids.add(s);
@@ -302,8 +303,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       for (const s of suggestions) {
         linksRef.current.push({ source: node.id, target: s });
       }
-      // 既存ノードを揺らさないよう低めの再加熱(リング配置なので軽く整うだけでよい)
-      reheat(0.35);
+      // 既存ノードと分離させるため少し強めに再加熱(collideで重なりを解く)
+      reheat(0.5);
     } catch {
       /* サジェスト失敗は無視 */
     }
@@ -327,13 +328,16 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }
 
     const sim = forceSimulation<GNode>([])
-      .force("charge", forceManyBody<GNode>().strength(-120))
-      .force("link", forceLink<GNode, GLink>([]).id((d) => d.id).distance(70).strength(0.6))
+      // distanceMax: 反発を近距離だけに(遠いノード群同士が強く押し合うのを防ぐ)。
+      // strengthを少し強めて、子ノード同士の重なり/線の交差を減らす
+      .force("charge", forceManyBody<GNode>().strength(-160).distanceMax(260))
+      .force("link", forceLink<GNode, GLink>([]).id((d) => d.id).distance(72).strength(0.5))
       .force(
         "center",
-        forceCenter(sizeRef.current.w / 2, sizeRef.current.h / 2).strength(0.09),
+        forceCenter(sizeRef.current.w / 2, sizeRef.current.h / 2).strength(0.06),
       )
-      .force("collide", forceCollide<GNode>((n) => n.r + 16))
+      // collideを強め(重なり防止=交差軽減)
+      .force("collide", forceCollide<GNode>((n) => n.r + 20).strength(0.9).iterations(2))
       .alphaDecay(0.03);
     simRef.current = sim;
 
