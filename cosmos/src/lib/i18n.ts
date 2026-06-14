@@ -69,6 +69,7 @@ type Dict = {
     trendsHint: string;
   };
   globe: { loading: string; loadFail: string; countries: (n: number) => string };
+  share: { button: string; copied: string; image: string };
   langName: string;
 };
 
@@ -117,6 +118,7 @@ export const DICT: Record<Locale, Dict> = {
       loadFail: "データの取得に失敗しました",
       countries: (n) => `${n}カ国`,
     },
+    share: { button: "共有", copied: "コピーしました", image: "画像を保存" },
     langName: "日本語",
   },
   en: {
@@ -163,6 +165,7 @@ export const DICT: Record<Locale, Dict> = {
       loadFail: "Failed to load data",
       countries: (n) => `${n} countries`,
     },
+    share: { button: "Share", copied: "Copied", image: "Save image" },
     langName: "English",
   },
 };

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import GeoSelect from "@/components/GeoSelect";
 import TrendsView from "@/components/TrendsView";
+import ShareButton from "@/components/ShareButton";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { translate } from "@/lib/translate";
@@ -90,8 +91,9 @@ export default async function CountryPage({
               {d.country.all}
             </Link>
           </div>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <GeoSelect geo={code} />
+            <ShareButton locale={locale} geo={code} title={d.country.title(country)} />
           </div>
         </header>
 
