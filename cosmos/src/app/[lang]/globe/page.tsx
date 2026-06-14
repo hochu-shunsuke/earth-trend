@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
 
 interface NewsItem {
   title: string;
@@ -56,6 +58,8 @@ function scatter(center: { lat: number; lng: number }, i: number) {
 }
 
 export default function GlobePage() {
+  const pathSeg = usePathname().split("/")[1];
+  const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(null);
@@ -369,7 +373,7 @@ export default function GlobePage() {
           </a>
           <Link
             className="btn"
-            href={`/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+            href={`/${locale}/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
           >
             探索する
           </Link>

@@ -12,11 +12,13 @@ interface TrendItem {
 // 円の面積=規模 / 色=新しさ。クリックでその国のフルマップへ。
 export default function CountryTile({
   geo,
+  locale,
   label,
   items,
   nowSec,
 }: {
   geo: string;
+  locale: string;
   label: string;
   items: TrendItem[];
   nowSec: number;
@@ -34,7 +36,7 @@ export default function CountryTile({
 
   return (
     <Link
-      href={`/${geo.toLowerCase()}`}
+      href={`/${locale}/${geo.toLowerCase()}`}
       style={{
         display: "block",
         border: "1px solid var(--border)",
@@ -70,7 +72,7 @@ export default function CountryTile({
       >
         <strong style={{ fontSize: 15 }}>{label}</strong>
         <span className="muted" style={{ fontSize: 12 }}>
-          {items.length > 0 ? `${items.length}件` : "—"}
+          {items.length > 0 ? `${items.length}${locale === "ja" ? "件" : ""}` : "—"}
         </span>
       </div>
     </Link>

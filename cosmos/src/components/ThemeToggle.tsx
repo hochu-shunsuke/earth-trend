@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { DEFAULT_LOCALE, isLocale, t } from "@/lib/i18n";
 
 type Pref = "system" | "light" | "dark";
 
@@ -10,6 +12,9 @@ function resolve(p: Pref): "light" | "dark" {
 }
 
 export default function ThemeToggle() {
+  const pathname = usePathname();
+  const seg = pathname.split("/")[1];
+  const d = t(isLocale(seg) ? seg : DEFAULT_LOCALE);
   // 既定はシステム(OS設定に追従)
   const [pref, setPref] = useState<Pref>("system");
 
@@ -17,7 +22,6 @@ export default function ThemeToggle() {
     const stored = (localStorage.getItem("theme") as Pref) || "system";
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPref(stored);
-    // システム選択中はOSのテーマ変更に追従する
     const mq = matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
       if (((localStorage.getItem("theme") as Pref) || "system") === "system") {
@@ -43,11 +47,11 @@ export default function ThemeToggle() {
       className="btn"
       value={pref}
       onChange={(e) => change(e.target.value as Pref)}
-      aria-label="テーマ"
+      aria-label={d.theme.label}
     >
-      <option value="system">システム</option>
-      <option value="light">ライト</option>
-      <option value="dark">ダーク</option>
+      <option value="system">{d.theme.system}</option>
+      <option value="light">{d.theme.light}</option>
+      <option value="dark">{d.theme.dark}</option>
     </select>
   );
 }

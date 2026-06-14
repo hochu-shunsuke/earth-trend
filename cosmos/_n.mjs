@@ -1,0 +1,12 @@
+import puppeteer from 'puppeteer-core';
+const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const b=await puppeteer.launch({executablePath:CHROME,headless:'new',args:['--no-sandbox']});
+const p=await b.newPage();await p.setViewport({width:1280,height:900,deviceScaleFactor:1});
+await p.goto('http://localhost:4595/us',{waitUntil:'networkidle2'});
+await new Promise(r=>setTimeout(r,1000));
+const pos=await p.evaluate(()=>{const bs=[...document.querySelectorAll('button[title]')];bs.sort((a,b)=>b.offsetWidth-a.offsetWidth);const r=bs[0].getBoundingClientRect();return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)};});
+await p.mouse.click(pos.x,pos.y); await new Promise(r=>setTimeout(r,500));
+const panel = await p.evaluate(()=>{const el=document.querySelector('.detail-panel'); return {text: el?.innerText||'(no panel)', lis: el?.querySelectorAll('li').length||0};});
+console.log('news <li> count:', panel.lis);
+console.log('panel text:\n', panel.text.slice(0,300));
+await b.close();

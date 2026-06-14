@@ -3,10 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
-import { parseTraffic, freshnessColor, appearedText } from "@/lib/trendsVisual";
+import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
+import { t, type Locale } from "@/lib/i18n";
 
-const UI_LANG = "ja"; // 当面の翻訳ターゲット(Phase②でロケール連動にする)
+// 「登場からの経過」をロケール別の短い文字列に
+function durationStr(sec: number | undefined, nowSec: number, locale: Locale): string | null {
+  if (!sec) return null;
+  const m = Math.max(0, Math.floor((nowSec - sec) / 60));
+  const h = Math.floor(m / 60);
+  if (locale === "en") {
+    if (m < 60) return `${m} min`;
+    if (h < 24) return `${h} hr`;
+    return `${Math.floor(h / 24)} days`;
+  }
+  if (m < 60) return `${m}分`;
+  if (h < 24) return `${h}時間`;
+  return `${Math.floor(h / 24)}日`;
+}
 
 interface NewsItem {
   title: string;
@@ -27,9 +41,11 @@ interface TrendItem {
 // 偽の全体性を主張するため不採用(検索データに part-to-whole は無い)。
 function ScaleBubbles({
   items,
+  locale,
   onSelect,
 }: {
   items: TrendItem[];
+  locale: Locale;
   onSelect: (it: TrendItem) => void;
 }) {
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
@@ -136,7 +152,7 @@ function ScaleBubbles({
   return (
     <>
       <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
-        大きさ＝検索ボリューム／色＝新しさ（暖色＝最近登場）。直近の急上昇{items.length}件（全検索の割合ではありません）。ドラッグで移動・ホイール/ピンチで拡大。
+        {t(locale).bubbles.legend(items.length)}
       </p>
       {/* 中央寄せmainを突き抜けて画面いっぱいに広げる。内側をpan/zoom */}
       <div
@@ -221,7 +237,16 @@ function ScaleBubbles({
 
 // トレンドページ本体: パック円で規模を見せ、タップで詳細(記事+検索+探索)を出す
 // (地球儀ページと同じ操作感)。旧リスト表示は TrendsList.tsx に退避(未使用)。
-export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: string }) {
+export default function TrendsView({
+  items,
+  geo,
+  locale,
+}: {
+  items: TrendItem[];
+  geo: string;
+  locale: Locale;
+}) {
+  const d = t(locale);
   const [selected, setSelected] = useState<TrendItem | null>(null);
   const [nowSec, setNowSec] = useState(0);
   // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
@@ -232,7 +257,7 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
   }, []);
 
   const srcLang = GEO_LANG[geo] ?? "auto";
-  const canTranslate = srcLang !== UI_LANG; // 自国語なら翻訳不要
+  const canTranslate = srcLang !== locale; // 自国語なら翻訳不要
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -244,7 +269,7 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
         selected.news.slice(0, 3).map(async (n) => {
           try {
             const r = await fetch(
-              `/api/translate?q=${encodeURIComponent(n.title)}&from=${encodeURIComponent(srcLang)}&to=${UI_LANG}`,
+              `/api/translate?q=${encodeURIComponent(n.title)}&from=${encodeURIComponent(srcLang)}&to=${locale}`,
             );
             return ((await r.json()) as { translated: string | null }).translated;
           } catch {
@@ -257,11 +282,13 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
     return () => {
       cancelled = true;
     };
-  }, [selected, srcLang, canTranslate]);
+  }, [selected, srcLang, canTranslate, locale]);
+
+  const appeared = selected ? durationStr(selected.firstSeen, nowSec, locale) : null;
 
   return (
     <>
-      <ScaleBubbles items={items} onSelect={setSelected} />
+      <ScaleBubbles items={items} locale={locale} onSelect={setSelected} />
 
       {selected && (
         <div className="detail-panel">
@@ -274,21 +301,21 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
                   <span style={{ marginLeft: 6, fontSize: 13 }}>→ {selected.translation}</span>
                 )}
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
-                  検索数 {selected.traffic}
+                  {d.detail.searches} {selected.traffic}
                 </span>
               </span>
               <button
                 className="btn"
                 style={{ padding: "1px 8px" }}
                 onClick={() => setSelected(null)}
-                aria-label="閉じる"
+                aria-label={d.detail.close}
               >
                 ✕
               </button>
             </div>
-            {appearedText(selected.firstSeen, nowSec) && (
+            {appeared && (
               <p className="muted" style={{ fontSize: 12, margin: "6px 0 0" }}>
-                {appearedText(selected.firstSeen, nowSec)}
+                {d.detail.appeared(appeared)}
               </p>
             )}
             {selected.news.length > 0 ? (
@@ -316,7 +343,7 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
               </ul>
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
-                いま急上昇している検索。
+                {d.detail.trendingNow}
               </p>
             )}
           </div>
@@ -332,13 +359,13 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
             target="_blank"
             rel="noopener noreferrer"
           >
-            Googleで検索
+            {d.detail.googleSearch}
           </a>
           <Link
             className="btn"
-            href={`/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
+            href={`/${locale}/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
           >
-            探索する
+            {d.detail.explore}
           </Link>
         </div>
       )}

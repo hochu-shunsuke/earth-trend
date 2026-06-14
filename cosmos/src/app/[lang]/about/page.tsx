@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   description: `${SITE_NAME}は何か、データの出どころ、プライバシーについて。`,
 };
 
-export default function AboutPage() {
+export default async function AboutPage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  const locale = lang === "en" ? "en" : "ja";
   return (
     <>
       <SiteHeader />
@@ -58,7 +60,7 @@ export default function AboutPage() {
         </section>
 
         <p style={{ marginTop: 32 }}>
-          <Link href="/">← {SITE_NAME} に戻る</Link>
+          <Link href={`/${locale}`}>← {SITE_NAME}</Link>
         </p>
       </main>
     </>

@@ -43,10 +43,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/* テーマ初期化(FOUC防止): localStorage→OS設定の順で決める */}
+        {/* テーマ初期化(FOUC防止)＋ <html lang> をURL先頭セグメントに合わせる */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem("theme")||"system";var sysDark=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(p==="light"||p==="dark")?p:(sysDark?"dark":"light");}catch(e){document.documentElement.dataset.theme="dark";}})()`,
+            __html: `(function(){try{var p=localStorage.getItem("theme")||"system";var sysDark=matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.dataset.theme=(p==="light"||p==="dark")?p:(sysDark?"dark":"light");var s=location.pathname.split("/")[1];if(s==="ja"||s==="en")document.documentElement.lang=s;}catch(e){document.documentElement.dataset.theme="dark";}})()`,
           }}
         />
         {children}
