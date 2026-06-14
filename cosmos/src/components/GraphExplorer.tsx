@@ -75,7 +75,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
   const tx = t(locale);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null); // グラフの埋め込み枠(キャンバスのサイズ基準)
 
   const nodesRef = useRef<GNode[]>([]);
   const linksRef = useRef<GLink[]>([]);
@@ -94,6 +93,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   } | null>(null);
   // 「俯瞰→ダイブ」の二段カメラ用タイマー(新規ロード/アンマウントで破棄)
   const diveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 詳細パネルの実DOM矩形を読んで、フィット時にその領域を避ける(隠れ防止)
+  const panelRef = useRef<HTMLDivElement>(null);
   const cancelCamera = () => {
     camTweenRef.current = null;
   };
@@ -127,12 +128,16 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }
     const bw = Math.max(1, maxX - minX);
     const bh = Math.max(1, maxY - minY);
-    // ヘッダーは枠の上・詳細パネルは枠の下に並ぶ(枠内に被らない)ので、余白は一定でよい。
-    // 右下のズームボタンだけ少し避ける
-    const top = 16;
-    const left = 16;
-    const right = 16;
-    const bottom = 16;
+    const mobile = w < 560;
+    const top = mobile ? 96 : 64;
+    let right = 12;
+    let bottom = mobile ? 100 : 104;
+    const left = 12;
+    const pr = panelRef.current?.getBoundingClientRect();
+    if (pr && pr.width > 0) {
+      if (mobile) bottom = Math.max(bottom, h - pr.top + 10);
+      else right = Math.max(right, w - pr.left + 12);
+    }
     const availW = Math.max(60, w - left - right);
     const availH = Math.max(60, h - top - bottom);
     const k = Math.min(2.2, Math.max(0.2, Math.min(availW / bw, availH / bh) * 0.82));
@@ -163,19 +168,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     camTweenRef.current = { from: { ...transformRef.current }, to, start: performance.now(), dur };
   };
 
-  // 枠の中心を基準にズーム(+/−ボタン・⌘ホイール用)
-  const zoomAtCenter = (factor: number) => {
-    cancelCamera();
-    const t = transformRef.current;
-    const { w, h } = sizeRef.current;
-    const k = Math.min(5, Math.max(0.15, t.k * factor));
-    const wx = (w / 2 - t.x) / t.k;
-    const wy = (h / 2 - t.y) / t.k;
-    t.k = k;
-    t.x = w / 2 - wx * k;
-    t.y = h / 2 - wy * k;
-  };
-
   const [sel, setSel] = useState<string>(mode === "mirror" ? "ja" : "JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -186,14 +178,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     news: NewsItem[];
     isSeed: boolean;
   } | null>(null);
-  // 操作ヒント(Google Maps埋め込み風): スマホ1本指ドラッグ / PCの素のホイール時に一瞬出す
-  const [hint, setHint] = useState<string | null>(null);
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showHint = (msg: string) => {
-    setHint(msg);
-    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-    hintTimerRef.current = setTimeout(() => setHint(null), 1400);
-  };
+  // パネルを開いた直後は非インタラクティブに(タップの合成クリックがリンクに当たって飛ぶのを防ぐ)
+  const [panelArmed, setPanelArmed] = useState(true);
 
   const reheat = (alpha: number) => {
     const sim = simRef.current;
@@ -284,6 +270,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
     if (opts?.select !== false) {
       setSelected({ word: node.id, news: node.news, isSeed: node.isSeed });
+      // 開いた直後の合成クリックがパネル内リンクに当たらないよう一時的に無効化
+      setPanelArmed(false);
+      setTimeout(() => setPanelArmed(true), 350);
     }
 
     if (expandedRef.current.has(node.id)) return;
@@ -334,15 +323,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     if (!ctx) return;
 
     let dpr = window.devicePixelRatio || 1;
-    // 全画面ではなく「埋め込み枠」のサイズに合わせる(=ページは普通に縦スクロールできる)
-    const measure = () => {
-      const box = boxRef.current;
-      const w = Math.max(1, box?.clientWidth ?? window.innerWidth);
-      const h = Math.max(1, box?.clientHeight ?? 480);
-      return { w, h };
-    };
     {
-      const { w, h } = measure();
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       sizeRef.current = { w, h };
       canvas.width = w * dpr;
       canvas.height = h * dpr;
@@ -468,33 +451,19 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       return null;
     };
 
-    const twoFingerHint = locale === "en" ? "Use two fingers to move the map" : "2本指で地図を動かせます";
-    const wheelHint = locale === "en" ? "Use ⌘ / Ctrl + scroll to zoom" : "⌘ / Ctrl + スクロールでズーム";
-
     const pointers = new Map<number, { x: number; y: number }>();
-    let down: { sx: number; sy: number; moved: boolean; touch: boolean } | null = null;
+    let down: { sx: number; sy: number; moved: boolean } | null = null;
     let multiTouched = false;
-    let captured = false;
-    const capture = (id: number) => {
-      try {
-        canvas.setPointerCapture(id);
-      } catch {
-        /* 既に解放済み等は無視 */
-      }
-      captured = true;
-    };
 
     const onPointerDown = (e: PointerEvent) => {
       pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+      canvas.setPointerCapture(e.pointerId);
       if (pointers.size === 1) {
-        // 1本目は捕捉しない=スマホは縦スクロールをページに通す(pan-y)
-        down = { sx: e.offsetX, sy: e.offsetY, moved: false, touch: e.pointerType === "touch" };
+        down = { sx: e.offsetX, sy: e.offsetY, moved: false };
         multiTouched = false;
       } else {
-        // 2本目=ピンチ/2本指パン。両指を捕捉して確実に拾う
         down = null;
         multiTouched = true;
-        for (const id of pointers.keys()) capture(id);
       }
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -523,22 +492,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       }
       pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
       if (!down) return;
-      const ddx = e.offsetX - down.sx;
-      const ddy = e.offsetY - down.sy;
-      const movedEnough = Math.abs(ddx) + Math.abs(ddy) > 4;
-      if (down.touch) {
-        // スマホは1本指でパンしない=縦はページスクロールに通す。
-        // 横に動かそうとした時だけ「2本指で」ヒントを出す(縦スクロールでは出さない)
-        if (movedEnough && !down.moved) {
-          down.moved = true; // 以後タップ扱いにしない
-          if (Math.abs(ddx) > Math.abs(ddy)) showHint(twoFingerHint);
-        }
-        return;
-      }
-      // PCはマウスの1ボタンドラッグでパン(スクロールジェスチャではないので奪ってよい)
-      if (movedEnough) down.moved = true;
+      const dx = e.offsetX - down.sx;
+      const dy = e.offsetY - down.sy;
+      if (Math.abs(dx) + Math.abs(dy) > 4) down.moved = true;
       if (down.moved) {
-        if (!captured) capture(e.pointerId);
         cancelCamera(); // ユーザー操作中は自動カメラを止める
         transformRef.current.x += e.movementX;
         transformRef.current.y += e.movementY;
@@ -550,25 +507,13 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         const node = hitTest(e.offsetX, e.offsetY);
         if (node) void onNodeHit(node);
       }
-      if (pointers.size === 0) {
-        down = null;
-        captured = false;
-      }
+      if (pointers.size === 0) down = null;
     };
     const onPointerCancel = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
-      if (pointers.size === 0) {
-        down = null;
-        captured = false;
-      }
+      down = null;
     };
     const onWheel = (e: WheelEvent) => {
-      // 素のホイール/2本指スクロールはページスクロールに通す。ズームは ⌘/Ctrl + ホイール
-      // (Macのトラックパッドのピンチは ctrlKey=true で来るのでズームになる)
-      if (!(e.ctrlKey || e.metaKey)) {
-        showHint(wheelHint);
-        return;
-      }
       e.preventDefault();
       cancelCamera(); // ホイール操作中は自動カメラを止める
       const t = transformRef.current;
@@ -581,15 +526,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       t.y = e.offsetY - wy * k;
     };
 
-    // 埋め込み枠のサイズ変化(回転・URLバー伸縮・レイアウト変更)にcanvasを追従
-    let lastW = sizeRef.current.w;
-    let lastH = sizeRef.current.h;
+    // 端末回転・ウィンドウ/URLバー伸縮でcanvasを追従(未対応だと歪み・タップ判定ズレ)
     const onResize = () => {
       dpr = window.devicePixelRatio || 1;
-      const { w, h } = measure();
-      if (w === lastW && h === lastH) return; // 無変化なら何もしない(無限再フィット防止)
-      lastW = w;
-      lastH = h;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       sizeRef.current = { w, h };
       canvas.width = w * dpr;
       canvas.height = h * dpr;
@@ -597,10 +538,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       canvas.style.height = `${h}px`;
       const center = sim.force("center") as ReturnType<typeof forceCenter>;
       center.x(w / 2).y(h / 2);
-      tweenTo(null, 500); // リサイズ後は全体を入れ直す(緩やかに)
+      tweenTo(null, 500); // 回転/リサイズ後は全体を入れ直す(緩やかに)
     };
-    const ro = new ResizeObserver(onResize);
-    if (boxRef.current) ro.observe(boxRef.current);
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
@@ -640,8 +579,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       canvas.removeEventListener("wheel", onWheel);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
-      ro.disconnect();
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
       if (diveTimerRef.current) clearTimeout(diveTimerRef.current);
     };
     // マウント時に一度だけ初期化する(意図的)
@@ -723,67 +660,62 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     mode === "mirror" ? MIRROR_LANGS : Object.entries(COUNTRY_LABELS[locale] ?? GEO_LABELS);
 
   return (
-    <>
-      <SiteHeader />
-      <main className="graph-page" data-mode={mode}>
-        {/* 操作バー(枠の上) */}
-        <div className="graph-bar">
-          {/* 国セレクタは分析のみ。探求はサジェスト言語=UIロケールなのでセレクタ不要 */}
-          {mode === "trends" && (
-            <select
-              className="btn"
-              value={sel}
-              onChange={(e) => switchSelect(e.target.value)}
-              aria-label={tx.graph.selectCountry}
-            >
-              {options.map(([code, label]) => (
-                <option key={code} value={code}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          )}
-          <button className="btn" onClick={exportImage}>
-            {tx.graph.saveImage}
-          </button>
-          {loading && <span className="muted">Loading...</span>}
-          {error && <span style={{ color: "#e5484d" }}>Error: {error}</span>}
+    <div
+      data-mode={mode}
+      style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}
+    >
+      <canvas ref={canvasRef} style={{ display: "block", cursor: "grab", touchAction: "none" }} />
+
+      {/* 問いの鏡: まだ何も入れていないときの導き(規定の問いは置かない) */}
+      {mode === "mirror" && !started && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            padding: 16,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: 20, fontWeight: 600 }}>{tx.graph.questTitle}</p>
+          <p className="muted" style={{ maxWidth: 460 }}>
+            {tx.graph.questBody}
+          </p>
         </div>
+      )}
 
-        {/* グラフの埋め込み枠(=操作領域)。スマホは2本指、PCはドラッグ/⌘ホイールで操作 */}
-        <div className="graph-box" ref={boxRef}>
-          <canvas ref={canvasRef} style={{ display: "block" }} />
+      <SiteHeader overlay />
 
-          {/* 問いの鏡: まだ何も入れていないときの導き(規定の問いは置かない) */}
-          {mode === "mirror" && !started && (
-            <div className="graph-empty">
-              <p style={{ fontSize: 20, fontWeight: 600 }}>{tx.graph.questTitle}</p>
-              <p className="muted" style={{ maxWidth: 460 }}>
-                {tx.graph.questBody}
-              </p>
-            </div>
-          )}
+      <div className="canvas-controls">
+        {/* 国セレクタは分析のみ。探求はサジェスト言語=UIロケールなのでセレクタ不要 */}
+        {mode === "trends" && (
+          <select
+            className="btn"
+            value={sel}
+            onChange={(e) => switchSelect(e.target.value)}
+            aria-label={tx.graph.selectCountry}
+          >
+            {options.map(([code, label]) => (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
+        <button className="btn" onClick={exportImage}>
+          {tx.graph.saveImage}
+        </button>
+        {loading && <span className="muted">Loading...</span>}
+        {error && <span style={{ color: "#e5484d" }}>Error: {error}</span>}
+      </div>
 
-          {/* ズーム操作(枠の右下)。スクロールを奪わない代わりの手段 */}
-          <div className="graph-zoom">
-            <button className="btn" onClick={() => zoomAtCenter(1.3)} aria-label="zoom in">
-              +
-            </button>
-            <button className="btn" onClick={() => zoomAtCenter(1 / 1.3)} aria-label="zoom out">
-              −
-            </button>
-            <button className="btn" onClick={() => tweenTo(null, 600)} aria-label="fit">
-              ⤢
-            </button>
-          </div>
-
-          {/* 操作ヒント(一瞬だけ): スマホ1本指ドラッグ / PCの素のホイール時 */}
-          {hint && <div className="graph-hint">{hint}</div>}
-        </div>
-
-        {/* 詳細は枠の下に並ぶ=ラベルに被らない・誤タップしない */}
-        {selected && (
-          <div className="graph-detail panel">
+      {selected && (
+        <div className="detail-panel" ref={panelRef}>
+          <div className="panel" style={{ pointerEvents: panelArmed ? "auto" : "none" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <strong>{selected.word}</strong>
               <button
@@ -815,8 +747,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               {tx.detail.googleSearch} ↗
             </a>
           </div>
-        )}
-      </main>
+        </div>
+      )}
 
       {/* 画面下部中央のドック: 探求=問いの入力欄(分析は選択語アクションをパネルに集約済み) */}
       {mode === "mirror" && (
@@ -838,6 +770,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
           </button>
         </form>
       )}
-    </>
+    </div>
   );
 }
