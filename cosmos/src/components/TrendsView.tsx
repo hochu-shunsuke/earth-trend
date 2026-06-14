@@ -19,6 +19,7 @@ interface TrendItem {
   news: NewsItem[];
   firstSeen?: number; // 最初に観測した時刻(unix秒)。「燃え始め」の近似
   lastSeen?: number;
+  translation?: string; // 語の訳(サーバー描画で付与。原語は常に残す)
 }
 
 // 規模ビュー(パック円): 円の面積=検索ボリューム。隙間が残る=「これが全部ではない」
@@ -223,8 +224,8 @@ function ScaleBubbles({
 export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: string }) {
   const [selected, setSelected] = useState<TrendItem | null>(null);
   const [nowSec, setNowSec] = useState(0);
-  // 選択語の翻訳(原語は残し、訳を注釈として添える)
-  const [trans, setTrans] = useState<{ word: string | null; news: (string | null)[] } | null>(null);
+  // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
+  const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNowSec(Date.now() / 1000);
@@ -235,24 +236,23 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTrans(null);
-    if (!selected || !canTranslate) return;
+    setNewsTr(null);
+    if (!selected || !canTranslate || selected.news.length === 0) return;
     let cancelled = false;
-    const tr = async (q: string) => {
-      try {
-        const r = await fetch(
-          `/api/translate?q=${encodeURIComponent(q)}&from=${encodeURIComponent(srcLang)}&to=${UI_LANG}`,
-        );
-        const d = (await r.json()) as { translated: string | null };
-        return d.translated;
-      } catch {
-        return null;
-      }
-    };
     (async () => {
-      const word = await tr(selected.word);
-      const news = await Promise.all(selected.news.slice(0, 3).map((n) => tr(n.title)));
-      if (!cancelled) setTrans({ word, news });
+      const news = await Promise.all(
+        selected.news.slice(0, 3).map(async (n) => {
+          try {
+            const r = await fetch(
+              `/api/translate?q=${encodeURIComponent(n.title)}&from=${encodeURIComponent(srcLang)}&to=${UI_LANG}`,
+            );
+            return ((await r.json()) as { translated: string | null }).translated;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      if (!cancelled) setNewsTr(news);
     })();
     return () => {
       cancelled = true;
@@ -270,8 +270,8 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
               <span>
                 {/* 原語は常に残す(translate=noでブラウザ翻訳でも保護) */}
                 <strong translate="no">{selected.word}</strong>
-                {trans?.word && (
-                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {trans.word}</span>
+                {selected.translation && (
+                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {selected.translation}</span>
                 )}
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
                   検索数 {selected.traffic}
@@ -294,7 +294,7 @@ export default function TrendsView({ items, geo }: { items: TrendItem[]; geo: st
             {selected.news.length > 0 ? (
               <ul style={{ paddingLeft: 16, margin: "8px 0 0" }}>
                 {selected.news.slice(0, 3).map((n, i) => {
-                  const title = trans?.news[i] ?? n.title; // 訳があれば訳、無ければ原文
+                  const title = newsTr?.[i] ?? n.title; // 訳があれば訳、無ければ原文
                   return (
                     <li key={i} style={{ marginBottom: 6 }}>
                       {n.url ? (

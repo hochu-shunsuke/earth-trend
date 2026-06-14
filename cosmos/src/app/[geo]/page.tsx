@@ -4,8 +4,13 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import GeoSelect from "@/components/GeoSelect";
 import TrendsView from "@/components/TrendsView";
-import { ALLOWED_GEO, GEO_LABELS } from "@/lib/trends";
-import { fetchTrendsUnioned } from "@/lib/history";
+import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
+import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
+import { translate } from "@/lib/translate";
+
+type TranslatedItem = RecentTrendItem & { translation?: string };
+
+const UI_LANG = "ja"; // Phase③でロケール連動にする
 
 export const revalidate = 600;
 
@@ -38,7 +43,19 @@ export default async function CountryPage({
   const code = geo.toUpperCase();
   if (!ALLOWED_GEO.has(code)) notFound();
 
-  const items = await fetchTrendsUnioned(code);
+  const raw = await fetchTrendsUnioned(code);
+  // 語の翻訳はサーバー描画時に行う(HTMLに原語＋訳が入る=SEO/即時)。Upstashキャッシュで
+  // 新規語だけ実翻訳。自国語(src===UI_LANG)は翻訳不要
+  const src = GEO_LANG[code] ?? "auto";
+  const items: TranslatedItem[] =
+    src === UI_LANG
+      ? raw
+      : await Promise.all(
+          raw.map(async (it) => ({
+            ...it,
+            translation: (await translate(it.word, src, UI_LANG)) ?? undefined,
+          })),
+        );
 
   return (
     <>
@@ -69,6 +86,29 @@ export default async function CountryPage({
           <TrendsView items={items} geo={code} />
         ) : (
           <p className="muted">データの取得に失敗しました。少し待って再読み込みしてください。</p>
+        )}
+
+        {/* サーバー描画のテキスト一覧: 原語＋訳がHTMLに入る=SEO/JS無し/読み上げの土台 */}
+        {items.length > 0 && (
+          <section style={{ marginTop: 28 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600 }}>
+              {GEO_LABELS[code]}でいま検索されていること
+            </h2>
+            <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0" }}>
+              {items.map((it) => (
+                <li
+                  key={it.word}
+                  style={{ padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
+                >
+                  <Link href={`/analysis?geo=${code}&seed=${encodeURIComponent(it.word)}`} translate="no">
+                    {it.word}
+                  </Link>
+                  {it.translation && <span className="muted"> — {it.translation}</span>}
+                  <span className="muted" style={{ fontSize: 12 }}> ・ 検索数 {it.traffic}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </main>
     </>
