@@ -38,8 +38,28 @@ export default function ShareButton({
 
   return (
     <span style={{ display: "inline-flex", gap: 6 }}>
-      <button className="btn" onClick={onShare} type="button">
-        {copied ? d.share.copied : `${d.share.button} ↗`}
+      <button
+        className="btn"
+        onClick={onShare}
+        type="button"
+        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M12 15V4" />
+          <path d="M8 8l4-4 4 4" />
+          <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+        </svg>
+        {copied ? d.share.copied : d.share.button}
       </button>
       <a
         className="btn"
