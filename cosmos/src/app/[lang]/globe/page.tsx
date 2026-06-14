@@ -71,6 +71,7 @@ export default function GlobePage() {
   const [selected, setSelected] = useState<LabelDatum | null>(null);
   const [status, setStatus] = useState(tx.globe.loading);
   const [mounted, setMounted] = useState(false);
+  const [panelArmed, setPanelArmed] = useState(true); // 開いた直後の合成クリック対策
   const countriesRef = useRef<object[] | null>(null);
 
   // globe.glのラベル層(CSS3D)はz-indexを無視して上に描画する。UIをbodyへポータルして確実に前面へ
@@ -285,7 +286,11 @@ export default function GlobePage() {
             best = label;
           }
         }
-        if (best) setSelected(best);
+        if (best) {
+          setSelected(best);
+          setPanelArmed(false);
+          setTimeout(() => setPanelArmed(true), 350);
+        }
       });
 
       globeRef.current = globe;
@@ -339,7 +344,7 @@ export default function GlobePage() {
 
             {selected && (
               <div className="detail-panel" style={{ zIndex: 60 }}>
-                <div className="panel" style={{ pointerEvents: "auto" }}>
+                <div className="panel" style={{ pointerEvents: panelArmed ? "auto" : "none" }}>
                   <div
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
                   >

@@ -178,6 +178,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     news: NewsItem[];
     isSeed: boolean;
   } | null>(null);
+  // パネルを開いた直後は非インタラクティブに(タップの合成クリックがリンクに当たって飛ぶのを防ぐ)
+  const [panelArmed, setPanelArmed] = useState(true);
 
   const reheat = (alpha: number) => {
     const sim = simRef.current;
@@ -268,6 +270,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
     if (opts?.select !== false) {
       setSelected({ word: node.id, news: node.news, isSeed: node.isSeed });
+      // 開いた直後の合成クリックがパネル内リンクに当たらないよう一時的に無効化
+      setPanelArmed(false);
+      setTimeout(() => setPanelArmed(true), 350);
     }
 
     if (expandedRef.current.has(node.id)) return;
@@ -710,7 +715,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
 
       {selected && (
         <div className="detail-panel" ref={panelRef}>
-          <div className="panel" style={{ pointerEvents: "auto" }}>
+          <div className="panel" style={{ pointerEvents: panelArmed ? "auto" : "none" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <strong>{selected.word}</strong>
               <button
