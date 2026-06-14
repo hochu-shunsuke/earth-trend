@@ -4,6 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import TrendsView from "@/components/TrendsView";
 import type { Metadata } from "next";
 import { ALLOWED_GEO, fetchTrends } from "@/lib/trends";
+import { fetchRecentTrends } from "@/lib/history";
 
 export const metadata: Metadata = {
   title: "世界のトレンド",
@@ -22,11 +23,19 @@ export default async function PulsePage({
   const raw = (params.geo ?? "JP").toUpperCase();
   const geo = ALLOWED_GEO.has(raw) ? raw : "JP";
 
-  let items;
+  // 蓄積スナップショットの読み取り時union(件数増+発生時刻)。無ければRSSにフォールバック
+  let items = null;
   try {
-    items = await fetchTrends(geo);
+    items = await fetchRecentTrends(geo);
   } catch {
     items = null;
+  }
+  if (!items || items.length === 0) {
+    try {
+      items = await fetchTrends(geo);
+    } catch {
+      items = null;
+    }
   }
 
   return (
