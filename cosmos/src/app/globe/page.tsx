@@ -245,22 +245,33 @@ export default function GlobePage() {
         downAt = null;
         if (moved > 5) return;
 
+        // 当たり判定はラベルの「実際の描画矩形」で行う(文字の全幅+余白が押せる)。
+        // 中心点からの距離だと長い単語の端や文字背景分が外れて押しづらかった
+        const PAD = 8; // 文字まわりの余白(背景分のクッション)
         let best: LabelDatum | null = null;
         let bestDist = Infinity;
         for (const label of labelsRef.current) {
+          const el = label.el;
           // 地球の裏側にあるラベルはthree-globeが非表示にしているので除外
-          if (label.el && label.el.style.visibility === "hidden") continue;
-          const c = globe.getScreenCoords(label.lat, label.lng, 0.012);
-          const dist = Math.hypot(c.x - e.clientX, c.y - e.clientY);
-          if (dist < bestDist) {
-            bestDist = dist;
+          if (!el || el.style.visibility === "hidden") continue;
+          const r = el.getBoundingClientRect();
+          if (r.width === 0) continue;
+          const inside =
+            e.clientX >= r.left - PAD &&
+            e.clientX <= r.right + PAD &&
+            e.clientY >= r.top - PAD &&
+            e.clientY <= r.bottom + PAD;
+          if (!inside) continue;
+          // 矩形が重なる場合は中心が最も近いものを選ぶ
+          const cx = (r.left + r.right) / 2;
+          const cy = (r.top + r.bottom) / 2;
+          const d = Math.hypot(cx - e.clientX, cy - e.clientY);
+          if (d < bestDist) {
+            bestDist = d;
             best = label;
           }
         }
-        // ラベルの見た目サイズ程度の許容半径
-        if (best && bestDist < 14 + best.size * 12) {
-          setSelected(best);
-        }
+        if (best) setSelected(best);
       });
 
       globeRef.current = globe;
