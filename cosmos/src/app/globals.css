@@ -618,73 +618,77 @@ select.btn {
   margin: 10px 0 0;
 }
 
-/* カードビジュアルのアニメ(無から生まれる/回転)。すべて純CSS・要素中心基準で変形 */
+/* カードビジュアルのアニメ(常時ループ・シンプル)。要素ごとに負の遅延で位相を分散し、
+   全部が同時に消える瞬間を作らない。消えてる時間は短く(可視82%/周期)。 */
 .lp-pop {
   transform-box: fill-box;
   transform-origin: center;
-  animation: lp-pop 6s ease-in-out infinite both;
+  animation: lp-pop 5s ease-in-out infinite both;
 }
 @keyframes lp-pop {
   0% {
     transform: scale(0);
-    opacity: 0;
   }
-  14%,
-  86% {
+  9%,
+  91% {
     transform: scale(1);
   }
   100% {
     transform: scale(0);
-    opacity: 0;
   }
 }
 .lp-draw {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: lp-draw 6s ease-in-out infinite both;
+  animation: lp-draw 5s ease-in-out infinite both;
 }
 @keyframes lp-draw {
   0% {
     stroke-dashoffset: 1;
   }
-  18%,
-  86% {
+  12%,
+  90% {
     stroke-dashoffset: 0;
   }
   100% {
     stroke-dashoffset: 1;
   }
 }
-.lp-spin {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lp-spin 26s linear infinite;
+/* 地球儀の#タグ: 左から表示→保持→バックスペースで消去(タイプライタ風)をループ */
+.lp-type {
+  animation: lp-type 7s steps(12, end) infinite both;
 }
-.lp-orbit {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lp-spin 34s linear infinite;
-}
-@keyframes lp-spin {
-  to {
-    transform: rotate(360deg);
+@keyframes lp-type {
+  0%,
+  7% {
+    clip-path: inset(0 100% 0 0);
+  }
+  34%,
+  72% {
+    clip-path: inset(0 0 0 0);
+  }
+  97%,
+  100% {
+    clip-path: inset(0 100% 0 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .lp-pop,
   .lp-draw,
-  .lp-spin,
-  .lp-orbit {
+  .lp-type {
     animation: none;
   }
   .lp-pop {
     transform: none;
-    opacity: 1;
   }
   .lp-draw {
     stroke-dashoffset: 0;
   }
+  .lp-type {
+    clip-path: none;
+  }
 }
+
 
 /* 下部CTA + フッター */
 .lp-cta {
