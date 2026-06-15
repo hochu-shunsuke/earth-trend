@@ -28,7 +28,6 @@ export default function SiteHeader({
   const isTrends = section === "trends" || section.length === 2;
   const tabs: { href: string; label: string; active: boolean }[] = [
     { href: localePath(locale, "/trends"), label: d.nav.trends, active: isTrends },
-    { href: localePath(locale, "/quest"), label: d.nav.quest, active: section === "quest" },
     { href: localePath(locale, "/analysis"), label: d.nav.analysis, active: section === "analysis" },
     { href: localePath(locale, "/globe"), label: d.nav.globe, active: section === "globe" },
   ];

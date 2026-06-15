@@ -63,7 +63,7 @@ export const COUNTRY_LABELS: Record<Locale, Record<string, string>> = {
 };
 
 type Dict = {
-  nav: { trends: string; quest: string; analysis: string; globe: string };
+  nav: { trends: string; analysis: string; globe: string };
   theme: { label: string; system: string; light: string; dark: string };
   home: { title: string; desc: string; legendFooter: string; about: string };
   country: {
@@ -82,17 +82,10 @@ type Dict = {
     close: string;
   };
   graph: {
-    questTitle: string;
-    questBody: string;
-    selectLanguage: string;
     selectCountry: string;
     saveImage: string;
-    dive: string;
-    inputPlaceholder: string;
     seedTrends: string; // 分析: 親(トレンド語)
     leafTrends: string; // 分析: 子(サジェスト)
-    seedMirror: string; // 探求: 親(あなたの問い)
-    leafMirror: string; // 探求: 子(問いの続き)
   };
   globe: { loading: string; loadFail: string; countries: (n: number) => string };
   share: { button: string; copied: string; image: string };
@@ -101,7 +94,7 @@ type Dict = {
 
 export const DICT: Record<Locale, Dict> = {
   ja: {
-    nav: { trends: "トレンド", quest: "探求", analysis: "分析", globe: "地球儀" },
+    nav: { trends: "トレンド", analysis: "分析", globe: "地球儀" },
     theme: { label: "テーマ", system: "システム", light: "ライト", dark: "ダーク" },
     home: {
       title: "世界のトレンド",
@@ -128,18 +121,10 @@ export const DICT: Record<Locale, Dict> = {
       close: "閉じる",
     },
     graph: {
-      questTitle: "問いを見つける",
-      questBody:
-        "あなたの問いを入力すると、世界の検索がその続きを広げていく。気になる問いをいくつも入れて、自分の地図を作ってみよう。",
-      selectLanguage: "言語を選択",
       selectCountry: "国を選択",
       saveImage: "画像で保存",
-      dive: "潜る",
-      inputPlaceholder: "問いを入力…（例: なぜ私は）",
       seedTrends: "いま急上昇している検索。",
       leafTrends: "検索者が次に調べている言葉。",
-      seedMirror: "あなたが入力した問い。",
-      leafMirror: "あなたの問いの続き。",
     },
     globe: {
       loading: "読み込み中…",
@@ -150,7 +135,7 @@ export const DICT: Record<Locale, Dict> = {
     langName: "日本語",
   },
   en: {
-    nav: { trends: "Trends", quest: "Quest", analysis: "Analysis", globe: "Globe" },
+    nav: { trends: "Trends", analysis: "Analysis", globe: "Globe" },
     theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
     home: {
       title: "World Trends",
@@ -177,18 +162,10 @@ export const DICT: Record<Locale, Dict> = {
       close: "Close",
     },
     graph: {
-      questTitle: "Find a question",
-      questBody:
-        "Type your question and the world's searches expand what comes next. Add as many as you like and build your own map.",
-      selectLanguage: "Select language",
       selectCountry: "Select country",
       saveImage: "Save image",
-      dive: "Dive",
-      inputPlaceholder: "ask your own… (e.g. why am i)",
       seedTrends: "Trending right now.",
       leafTrends: "What searchers look up next.",
-      seedMirror: "The question you asked.",
-      leafMirror: "How the world continues this question.",
     },
     globe: {
       loading: "loading…",

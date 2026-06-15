@@ -106,41 +106,6 @@ export function AnalysisPreview() {
   );
 }
 
-// 探求: 1つの起点から枝分かれする連想グラフ。枝が描かれ、ノードが生まれる。
-export function BranchPreview() {
-  const W = 320;
-  const H = 240;
-  const sx = 46;
-  const sy = H / 2;
-  const children = [-0.62, -0.32, 0, 0.32, 0.62].map((a) => ({ x: sx + 124, y: sy + a * (H * 0.42) }));
-  const grand: { x: number; y: number; px: number; py: number }[] = [];
-  children.forEach((c, i) => {
-    const n = i % 2 === 0 ? 2 : 1;
-    for (let k = 0; k < n; k++) {
-      grand.push({ x: c.x + 110, y: c.y + (k - (n - 1) / 2) * 44, px: c.x, py: c.y });
-    }
-  });
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="quest">
-      <g stroke={LINE} strokeWidth={1.4} fill="none">
-        {children.map((c, i) => (
-          <line key={`c${i}`} className="lp-draw" style={{ animationDelay: `${-(i * 0.5)}s` }} pathLength={1} x1={sx} y1={sy} x2={c.x} y2={c.y} />
-        ))}
-        {grand.map((g, i) => (
-          <line key={`g${i}`} className="lp-draw" style={{ animationDelay: `${-(0.3 + i * 0.5)}s` }} pathLength={1} x1={g.px} y1={g.py} x2={g.x} y2={g.y} />
-        ))}
-      </g>
-      {grand.map((g, i) => (
-        <circle key={`gd${i}`} className="lp-pop" style={{ animationDelay: `${-(0.5 + i * 0.5)}s` }} cx={g.x} cy={g.y} r={5} fill={NODE} opacity={0.7} />
-      ))}
-      {children.map((c, i) => (
-        <circle key={`cd${i}`} className="lp-pop" style={{ animationDelay: `${-(0.2 + i * 0.55)}s` }} cx={c.x} cy={c.y} r={8} fill={NODE} opacity={0.85} />
-      ))}
-      <circle className="lp-pop" style={{ animationDelay: "-2.5s" }} cx={sx} cy={sy} r={14} fill={SEED} />
-    </svg>
-  );
-}
-
 // 地球儀: 灰の経線が自転(rxスイープ)。緯線は静止(極軸回転=物理的に正)。モノクロ。
 export function GlobePreview() {
   const S = 320;

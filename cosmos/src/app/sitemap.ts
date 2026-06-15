@@ -33,7 +33,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...pages("", "hourly", 1), // ホーム(ランディング)。ja=bare domain
     ...pages("/trends", "hourly", 0.9),
     ...geos.flatMap((g) => pages(`/${g}`, "hourly", 0.8)),
-    ...pages("/quest", "weekly", 0.6),
     ...pages("/analysis", "hourly", 0.6),
     ...pages("/globe", "hourly", 0.6),
     ...pages("/about", "monthly", 0.3),

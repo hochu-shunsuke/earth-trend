@@ -53,27 +53,14 @@ interface GLink {
   target: string | GNode;
 }
 
-type Mode = "trends" | "mirror";
-
 function trendRadius(traffic: string): number {
   const n = parseInt(traffic.replace(/[^0-9]/g, ""), 10) || 0;
   return Math.max(10, Math.log10(n + 1) * 5 + 6);
 }
 
-// 問いの鏡で使う言語(サジェストのhl)。規定の問いは置かず、ユーザー入力で地図を作る
-const MIRROR_LANGS: [string, string][] = [
-  ["ja", "日本語"],
-  ["en", "English"],
-];
-const isLang = (v: string) => MIRROR_LANGS.some(([c]) => c === v);
+// --- 本体: 分析(トレンド語→サジェストの連想グラフ) ---
 
-// 危機に関わる補完はグラフに表示しない(暫定パターン)
-const CRISIS =
-  /(死にたい|自殺|消えたい|リスト?カット|死ぬ方法|死ね|自傷|消えてしまいたい|kill myself|suicide|want to die|end my life|self.?harm|kill me)/i;
-
-// --- 本体 ---
-
-export default function GraphExplorer({ mode }: { mode: Mode }) {
+export default function GraphExplorer() {
   const pathSeg = usePathname().split("/")[1];
   const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
   const tx = t(locale);
@@ -85,7 +72,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const transformRef = useRef({ x: 0, y: 0, k: 1 });
   const sizeRef = useRef({ w: 800, h: 600 });
   const expandedRef = useRef<Set<string>>(new Set());
-  const selectRef = useRef<string>(mode === "mirror" ? "ja" : "JP");
+  const selectRef = useRef<string>("JP");
   // カメラのトゥイーン(時間ベースのease-in-out)。固定の目標へ緩やかに寄せる。
   // 整定済みの座標に対して動かすので、追従式のような「忙しい/急加速」が出ない
   const camTweenRef = useRef<{
@@ -136,8 +123,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     const mobile = w < 560;
     const top = mobile ? 96 : 64;
     let right = 12;
-    // ドックは探求(mirror)のみ。分析(trends)は下の確保を小さくして上ズレを防ぐ
-    let bottom = mode === "mirror" ? (mobile ? 100 : 104) : mobile ? 32 : 28;
+    let bottom = mobile ? 32 : 28;
     const left = 12;
     const pr = panelRef.current?.getBoundingClientRect();
     if (pr && pr.width > 0) {
@@ -174,11 +160,9 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     camTweenRef.current = { from: { ...transformRef.current }, to, start: performance.now(), dur };
   };
 
-  const [sel, setSel] = useState<string>(mode === "mirror" ? "ja" : "JP");
+  const [sel, setSel] = useState<string>("JP");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [input, setInput] = useState("");
-  const [started, setStarted] = useState(false); // mirror: 最初の問いを入れたか
   const [selected, setSelected] = useState<{
     word: string;
     news: NewsItem[];
@@ -266,20 +250,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }
   };
 
-  // mirror: 規定の問いは置かない。ユーザーが入力した問いだけで自分の地図を作る
-  const loadStems = async () => {
-    setError(null);
-    setSelected(null);
-    expandedRef.current = new Set();
-    cancelCamera();
-    if (diveTimerRef.current) clearTimeout(diveTimerRef.current);
-    nodesRef.current = [];
-    linksRef.current = [];
-    transformRef.current = { x: 0, y: 0, k: 1 };
-    reheat(1);
-    setStarted(false);
-  };
-
   // select: 詳細シートを開くか。自動ダイブ(着地)では展開だけして開かない
   const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
     if (opts?.select !== false) {
@@ -292,14 +262,12 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     if (expandedRef.current.has(node.id)) return;
     expandedRef.current.add(node.id);
 
-    const hl = mode === "mirror" ? node.geo : GEO_HL[node.geo] ?? "ja";
+    const hl = GEO_HL[node.geo] ?? "ja";
     try {
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(node.id)}&hl=${hl}`);
       if (!res.ok) return;
       const data: { suggestions: string[] } = await res.json();
-      // 問いの鏡では危機に関わる補完を除外し、尊厳をもって相談導線に委ねる
-      const suggestions =
-        mode === "mirror" ? data.suggestions.filter((s) => !CRISIS.test(s)) : data.suggestions;
+      const suggestions = data.suggestions;
 
       const ids = new Set(nodesRef.current.map((n) => n.id));
       // 新規の子だけをリング状に配置する。force任せに広げないので整定が要らず、
@@ -564,25 +532,16 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
-    // 初期化: モードで起点が変わる(URLパラメータ反映の一度きりのsetState)
+    // 初期化(URLパラメータ反映の一度きりのsetState)。geo未指定の既定: 英語UIは米国/日本語UIは日本
     const params = new URLSearchParams(window.location.search);
-    if (mode === "mirror") {
-      // 探求のサジェスト言語はUIロケールに従う(個別セレクタは廃止)
-      const lang = isLang(locale) ? locale : "ja";
-      selectRef.current = lang;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSel(lang);
-      void loadStems();
-    } else {
-      // geo未指定時の既定: 英語UIは米国、日本語UIは日本
-      const fallbackGeo = locale === "en" ? "US" : "JP";
-      const raw = (params.get("geo") || fallbackGeo).toUpperCase();
-      const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
-      const seedParam = params.get("seed") || undefined;
-      selectRef.current = geoParam;
-      setSel(geoParam);
-      void loadTrends(geoParam, seedParam);
-    }
+    const fallbackGeo = locale === "en" ? "US" : "JP";
+    const raw = (params.get("geo") || fallbackGeo).toUpperCase();
+    const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
+    const seedParam = params.get("seed") || undefined;
+    selectRef.current = geoParam;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSel(geoParam);
+    void loadTrends(geoParam, seedParam);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -603,37 +562,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   const switchSelect = (v: string) => {
     setSel(v);
     selectRef.current = v;
-    if (mode === "mirror") void loadStems();
-    else void loadTrends(v);
-  };
-
-  // 問いの鏡: 自分の問いを起点に潜る(personal stake)
-  const addQuestion = (raw: string) => {
-    const text = raw.trim().slice(0, 60);
-    if (!text) return;
-    setInput("");
-    setStarted(true);
-    let node = nodesRef.current.find((n) => n.id === text);
-    if (!node) {
-      const { w, h } = sizeRef.current;
-      const t = transformRef.current;
-      node = {
-        id: text,
-        isSeed: true,
-        geo: selectRef.current,
-        news: [],
-        r: 13,
-        x: (w / 2 - t.x) / t.k,
-        y: (h / 2 - t.y) / t.k,
-      };
-      nodesRef.current.push(node);
-    }
-    node.fx = node.x; // 中心を固定→寄せる対象がブレない
-    node.fy = node.y;
-    // 子をリング配置で開く(整定不要)のと同時に、緩やかに寄せる
-    void onNodeHit(node).then(() => {
-      tweenTo(node.id, 1400);
-    });
+    void loadTrends(v);
   };
 
   const exportImage = () => {
@@ -648,10 +577,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     const dpr = window.devicePixelRatio || 1;
     const { w, h } = sizeRef.current;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const stamp =
-      mode === "mirror"
-        ? `earth-trend ・ 世界の問い ・ ${new Date().toLocaleDateString()}`
-        : `earth-trend ${selectRef.current} ${new Date().toLocaleDateString()}`;
+    const stamp = `earth-trend ${selectRef.current} ${new Date().toLocaleDateString()}`;
     ctx.font = "bold 13px sans-serif";
     ctx.textAlign = "right";
     ctx.textBaseline = "bottom";
@@ -671,56 +597,30 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     }, "image/png");
   };
 
-  const options =
-    mode === "mirror" ? MIRROR_LANGS : Object.entries(COUNTRY_LABELS[locale] ?? GEO_LABELS);
+  const options = Object.entries(COUNTRY_LABELS[locale] ?? GEO_LABELS);
 
   return (
     <div
-      data-mode={mode}
+      data-mode="trends"
       style={{ position: "fixed", inset: 0, overflow: "hidden", background: "var(--canvas)" }}
     >
       <canvas ref={canvasRef} style={{ display: "block", cursor: "grab", touchAction: "none" }} />
 
-      {/* 問いの鏡: まだ何も入れていないときの導き(規定の問いは置かない) */}
-      {mode === "mirror" && !started && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "none",
-            padding: 16,
-            textAlign: "center",
-          }}
-        >
-          <p style={{ fontSize: 20, fontWeight: 600 }}>{tx.graph.questTitle}</p>
-          <p className="muted" style={{ maxWidth: 460 }}>
-            {tx.graph.questBody}
-          </p>
-        </div>
-      )}
-
       <SiteHeader overlay />
 
       <div className="canvas-controls">
-        {/* 国セレクタは分析のみ。探求はサジェスト言語=UIロケールなのでセレクタ不要 */}
-        {mode === "trends" && (
-          <select
-            className="btn"
-            value={sel}
-            onChange={(e) => switchSelect(e.target.value)}
-            aria-label={tx.graph.selectCountry}
-          >
-            {options.map(([code, label]) => (
-              <option key={code} value={code}>
-                {label}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          className="btn"
+          value={sel}
+          onChange={(e) => switchSelect(e.target.value)}
+          aria-label={tx.graph.selectCountry}
+        >
+          {options.map(([code, label]) => (
+            <option key={code} value={code}>
+              {label}
+            </option>
+          ))}
+        </select>
         <button className="btn" onClick={exportImage}>
           {tx.graph.saveImage}
         </button>
@@ -747,13 +647,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               <NewsCarousel news={selected.news} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
-                {mode === "mirror"
-                  ? selected.isSeed
-                    ? tx.graph.seedMirror
-                    : tx.graph.leafMirror
-                  : selected.isSeed
-                    ? tx.graph.seedTrends
-                    : tx.graph.leafTrends}
+                {selected.isSeed ? tx.graph.seedTrends : tx.graph.leafTrends}
               </p>
             )}
 
@@ -778,26 +672,6 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         </div>
       )}
 
-      {/* 画面下部中央のドック: 探求=問いの入力欄(分析は選択語アクションをパネルに集約済み) */}
-      {mode === "mirror" && (
-        <form
-          className="dock"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addQuestion(input);
-          }}
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={tx.graph.inputPlaceholder}
-            aria-label={tx.graph.inputPlaceholder}
-          />
-          <button className="btn" type="submit">
-            {tx.graph.dive}
-          </button>
-        </form>
-      )}
     </div>
   );
 }

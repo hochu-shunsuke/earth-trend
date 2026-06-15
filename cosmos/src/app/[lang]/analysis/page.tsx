@@ -29,5 +29,5 @@ export async function generateMetadata({
 }
 
 export default function ExplorePage() {
-  return <GraphExplorer mode="trends" />;
+  return <GraphExplorer />;
 }

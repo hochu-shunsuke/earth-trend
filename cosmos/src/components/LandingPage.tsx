@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import { TrendsPreview, AnalysisPreview, BranchPreview, GlobePreview } from "@/components/landing/Visuals";
+import { TrendsPreview, AnalysisPreview, GlobePreview } from "@/components/landing/Visuals";
 import HeroMarquee from "@/components/landing/HeroMarquee";
 import { getGalleryData } from "@/lib/gallery-data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -31,8 +31,8 @@ const CONTENT: Record<Locale, Content> = {
     heroGiant: "地球のトレンド",
     ctaPrimary: "世界のトレンドを見る",
     ctaSecondary: "これは何？",
-    sectionTitle: "4つの視点で、世界の好奇心を探る",
-    sectionLead: "急上昇の一覧から、連想の枝、人類の問い、地球儀まで。同じデータを違う角度で。",
+    sectionTitle: "3つの視点で、世界の好奇心を探る",
+    sectionLead: "急上昇の一覧から、連想の枝、地球儀まで。同じデータを違う角度で。",
     ctaTitle: "世界の好奇心を、覗いてみる。",
     cards: [
       {
@@ -50,13 +50,6 @@ const CONTENT: Record<Locale, Content> = {
         visual: <AnalysisPreview />,
       },
       {
-        key: "quest",
-        title: "探求",
-        body: "「なぜ私は」「どうすれば」——半分打たれた問いの続きを、世界の検索が継いでいく。",
-        path: "/quest",
-        visual: <BranchPreview />,
-      },
-      {
         key: "globe",
         title: "地球儀",
         body: "世界の関心を、回る地球の上に。どの国がいま何に沸いているかを一望する。",
@@ -70,8 +63,8 @@ const CONTENT: Record<Locale, Content> = {
     heroGiant: "EARTH TRENDS",
     ctaPrimary: "See world trends",
     ctaSecondary: "What is this?",
-    sectionTitle: "Explore the world's curiosity from four angles",
-    sectionLead: "From rising searches to associative branches, humanity's questions, and the globe. The same data, different views.",
+    sectionTitle: "Explore the world's curiosity from three angles",
+    sectionLead: "From rising searches to associative branches and the globe. The same data, different views.",
     ctaTitle: "Look into the world's curiosity.",
     cards: [
       {
@@ -87,13 +80,6 @@ const CONTENT: Record<Locale, Content> = {
         body: "Start from a rising word and follow what people search next. Trace the branches, see the flow of attention.",
         path: "/analysis",
         visual: <AnalysisPreview />,
-      },
-      {
-        key: "quest",
-        title: "Quest",
-        body: "“Why am I”, “how do I” — the half-typed questions continued by the world's searches.",
-        path: "/quest",
-        visual: <BranchPreview />,
       },
       {
         key: "globe",

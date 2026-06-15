@@ -3,6 +3,6 @@ export const SITE_NAME = "earth-trend";
 export const SITE_URL = "https://earth-trend.com";
 export const SITE_DOMAIN = "earth-trend.com"; // OG等に表示するドメイン表記
 export const GA_ID = "G-05T0DS9LM8"; // GA4測定ID(公開情報)
-export const SITE_TAGLINE = "世界のトレンドと、人類の問い。";
+export const SITE_TAGLINE = "世界のトレンドを、ひとつの生きた地図に。";
 export const SITE_DESCRIPTION =
-  "いま世界が何を検索しているか(トレンド)、そして人類が何を密かに問うているか(探求)を、生きたグラフとして探索する。";
+  "いま世界が何を検索しているかを、国別のバブル・連想の枝・地球儀という3つの視点で。検索という人類の正直な記録を、生きたグラフとして探索する。";

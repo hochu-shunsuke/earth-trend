@@ -13,7 +13,6 @@ const CONTENT = {
     what: `検索は、人類が最も正直に「知りたい」を吐き出している記録です。${SITE_NAME}は、いま世界が何に注意を向け、その関心がどう繋がっているかを、生きたグラフとして眺めるための場所です。数字を分析するツールというより、世界の好奇心を覗く鏡のようなものです。`,
     views: [
       ["トレンド", "いま世界が検索していること"],
-      ["探求", "人類が密かに問うていること(自分の問いを起点に潜れます)"],
       ["分析", "急上昇ワードから連想を辿る"],
       ["地球儀", "世界の関心を俯瞰する"],
     ],
@@ -26,12 +25,11 @@ const CONTENT = {
   en: {
     title: "About",
     desc: `What ${SITE_NAME} is, where the data comes from, and privacy.`,
-    tagline: "The world's trends and humanity's questions.",
+    tagline: "The world's trends, as a living map.",
     whatTitle: "What is this",
     what: `Search is humanity's most honest record of "what we want to know." ${SITE_NAME} is a place to watch what the world is paying attention to right now, and how that curiosity connects — as a living graph. Less an analytics tool, more a mirror onto the world's curiosity.`,
     views: [
       ["Trends", "What the world is searching right now"],
-      ["Quest", "What humanity quietly asks (dive starting from your own question)"],
       ["Analysis", "Trace associations out from a rising word"],
       ["Globe", "See the world's attention from above"],
     ],
