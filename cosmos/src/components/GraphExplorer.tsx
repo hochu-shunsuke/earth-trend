@@ -39,6 +39,7 @@ interface GNode {
   geo: string; // trends=国コード / mirror=言語コード
   news: NewsItem[];
   firstSeen?: number; // seedの「燃え始め」近似。色付け(新しさ)に使う
+  bornAt?: number; // 出現時刻(ms)。半径を0→フルにスケールインさせる出生アニメ用
   r: number;
   x: number;
   y: number;
@@ -195,12 +196,14 @@ export default function GraphExplorer() {
       if (!res.ok) throw new Error(`trends ${res.status}`);
       const data: { items: TrendItem[] } = await res.json();
       if (genRef.current !== myGen) return;
-      nodesRef.current = data.items.map((it) => ({
+      const born = performance.now();
+      nodesRef.current = data.items.map((it, i) => ({
         id: it.word,
         isSeed: true,
         geo,
         news: it.news,
         firstSeen: it.firstSeen,
+        bornAt: born + i * 14, // 少しずつ生まれる
         r: trendRadius(it.traffic),
         x: w / 2 + (Math.random() - 0.5) * w * 0.35,
         y: h / 2 + (Math.random() - 0.5) * h * 0.6,
@@ -220,6 +223,7 @@ export default function GraphExplorer() {
             isSeed: true,
             geo,
             news: [],
+            bornAt: performance.now(),
             r: 13,
             x: w / 2,
             y: h / 2,
@@ -275,6 +279,7 @@ export default function GraphExplorer() {
       const fresh = suggestions.filter((s) => !ids.has(s));
       // リング半径を子の数に応じて広げる(角度の混雑=重なり/交差を減らす)
       const ringR = Math.max(72, 9 * fresh.length);
+      const bornC = performance.now();
       fresh.forEach((s, i) => {
         const a = (i / Math.max(1, fresh.length)) * Math.PI * 2 - Math.PI / 2;
         ids.add(s);
@@ -283,6 +288,7 @@ export default function GraphExplorer() {
           isSeed: false,
           geo: node.geo,
           news: [],
+          bornAt: bornC + i * 22, // 子も少しずつ生まれる
           r: 7,
           x: node.x + Math.cos(a) * ringR,
           y: node.y + Math.sin(a) * ringR,
@@ -375,10 +381,16 @@ export default function GraphExplorer() {
         ctx.stroke();
       }
 
-      // パス1: ノードの円(常に描く)。seed(トレンド語)はトレンドページと同じ新しさ配色、leaf(サジェスト)は青
+      // パス1: ノードの円(常に描く)。seed=新しさ配色 / leaf=青。出生時は半径を0→フルにスケールイン
+      const nowMs = performance.now();
       for (const n of nodesRef.current) {
+        let bs = 1;
+        if (n.bornAt) {
+          const tb = Math.max(0, Math.min(1, (nowMs - n.bornAt) / 600)); // 出現前は0でクランプ(負の半径防止)
+          bs = tb * (2 - tb); // easeOutQuad
+        }
         ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, n.r * bs, 0, Math.PI * 2);
         ctx.fillStyle = n.isSeed ? freshnessColor(n.firstSeen, nowSec) : pal.leaf;
         ctx.fill();
       }

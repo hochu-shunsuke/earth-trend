@@ -694,6 +694,11 @@ select.btn {
     transform: scale(1);
   }
 }
+/* 国別ページ(/jp等)のバブル: ロード時に一度だけ出現(DOM要素なのでCSSでOK) */
+.bubble-pop {
+  transform-origin: center;
+  animation: lp-pop-in 0.7s ease-out both;
+}
 .lp-card-visual {
   display: flex;
   align-items: center;

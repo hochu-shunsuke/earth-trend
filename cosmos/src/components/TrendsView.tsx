@@ -257,7 +257,7 @@ function ScaleBubbles({
               transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`,
             }}
           >
-            {root.leaves().map((leaf) => {
+            {root.leaves().map((leaf, i) => {
             const it = leaf.data as TrendItem;
             const r = leaf.r;
             // フォントは円半径に完全比例(下限なし)＝ズーム倍率に関係なく常に円に収まる。
@@ -268,6 +268,7 @@ function ScaleBubbles({
             return (
               <button
                 key={it.word}
+                className="bubble-pop"
                 onClick={() => {
                   if (moved.current) return; // ドラッグ後のクリックは無視
                   onSelect(it);
@@ -280,6 +281,7 @@ function ScaleBubbles({
                   width: r * 2,
                   height: r * 2,
                   borderRadius: "50%",
+                  animationDelay: `${i * 0.02}s`,
                   border: "none",
                   cursor: "pointer",
                   background: freshnessColor(it.firstSeen, nowSec),
