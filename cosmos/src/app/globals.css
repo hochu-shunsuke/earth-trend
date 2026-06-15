@@ -316,28 +316,26 @@ select.btn {
   }
 }
 
-/* トレンド(国別)のバブルマップ枠: 他ページと同じ幅に収め、Googleマップ埋め込み風に操作 */
-.bubble-box {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--canvas);
-}
+/* トレンド(国別)のバブルマップ: 最大幅(フルブリード)。操作は方式で分離(2本指/⌘ホイール) */
 .bubble-zoom {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 14px;
+  bottom: 14px;
   z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: opacity 0.4s ease; /* 操作後に静かにフェードアウト */
 }
 .bubble-zoom .btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   font-size: 18px;
   line-height: 1;
+  border-radius: 10px;
   background: var(--panel);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 .map-hint {
   position: absolute;

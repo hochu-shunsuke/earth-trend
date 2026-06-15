@@ -53,6 +53,8 @@ function ScaleBubbles({
   const [nowSec, setNowSec] = useState(0);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 }); // pan/zoom
   const [hint, setHint] = useState<string | null>(null); // 操作ヒント(一瞬)
+  const [ctrlShown, setCtrlShown] = useState(true); // ズームボタン: 操作後しばらくでフェードアウト
+  const ctrlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const drag = useRef<{ sx: number; sy: number; touch: boolean } | null>(null);
@@ -68,6 +70,12 @@ function ScaleBubbles({
     if (hintTimer.current) clearTimeout(hintTimer.current);
     hintTimer.current = setTimeout(() => setHint(null), 1400);
   };
+  // 触っている間だけズームボタンを見せ、2.5秒なにもなければ静かに消す(見た目重視)
+  const pokeControls = () => {
+    setCtrlShown((s) => (s ? s : true)); // 表示中なら再レンダーしない(連続move対策)
+    if (ctrlTimer.current) clearTimeout(ctrlTimer.current);
+    ctrlTimer.current = setTimeout(() => setCtrlShown(false), 2500);
+  };
 
   useEffect(() => {
     // クライアントの現在時刻を一度だけ取る(色/発生時刻の基準)
@@ -75,18 +83,21 @@ function ScaleBubbles({
     setNowSec(Date.now() / 1000);
     // 全幅突き抜けをやめ「枠(=ページ幅)」の実寸に合わせる。枠の追従はResizeObserverで
     const calc = () => {
-      const w = wrapRef.current?.clientWidth ?? Math.min(window.innerWidth, 688);
-      const h = Math.min(Math.round(window.innerHeight * 0.62), 560);
+      const w = wrapRef.current?.clientWidth ?? window.innerWidth;
+      const h = Math.min(Math.round(window.innerHeight * 0.68), 680);
       setBox({ w: Math.max(1, w), h });
     };
     calc();
     const ro = new ResizeObserver(calc);
     if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", calc);
+    // 初期は見せて、操作が無ければ2.5秒で静かに消す
+    ctrlTimer.current = setTimeout(() => setCtrlShown(false), 2500);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", calc);
       if (hintTimer.current) clearTimeout(hintTimer.current);
+      if (ctrlTimer.current) clearTimeout(ctrlTimer.current);
     };
   }, []);
 
@@ -95,6 +106,7 @@ function ScaleBubbles({
     const el = wrapRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
+      pokeControls();
       // 素のホイール/2本指スクロールはページスクロールに通す。ズームは ⌘/Ctrl + ホイール
       // (Macトラックパッドのピンチは ctrlKey=true で来るのでズームになる)
       if (!(e.ctrlKey || e.metaKey)) {
@@ -149,6 +161,7 @@ function ScaleBubbles({
   const resetView = () => setView({ x: 0, y: 0, k: 1 });
   const onPointerDown = (e: React.PointerEvent) => {
     // ※ここでは setPointerCapture しない(タップのネイティブclickを潰さないため)
+    pokeControls();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 1) {
       drag.current = { sx: e.clientX, sy: e.clientY, touch: e.pointerType === "touch" };
@@ -161,6 +174,7 @@ function ScaleBubbles({
     }
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    pokeControls();
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
@@ -213,7 +227,7 @@ function ScaleBubbles({
       <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
         {t(locale).bubbles.legend(items.length)}
       </p>
-      {/* 他ページと同じ幅(720px)の枠に収める。縦1本指=ページスクロール / 2本指=移動・ズーム */}
+      {/* 中央寄せmainを突き抜けて画面いっぱいに広げる(最大幅)。操作は方式で分離 */}
       <div
         ref={wrapRef}
         className="bubble-box"
@@ -223,7 +237,9 @@ function ScaleBubbles({
         onPointerCancel={onPointerEnd}
         style={{
           position: "relative",
-          width: "100%",
+          width: "100vw",
+          left: "50%",
+          marginLeft: "-50vw",
           height: box?.h ?? 420,
           overflow: "hidden",
           // 縦1本指はページスクロールに通す。地図の移動は2本指/マウスドラッグ、ズームは⌘ホイール
@@ -292,8 +308,11 @@ function ScaleBubbles({
           </div>
         )}
 
-        {/* ズーム操作(枠の右下)。スクロールを奪わない代わりの手段 */}
-        <div className="bubble-zoom">
+        {/* ズーム操作(枠の右下)。操作後しばらくでフェードアウト */}
+        <div
+          className="bubble-zoom"
+          style={{ opacity: ctrlShown ? 1 : 0, pointerEvents: ctrlShown ? "auto" : "none" }}
+        >
           <button className="btn" onClick={() => zoomCenter(1.3)} aria-label="zoom in">
             +
           </button>
