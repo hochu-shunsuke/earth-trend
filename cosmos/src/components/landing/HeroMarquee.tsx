@@ -14,7 +14,7 @@ export default function HeroMarquee({ words }: { words: string[] }) {
     <div className="lp-marquee" aria-hidden="true">
       {rows.map((row, i) => (
         <div className="lp-marquee-row" key={i} data-dir={i % 2 === 0 ? "l" : "r"}>
-          <div className="lp-marquee-track" style={{ animationDuration: `${48 + i * 9}s` }}>
+          <div className="lp-marquee-track" style={{ animationDuration: `${192 + i * 36}s` }}>
             {[...row, ...row].map((w, j) => (
               <span className="lp-marquee-word" key={j}>
                 {w}
