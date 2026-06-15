@@ -7,6 +7,7 @@ import GeoSelect from "@/components/GeoSelect";
 import LiveStamp from "@/components/LiveStamp";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
+import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { translate } from "@/lib/translate";
@@ -103,12 +104,12 @@ export default async function CountryPage({
         {/* サーバー描画のテキスト一覧: 原語＋訳＋ニュースがHTMLに入る=SEO/JS無し/読み上げの土台 */}
         {items.length > 0 && (
           <section style={{ marginTop: 28 }}>
-            {/* 構造化データ: 急上昇のランキングを ItemList で明示 */}
+            {/* 構造化データ: 急上昇のランキングを ItemList で明示。トレンド語は外部由来なので
+                jsonLd()で "<" をエスケープし script脱出(XSS)を防ぐ */}
             <script
               type="application/ld+json"
-              // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{
-                __html: JSON.stringify({
+                __html: jsonLd({
                   "@context": "https://schema.org",
                   "@type": "ItemList",
                   name: d.country.seoHeading(country),

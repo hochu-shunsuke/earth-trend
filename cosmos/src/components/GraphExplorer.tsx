@@ -196,6 +196,8 @@ export default function GraphExplorer() {
       if (!res.ok) throw new Error(`trends ${res.status}`);
       const data: { items: TrendItem[] } = await res.json();
       if (genRef.current !== myGen) return;
+      // loadTrends は effect/イベントから呼ばれる非render関数。出生時刻に現在時刻を使うのは意図的
+      // eslint-disable-next-line react-hooks/purity
       const born = performance.now();
       nodesRef.current = data.items.map((it, i) => ({
         id: it.word,
@@ -223,6 +225,7 @@ export default function GraphExplorer() {
             isSeed: true,
             geo,
             news: [],
+            // eslint-disable-next-line react-hooks/purity
             bornAt: performance.now(),
             r: 13,
             x: w / 2,
@@ -551,7 +554,6 @@ export default function GraphExplorer() {
     const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
     const seedParam = params.get("seed") || undefined;
     selectRef.current = geoParam;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSel(geoParam);
     void loadTrends(geoParam, seedParam);
 

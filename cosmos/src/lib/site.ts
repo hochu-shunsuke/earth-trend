@@ -8,6 +8,12 @@ export const SITE_OPERATOR = "hochu";
 export const SITE_EMAIL = "hochu.shunsuke.dev@gmail.com";
 export const SITE_GITHUB = "https://github.com/hochu-shunsuke";
 export const SITE_INSTAGRAM = "https://www.instagram.com/macho_hochu";
+
+// JSON-LD用: <script>へ安全に埋め込む。JSON.stringifyは "</script>" を escape しないため
+// "<" を < に置換し、外部データ(トレンド語等)由来のscript脱出=XSSを防ぐ。
+export function jsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
 export const GA_ID = "G-05T0DS9LM8"; // GA4測定ID(公開情報)
 export const SITE_TAGLINE = "世界のトレンドを、ひとつの生きた地図に。";
 export const SITE_DESCRIPTION =

@@ -10,6 +10,7 @@ import {
   SITE_EMAIL,
   SITE_GITHUB,
   SITE_INSTAGRAM,
+  jsonLd,
 } from "@/lib/site";
 
 const geistSans = Geist({
@@ -55,7 +56,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLd({
               "@context": "https://schema.org",
               "@graph": [
                 {
