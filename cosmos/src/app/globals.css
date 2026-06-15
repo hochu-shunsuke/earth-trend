@@ -84,6 +84,10 @@ a.card-link:hover {
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
 }
+/* 地球儀のラベルは深さ順に z-index 0〜ラベル数(~180)が振られる。それより上に出して被りを防ぐ */
+.site-header.overlay {
+  z-index: 500;
+}
 .site-header .brand {
   font-weight: 700;
   font-size: 15px;
@@ -265,7 +269,7 @@ select.btn {
 .nav-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 29;
+  z-index: 509;
   background: rgba(0, 0, 0, 0.5);
   opacity: 0;
   pointer-events: none;
@@ -280,7 +284,7 @@ select.btn {
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 30;
+  z-index: 510;
   width: 240px;
   max-width: 78vw;
   background: var(--bg);

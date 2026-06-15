@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
+import { freshnessColor } from "@/lib/trendsVisual";
 import { DEFAULT_LOCALE, isLocale, t, localePath, COUNTRY_LABELS } from "@/lib/i18n";
 
 interface NewsItem {
@@ -18,6 +19,7 @@ interface TrendItem {
   word: string;
   traffic: string;
   news: NewsItem[];
+  firstSeen?: number;
 }
 
 interface LabelDatum {
@@ -28,6 +30,7 @@ interface LabelDatum {
   size: number;
   news: NewsItem[];
   isNew: boolean;
+  firstSeen?: number; // 色付け(新しさ)。トレンド/分析と一致
   /** 描画中のHTML要素(可視判定に使う) */
   el?: HTMLElement;
 }
@@ -100,7 +103,7 @@ export default function GlobePage() {
       }
     }
     const bg = v("--bg", "#0a0a0a");
-    const sphere = light ? "#262626" : "#161616"; // ライトも濃い球(白背景に浮かぶ) // 背景から少しずらして輪郭を出す
+    const sphere = light ? "#dbe0e8" : "#161616"; // ライトは明るいクールグレーの球(白背景と差をつけ地平線を出す) / ダークは暗い球
     // 大陸は塗らず輪郭線だけ(塗りを球と同色にして線だけ見せる)
     globe
       .showGlobe(true)
@@ -149,6 +152,7 @@ export default function GlobePage() {
             lng,
             size: Math.max(0.6, Math.log10(parseTraffic(it.traffic) + 1) * 0.45),
             news: it.news,
+            firstSeen: it.firstSeen,
             isNew:
               prevWordsRef.current.size > 0 && !prevWordsRef.current.has(key),
           });
@@ -200,25 +204,27 @@ export default function GlobePage() {
           el.textContent = label.word;
           // pointer-events: none = テキストの上でもドラッグ/ズームが効く。
           // クリックは画面座標の最近傍探索で解決する(下のonPointerUp)
-          const css = getComputedStyle(document.documentElement);
-          // 球体はライトでも濃色なので、ラベルは常に明るい青+影で浮かせる
-          const color = label.isNew
-            ? css.getPropertyValue("--new").trim() || "#46d27d"
-            : "#52a8ff";
+          const light = document.documentElement.dataset.theme !== "dark";
+          // 色=新しさ。明るい球に載るので高彩度+やや濃いめで鮮やか&読める
+          const color = light
+            ? freshnessColor(label.firstSeen, Date.now() / 1000, -10, 92)
+            : freshnessColor(label.firstSeen, Date.now() / 1000);
+          // ライトは縁取り無しでOK(明るい球で読める)。ダークは黒系で締める
+          const shadow = light ? "none" : "0 0 4px rgba(0,0,0,0.75)";
           el.style.cssText = [
-            `font-size: ${Math.round(8 + label.size * 7)}px`,
+            `font-size: ${Math.round(9 + label.size * 5)}px`,
             "font-weight: 600",
             `color: ${color}`,
             "font-family: sans-serif",
             "white-space: nowrap",
             "pointer-events: none",
-            "text-shadow: 0 0 4px rgba(0,0,0,0.7)",
+            `text-shadow: ${shadow}`,
             "transform: translate(-50%, -50%)",
           ].join(";");
           label.el = el;
           return el;
         })
-        .ringColor(() => (t: number) => `rgba(124,252,155,${1 - t})`)
+        .ringColor(() => (t: number) => `rgba(255,140,60,${1 - t})`)
         .ringMaxRadius(4)
         .ringPropagationSpeed(1.2)
         .ringRepeatPeriod(1200)
@@ -290,6 +296,9 @@ export default function GlobePage() {
           setSelected(best);
           setPanelArmed(false);
           setTimeout(() => setPanelArmed(true), 350);
+          // 選択した語へカメラをすっと寄せる(ズームは保つ)
+          const pov = globe.pointOfView();
+          globe.pointOfView({ lat: best.lat, lng: best.lng, altitude: pov.altitude }, 700);
         }
       });
 
