@@ -43,6 +43,33 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* 構造化データ(JSON-LD): サイト/運営主体の実体をGoogleに明示(最小限) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": `${SITE_URL}/#website`,
+                  url: SITE_URL,
+                  name: SITE_NAME,
+                  description: SITE_DESCRIPTION,
+                  inLanguage: ["ja", "en"],
+                  publisher: { "@id": `${SITE_URL}/#org` },
+                },
+                {
+                  "@type": "Organization",
+                  "@id": `${SITE_URL}/#org`,
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  description: SITE_TAGLINE,
+                },
+              ],
+            }),
+          }}
+        />
         {/* テーマ初期化(FOUC防止)＋ <html lang> をURL先頭セグメントに合わせる */}
         <script
           dangerouslySetInnerHTML={{
