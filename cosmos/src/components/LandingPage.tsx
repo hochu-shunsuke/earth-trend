@@ -27,13 +27,13 @@ interface Content {
 
 const CONTENT: Record<Locale, Content> = {
   ja: {
-    heroLead: "いま、地球が何を検索しているか。流れる言葉は、すべて現在進行形の急上昇ワード。",
+    heroLead: "いま、地球が何を検索しているか。\n流れる言葉は、すべて現在進行形の急上昇ワード。",
     heroGiant: "地球のトレンド",
     ctaPrimary: "世界のトレンドを見る",
     ctaSecondary: "これは何？",
     sectionTitle: "3つの視点で、世界の好奇心を探る",
-    sectionLead: "急上昇の一覧から、連想の枝、地球儀まで。同じデータを違う角度で。",
-    ctaTitle: "世界の好奇心を、覗いてみる。",
+    sectionLead: "急上昇の一覧から、連想の枝、地球儀まで。\n同じデータを違う角度で。",
+    ctaTitle: "世界の好奇心を、\n覗いてみる。",
     cards: [
       {
         key: "trends",
@@ -124,7 +124,9 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
         <HeroMarquee words={words} />
         <div className="lp-hero-scrim" />
         <div className="lp-hero-overlay lp-container">
-          <p className="lp-hero-lead">{c.heroLead}</p>
+          <p className="lp-hero-lead" style={{ whiteSpace: "pre-line" }}>
+            {c.heroLead}
+          </p>
           <Link className="lp-hero-link" href={localePath(locale, "/trends")}>
             {c.ctaPrimary} →
           </Link>
@@ -134,7 +136,9 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
 
       <div className="lp-section-head">
         <h2 className="lp-h2">{c.sectionTitle}</h2>
-        <p className="lp-lead">{c.sectionLead}</p>
+        <p className="lp-lead" style={{ whiteSpace: "pre-line" }}>
+          {c.sectionLead}
+        </p>
       </div>
 
       <section className="lp-cards">
@@ -150,7 +154,9 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
       </section>
 
       <section className="lp-cta lp-container">
-        <h2 className="lp-h2">{c.ctaTitle}</h2>
+        <h2 className="lp-h2" style={{ whiteSpace: "pre-line" }}>
+          {c.ctaTitle}
+        </h2>
         <Link className="lp-btn lp-btn-primary" href={localePath(locale, "/trends")}>
           {c.ctaPrimary}
         </Link>

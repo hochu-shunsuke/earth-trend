@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
@@ -9,8 +12,9 @@ interface TrendItem {
   firstSeen?: number;
 }
 
-// 一覧用の各国ミニマップ(サーバー描画のSVG=JS不要・SEOに強い)。
-// 円の面積=規模 / 色=新しさ。クリックでその国のフルマップへ。
+// 一覧用の各国ミニマップ。円の面積=規模 / 色=新しさ。クリックでその国のフルマップへ。
+// 円は読み込み時に一度出現。ホバーするたびに「瞬間消滅→出現(0.5s)」を1回だけ再生
+// (再生中に解除されても最後まで完走/再ホバーで頭から)。<g key> を差し替えて再マウントで実現。
 export default function CountryTile({
   geo,
   locale,
@@ -35,18 +39,13 @@ export default function CountryTile({
       .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
   );
 
+  const [runId, setRunId] = useState(0);
+
   return (
     <Link
       href={localePath(locale, `/${geo.toLowerCase()}`)}
-      className="card-link"
-      style={{
-        display: "block",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        overflow: "hidden",
-        color: "var(--fg)",
-        background: "var(--panel)",
-      }}
+      className="card-link trend-tile"
+      onMouseEnter={() => setRunId((n) => n + 1)}
     >
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -54,15 +53,20 @@ export default function CountryTile({
         style={{ display: "block", background: "var(--canvas)" }}
         aria-hidden
       >
-        {root.leaves().map((l, i) => (
-          <circle
-            key={i}
-            cx={l.x}
-            cy={l.y}
-            r={l.r}
-            fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
-          />
-        ))}
+        {/* key を変えると再マウント=出現アニメが頭から再生(ホバーのたび) */}
+        <g key={runId}>
+          {root.leaves().map((l, i) => (
+            <circle
+              key={i}
+              className="tile-pop"
+              style={{ animationDelay: `${i * 0.045}s` }}
+              cx={l.x}
+              cy={l.y}
+              r={l.r}
+              fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
+            />
+          ))}
+        </g>
       </svg>
       <div
         style={{

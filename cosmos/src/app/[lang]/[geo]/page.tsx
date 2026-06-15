@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import GeoSelect from "@/components/GeoSelect";
+import LiveStamp from "@/components/LiveStamp";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
@@ -121,11 +122,8 @@ export default async function CountryPage({
               }}
             />
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
-            <p className="muted" style={{ fontSize: 12, margin: "4px 0 0" }}>
-              {d.country.updated}{" "}
-              <time dateTime={new Date().toISOString()}>
-                {new Date().toLocaleString(locale === "ja" ? "ja-JP" : "en-US")}
-              </time>
+            <p style={{ margin: "4px 0 0" }}>
+              <LiveStamp iso={new Date().toISOString()} locale={locale} label={d.country.updated} />
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
               {items.map((it) => (
