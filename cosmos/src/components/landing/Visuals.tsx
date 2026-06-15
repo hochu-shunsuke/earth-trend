@@ -4,7 +4,11 @@
 import { hierarchy, pack } from "d3-hierarchy";
 
 const LINE = "var(--link-line)";
-const NODE = "var(--fg)";
+const SEED = "var(--trend)"; // 起点(急上昇ワード)＝オレンジ
+const NODE = "var(--suggest)"; // 連想ノード＝青
+const PALETTE = ["var(--trend)", "var(--new)", "var(--suggest)", "var(--accent)"];
+// 台湾タイルと同じ配色(freshnessColor: 暖色hsl28→寒色212)
+const fresh = (t: number) => `hsl(${Math.round(28 + t * (212 - 28))} 70% ${Math.round(52 - t * 12)}%)`;
 
 // トレンド: 国タイル風のパック円(モノクロ・大きさ=ボリューム)。無から広がって出てくる。
 export function TrendsPreview() {
@@ -37,8 +41,8 @@ export function TrendsPreview() {
             cx={l.x}
             cy={l.y}
             r={l.r}
-            fill={NODE}
-            opacity={0.22 + (l.r / rmax) * 0.55}
+            fill={fresh((cell.i * 0.137) % 1)}
+            opacity={0.78 + (l.r / rmax) * 0.22}
           />
         );
       })}
@@ -97,7 +101,7 @@ export function AnalysisPreview() {
       {childNodes.map((cN, i) => (
         <circle key={`c${i}`} className="lp-pop" style={{ animationDelay: `${cN.d - 0.3}s` }} cx={cN.x} cy={cN.y} r={cN.r} fill={NODE} opacity={0.85} />
       ))}
-      <circle className="lp-pop" style={{ animationDelay: "-2.5s" }} cx={cx0} cy={cy0} r={14} fill={NODE} />
+      <circle className="lp-pop" style={{ animationDelay: "-2.5s" }} cx={cx0} cy={cy0} r={14} fill={SEED} />
     </svg>
   );
 }
@@ -132,7 +136,7 @@ export function BranchPreview() {
       {children.map((c, i) => (
         <circle key={`cd${i}`} className="lp-pop" style={{ animationDelay: `${-(0.2 + i * 0.55)}s` }} cx={c.x} cy={c.y} r={8} fill={NODE} opacity={0.85} />
       ))}
-      <circle className="lp-pop" style={{ animationDelay: "-2.5s" }} cx={sx} cy={sy} r={14} fill={NODE} />
+      <circle className="lp-pop" style={{ animationDelay: "-2.5s" }} cx={sx} cy={sy} r={14} fill={SEED} />
     </svg>
   );
 }
@@ -154,7 +158,7 @@ export function GlobePreview() {
   ];
   return (
     <svg viewBox={`0 0 ${S} ${S}`} role="img" aria-label="globe">
-      <circle cx={c} cy={c} r={r} fill={NODE} opacity={0.04} />
+      <circle cx={c} cy={c} r={r} fill="var(--accent)" opacity={0.05} />
       <circle cx={c} cy={c} r={r} fill="none" stroke={LINE} strokeWidth={1.5} />
       {/* 緯線(静止) */}
       <g fill="none" stroke={LINE} strokeWidth={1}>
@@ -180,7 +184,7 @@ export function GlobePreview() {
         ))}
       </g>
       {/* 各国の#トレンド語を球の周りに(回転せず・タイプライタ風) */}
-      <g fill={NODE} fontWeight={600} opacity={0.88} style={{ fontSize: 19 }}>
+      <g fontWeight={600} style={{ fontSize: 19 }}>
         {tags.map((tag, i) => (
           <text
             key={i}
@@ -188,6 +192,7 @@ export function GlobePreview() {
             style={{ animationDelay: `${tag.delay}s` }}
             x={tag.x}
             y={tag.y}
+            fill={PALETTE[i % PALETTE.length]}
             textAnchor={tag.anchor ?? "start"}
           >
             {tag.t}
