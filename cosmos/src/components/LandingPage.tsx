@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import { TrendsPreview, BranchPreview, GlobePreview } from "@/components/landing/Visuals";
+import { TrendsPreview, AnalysisPreview, BranchPreview, GlobePreview } from "@/components/landing/Visuals";
 import HeroMarquee from "@/components/landing/HeroMarquee";
 import { getGalleryData } from "@/lib/gallery-data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -27,8 +27,8 @@ interface Content {
 
 const CONTENT: Record<Locale, Content> = {
   ja: {
-    heroLead: "いま世界が何を検索しているか。流れているのは、すべて現在の急上昇ワード。",
-    heroGiant: "世界の検索",
+    heroLead: "いま、地球が何を検索しているか。流れる言葉は、すべて現在進行形の急上昇ワード。",
+    heroGiant: "地球のトレンド",
     ctaPrimary: "世界のトレンドを見る",
     ctaSecondary: "これは何？",
     sectionTitle: "4つの視点で、世界の好奇心を探る",
@@ -47,7 +47,7 @@ const CONTENT: Record<Locale, Content> = {
         title: "分析",
         body: "急上昇ワードを起点に、人々が次に検索する言葉へ。枝をたどると関心の流れが見える。",
         path: "/analysis",
-        visual: <BranchPreview />,
+        visual: <AnalysisPreview />,
       },
       {
         key: "quest",
@@ -66,8 +66,8 @@ const CONTENT: Record<Locale, Content> = {
     ],
   },
   en: {
-    heroLead: "What the world is searching right now. Everything flowing by is a live rising search.",
-    heroGiant: "WORLD TRENDS",
+    heroLead: "What Earth is searching right now. Every word drifting by is a live, rising search.",
+    heroGiant: "EARTH TRENDS",
     ctaPrimary: "See world trends",
     ctaSecondary: "What is this?",
     sectionTitle: "Explore the world's curiosity from four angles",
@@ -86,7 +86,7 @@ const CONTENT: Record<Locale, Content> = {
         title: "Analysis",
         body: "Start from a rising word and follow what people search next. Trace the branches, see the flow of attention.",
         path: "/analysis",
-        visual: <BranchPreview />,
+        visual: <AnalysisPreview />,
       },
       {
         key: "quest",
