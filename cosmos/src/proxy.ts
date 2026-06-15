@@ -13,6 +13,11 @@ export function proxy(req: NextRequest) {
 
   // /ja* は接頭辞を剥がして 301(重複解消・旧URL救済・クエリは保持)
   if (pathname === "/ja" || pathname.startsWith("/ja/")) {
+    // ただしメタ画像(OG/icon)は301しない。リダイレクト非追従のcrawlerで画像が欠けるため、
+    // og:imageが指す /ja/...opengraph-image をそのまま200で配信する
+    if (pathname.endsWith("/opengraph-image") || pathname.endsWith("/icon")) {
+      return NextResponse.next();
+    }
     const url = req.nextUrl.clone();
     url.pathname = pathname.replace(/^\/ja(?=\/|$)/, "") || "/";
     return NextResponse.redirect(url, 301);
