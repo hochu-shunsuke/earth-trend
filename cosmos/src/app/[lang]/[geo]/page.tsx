@@ -166,6 +166,22 @@ export default async function CountryPage({
             </ul>
           </section>
         )}
+
+        {/* 横断比較=独自価値の言語化 + 他国への内部リンク(クロール深度/比較ナビ) */}
+        <nav style={{ marginTop: 28 }}>
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            {d.country.compare(country)}
+          </p>
+          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 14 }}>
+            {Object.keys(GEO_LABELS)
+              .filter((g) => g !== code)
+              .map((g) => (
+                <Link key={g} href={localePath(locale, `/${g.toLowerCase()}`)}>
+                  {COUNTRY_LABELS[locale][g] ?? g}
+                </Link>
+              ))}
+          </div>
+        </nav>
       </main>
     </>
   );
