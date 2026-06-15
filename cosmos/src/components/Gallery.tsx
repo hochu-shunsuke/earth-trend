@@ -1,23 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { unstable_cache } from "next/cache";
 import SiteHeader from "@/components/SiteHeader";
 import CountryTile from "@/components/CountryTile";
-import { GEO_LABELS } from "@/lib/trends";
-import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
+import { getGalleryData } from "@/lib/gallery-data";
 import { t, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
-
-// 9国分のデータを10分キャッシュ(訪問あたりのUpstashコストをほぼゼロに。ローンチ耐性)
-const getGalleryData = unstable_cache(
-  async (): Promise<[string, RecentTrendItem[]][]> =>
-    Promise.all(
-      Object.keys(GEO_LABELS).map(
-        async (g) => [g, await fetchTrendsUnioned(g)] as [string, RecentTrendItem[]],
-      ),
-    ),
-  ["gallery-data-v2"],
-  { revalidate: 600 },
-);
 
 // 各国の「注意の地図」一覧。ルート(/) と /ja /en で共有(ロケールだけ差し替え)。
 // SiteHeaderにはlocaleを明示で渡す(ルートはURLにロケールが無いため)。

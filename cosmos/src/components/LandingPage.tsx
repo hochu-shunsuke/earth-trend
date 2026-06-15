@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import { TrendsPreview, BranchPreview, GlobePreview } from "@/components/landing/Visuals";
+import HeroMarquee from "@/components/landing/HeroMarquee";
+import { getGalleryData } from "@/lib/gallery-data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { Locale } from "@/lib/i18n";
 
@@ -13,9 +15,8 @@ interface Card {
   visual: ReactNode;
 }
 interface Content {
-  eyebrow: string;
-  heroTitle: string;
   heroLead: string;
+  heroGiant: string;
   ctaPrimary: string;
   ctaSecondary: string;
   sectionTitle: string;
@@ -26,9 +27,8 @@ interface Content {
 
 const CONTENT: Record<Locale, Content> = {
   ja: {
-    eyebrow: "検索トレンドの可視化",
-    heroTitle: "世界の「知りたい」を、ひとつの地図に。",
-    heroLead: "いま世界が何に注意を向けているか。検索という最も正直な記録を可視化します。",
+    heroLead: "いま世界が何を検索しているか。流れているのは、すべて現在の急上昇ワード。",
+    heroGiant: "世界の検索",
     ctaPrimary: "世界のトレンドを見る",
     ctaSecondary: "これは何？",
     sectionTitle: "4つの視点で、世界の好奇心を探る",
@@ -66,9 +66,8 @@ const CONTENT: Record<Locale, Content> = {
     ],
   },
   en: {
-    eyebrow: "Search trends, visualized",
-    heroTitle: "The world's curiosity, as one map.",
-    heroLead: "What the world is paying attention to right now — search, humanity's most honest record, visualized.",
+    heroLead: "What the world is searching right now. Everything flowing by is a live rising search.",
+    heroGiant: "WORLD TRENDS",
     ctaPrimary: "See world trends",
     ctaSecondary: "What is this?",
     sectionTitle: "Explore the world's curiosity from four angles",
@@ -107,36 +106,43 @@ const CONTENT: Record<Locale, Content> = {
   },
 };
 
+// 全国分のトレンドから、マーキー用にワードを国横断でラウンドロビン抽出(重複除去)。
+async function heroWords(): Promise<string[]> {
+  const data = await getGalleryData();
+  const lists = data.map(([, items]) => items.map((it) => it.word).filter(Boolean));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const max = Math.max(0, ...lists.map((l) => l.length));
+  for (let i = 0; i < max && out.length < 90; i++) {
+    for (const l of lists) {
+      const w = l[i];
+      if (w && !seen.has(w)) {
+        seen.add(w);
+        out.push(w);
+      }
+    }
+  }
+  return out;
+}
+
 // ブランドのトップ(/)。各ビューを説明も兼ねて見せる入口ページ(Vercel調・モノクロ基調)。
-export default function LandingPage({ locale }: { locale: Locale }) {
+export default async function LandingPage({ locale }: { locale: Locale }) {
   const c = CONTENT[locale];
   const year = new Date().getFullYear();
+  const words = await heroWords();
   return (
     <>
       <SiteHeader locale={locale} />
 
-      <section className="lp-hero lp-container">
-        <p className="lp-eyebrow">{c.eyebrow}</p>
-        <h1 className="lp-h1">{c.heroTitle}</h1>
-        <p className="lp-lead">{c.heroLead}</p>
-        <div className="lp-cta-row">
-          <Link className="lp-btn lp-btn-primary" href={`/${locale}`}>
-            {c.ctaPrimary}
+      <section className="lp-hero-full">
+        <HeroMarquee words={words} />
+        <div className="lp-hero-scrim" />
+        <div className="lp-hero-overlay lp-container">
+          <p className="lp-hero-lead">{c.heroLead}</p>
+          <Link className="lp-hero-link" href={`/${locale}`}>
+            {c.ctaPrimary} →
           </Link>
-          <Link className="lp-btn" href={`/${locale}/about`}>
-            {c.ctaSecondary}
-          </Link>
-        </div>
-
-        <div className="lp-frame">
-          <div className="lp-frame-bar">
-            <i />
-            <i />
-            <i />
-          </div>
-          <div className="lp-frame-body">
-            <TrendsPreview />
-          </div>
+          <h1 className="lp-hero-giant">{c.heroGiant}</h1>
         </div>
       </section>
 

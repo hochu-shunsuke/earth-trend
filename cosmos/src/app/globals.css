@@ -394,17 +394,122 @@ select.btn {
   max-width: 36ch;
 }
 
-/* ヒーロー: 中央寄せ・大きな余白。テキスト→ボタン→プロダクト枠 */
-.lp-hero {
-  text-align: center;
-  padding: 128px 0 72px;
+/* ヒーロー: 全面ビューポート。背景に急上昇ワードが流れ、下に巨大タイトル(Lunaria調) */
+.lp-hero-full {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 28px;
+  justify-content: flex-end;
 }
-.lp-hero .lp-lead {
-  margin: 0 auto;
+/* 背景: 流れるワードのマーキー */
+.lp-marquee {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(6px, 1.4vh, 18px);
+  overflow: hidden;
+}
+.lp-marquee-row {
+  display: flex;
+  width: 100%;
+}
+.lp-marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  will-change: transform;
+  animation-name: lp-marquee-l;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.lp-marquee-row[data-dir="r"] .lp-marquee-track {
+  animation-name: lp-marquee-r;
+}
+@keyframes lp-marquee-l {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes lp-marquee-r {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.lp-marquee-word {
+  flex-shrink: 0;
+  font-size: clamp(26px, 5.2vw, 60px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  opacity: 0.16;
+  white-space: nowrap;
+}
+.lp-marquee-word::after {
+  content: "·";
+  margin: 0 0.42em;
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-marquee-track {
+    animation: none;
+  }
+}
+
+/* 可読性スクリム: 下にいくほど背景色へフェード(巨大タイトル/リードを読ませる) */
+.lp-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg) 30%, transparent) 0%,
+    transparent 34%,
+    color-mix(in srgb, var(--bg) 82%, transparent) 100%
+  );
+}
+
+/* オーバーレイ: 左下にリード+リンク、最下部に巨大タイトル */
+.lp-hero-overlay {
+  position: relative;
+  z-index: 2;
+  padding-bottom: 4vh;
+}
+.lp-hero-lead {
+  color: var(--fg);
+  font-size: clamp(15px, 2vw, 19px);
+  font-weight: 500;
+  margin: 0;
+  max-width: 30ch;
+}
+.lp-hero-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: clamp(16px, 2.2vw, 22px);
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.lp-hero-giant {
+  margin: 3vh 0 0;
+  font-size: clamp(56px, 15vw, 220px);
+  line-height: 0.86;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--fg);
+  white-space: nowrap;
 }
 
 .lp-cta-row {
@@ -437,43 +542,6 @@ select.btn {
 .lp-btn-primary:hover {
   opacity: 0.85;
   border-color: var(--fg);
-}
-
-/* プロダクトを見せる「ウィンドウ枠」(スクショ風) */
-.lp-frame {
-  width: 100%;
-  max-width: 920px;
-  margin: 16px auto 0;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--canvas);
-}
-.lp-frame-bar {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
-}
-.lp-frame-bar i {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--border);
-}
-.lp-frame-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 28px;
-}
-.lp-frame-body svg {
-  width: 100%;
-  max-width: 560px;
-  height: auto;
 }
 
 /* セクション見出し */
@@ -573,8 +641,14 @@ select.btn {
 }
 
 @media (max-width: 760px) {
-  .lp-hero {
-    padding: 96px 0 48px;
+  .lp-hero-full {
+    min-height: 88vh;
+  }
+  .lp-hero-giant {
+    font-size: clamp(44px, 17vw, 96px);
+  }
+  .lp-marquee-word {
+    opacity: 0.2;
   }
   .lp-cards {
     grid-template-columns: 1fr;
