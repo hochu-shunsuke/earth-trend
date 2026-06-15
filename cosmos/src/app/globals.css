@@ -615,14 +615,14 @@ select.btn {
   max-width: 48ch;
 }
 
-/* 機能カード(2x2グリッド・境界線で区切る) */
+/* 機能カード(デスクトップは3列・境界線で区切る) */
 .lp-cards {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 40px 24px 24px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 .lp-card {
