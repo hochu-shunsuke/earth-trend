@@ -21,15 +21,17 @@ export default function SiteHeader({
   const section = parts[1] ?? "";
   const d = t(locale);
 
-  const isTrends = section === "" || section.length === 2;
+  // トレンド = /[lang]/trends と 各国ページ /[lang]/[geo](2文字)。ホーム(section==="")は非アクティブ
+  const isTrends = section === "trends" || section.length === 2;
   const tabs: { href: string; label: string; active: boolean }[] = [
-    { href: `/${locale}`, label: d.nav.trends, active: isTrends },
+    { href: `/${locale}/trends`, label: d.nav.trends, active: isTrends },
     { href: `/${locale}/quest`, label: d.nav.quest, active: section === "quest" },
     { href: `/${locale}/analysis`, label: d.nav.analysis, active: section === "analysis" },
     { href: `/${locale}/globe`, label: d.nav.globe, active: section === "globe" },
   ];
 
-  const rest = pathname.replace(/^\/(ja|en)(?=\/|$)/, "");
+  // ロケール接頭辞を除いた残り(例: /ja/trends → /trends)。ルート(/)は空に正規化(末尾スラッシュ回避)
+  const rest = pathname.replace(/^\/(ja|en)(?=\/|$)/, "").replace(/^\/$/, "");
   const switchLang = (l: string) => router.push(`/${l}${rest}`);
 
   const langSelect = (

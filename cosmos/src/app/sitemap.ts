@@ -36,6 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...home,
+    ...pages("/trends", "hourly", 0.9),
     ...geos.flatMap((g) => pages(`/${g}`, "hourly", 0.8)),
     ...pages("/quest", "weekly", 0.6),
     ...pages("/analysis", "hourly", 0.6),

@@ -39,7 +39,7 @@ const CONTENT: Record<Locale, Content> = {
         key: "trends",
         title: "トレンド",
         body: "円の大きさは検索ボリューム、色は燃え始めの新しさ。9カ国の急上昇を一枚の地図で。",
-        path: "",
+        path: "/trends",
         visual: <TrendsPreview />,
       },
       {
@@ -78,7 +78,7 @@ const CONTENT: Record<Locale, Content> = {
         key: "trends",
         title: "Trends",
         body: "Circle size is search volume, color is how freshly it ignited. Nine countries' rising searches on one map.",
-        path: "",
+        path: "/trends",
         visual: <TrendsPreview />,
       },
       {
@@ -139,7 +139,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
         <div className="lp-hero-scrim" />
         <div className="lp-hero-overlay lp-container">
           <p className="lp-hero-lead">{c.heroLead}</p>
-          <Link className="lp-hero-link" href={`/${locale}`}>
+          <Link className="lp-hero-link" href={`/${locale}/trends`}>
             {c.ctaPrimary} →
           </Link>
           <h1 className="lp-hero-giant">{c.heroGiant}</h1>
@@ -165,7 +165,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
 
       <section className="lp-cta lp-container">
         <h2 className="lp-h2">{c.ctaTitle}</h2>
-        <Link className="lp-btn lp-btn-primary" href={`/${locale}`}>
+        <Link className="lp-btn lp-btn-primary" href={`/${locale}/trends`}>
           {c.ctaPrimary}
         </Link>
       </section>

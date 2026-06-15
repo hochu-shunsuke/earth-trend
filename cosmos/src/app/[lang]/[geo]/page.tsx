@@ -87,7 +87,7 @@ export default async function CountryPage({
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
               {d.country.title(country)}
             </h1>
-            <Link href={`/${locale}`} className="muted" style={{ fontSize: 13 }}>
+            <Link href={`/${locale}/trends`} className="muted" style={{ fontSize: 13 }}>
               {d.country.all}
             </Link>
           </div>

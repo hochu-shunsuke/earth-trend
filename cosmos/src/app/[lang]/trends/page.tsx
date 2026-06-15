@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import LandingPage from "@/components/LandingPage";
+import Gallery from "@/components/Gallery";
 import { ALLOWED_GEO } from "@/lib/trends";
 import { toLocale, t } from "@/lib/i18n";
 
@@ -17,15 +17,14 @@ export async function generateMetadata({
     title: d.home.title,
     description: d.home.desc,
     alternates: {
-      canonical: `/${locale}`,
-      // ホームの x-default はブランドのルート(/)。ja/en は各言語版のランディング
-      languages: { ja: "/ja", en: "/en", "x-default": "/" },
+      canonical: `/${locale}/trends`,
+      languages: { ja: "/ja/trends", en: "/en/trends", "x-default": "/en/trends" },
     },
   };
 }
 
-// 言語別ホーム = ランディング(各ビューを説明する入口)。ルート(/) と同一内容の言語版。
-export default async function LangHome({
+// トレンド = 各国の「注意の地図」一覧。描画は共有Galleryに集約。
+export default async function TrendsPage({
   params,
   searchParams,
 }: {
@@ -34,9 +33,9 @@ export default async function LangHome({
 }) {
   const locale = toLocale((await params).lang);
 
-  // 旧ホームが一覧だった頃の /[lang]?geo=XX リンクは各国ルートへ転送(SEO/互換)
+  // 旧 /[lang]/trends?geo=XX リンクは各国ルートへ転送(SEO/互換)
   const { geo } = await searchParams;
   if (geo && ALLOWED_GEO.has(geo.toUpperCase())) redirect(`/${locale}/${geo.toLowerCase()}`);
 
-  return <LandingPage locale={locale} />;
+  return <Gallery locale={locale} />;
 }
