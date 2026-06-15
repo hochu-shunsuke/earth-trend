@@ -17,6 +17,7 @@ export default function NewsCarousel({
   if (items.length === 0) return null;
   return (
     <div
+      className="news-carousel"
       style={{
         display: "flex",
         gap: 8,
@@ -25,6 +26,7 @@ export default function NewsCarousel({
         margin: "8px -2px 0",
         padding: "0 2px 4px",
         WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
       }}
     >
       {items.map((n, i) => {

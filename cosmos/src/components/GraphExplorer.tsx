@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
 import { GEO_LABELS, GEO_HL } from "@/lib/trends";
+import { freshnessColor } from "@/lib/trendsVisual";
 import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 import {
   forceSimulation,
@@ -29,6 +30,7 @@ interface TrendItem {
   traffic: string;
   picture?: string;
   news: NewsItem[];
+  firstSeen?: number; // 我々が最初に観測した時刻。色付け(新しさ)に使う=トレンドページと一致
 }
 
 interface GNode {
@@ -36,6 +38,7 @@ interface GNode {
   isSeed: boolean; // トレンド語 or 問いの語幹(=展開の起点)。色と大きさに使う
   geo: string; // trends=国コード / mirror=言語コード
   news: NewsItem[];
+  firstSeen?: number; // seedの「燃え始め」近似。色付け(新しさ)に使う
   r: number;
   x: number;
   y: number;
@@ -207,6 +210,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         isSeed: true,
         geo,
         news: it.news,
+        firstSeen: it.firstSeen,
         r: trendRadius(it.traffic),
         x: w / 2 + (Math.random() - 0.5) * w * 0.35,
         y: h / 2 + (Math.random() - 0.5) * h * 0.6,
@@ -367,11 +371,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
       const css = getComputedStyle(document.documentElement);
       const pal = {
         canvas: css.getPropertyValue("--canvas").trim() || "#0a0a0a",
-        seed: css.getPropertyValue("--trend").trim() || "#ff8a3d",
         leaf: css.getPropertyValue("--suggest").trim() || "#52a8ff",
         linkLine: css.getPropertyValue("--link-line").trim() || "rgba(255,255,255,0.16)",
         labelFg: css.getPropertyValue("--label-fg").trim() || "#ededed",
       };
+      const nowSec = Date.now() / 1000;
 
       const { w, h } = sizeRef.current;
       const t = transformRef.current;
@@ -392,11 +396,11 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         ctx.stroke();
       }
 
-      // パス1: ノードの円(常に描く)
+      // パス1: ノードの円(常に描く)。seed(トレンド語)はトレンドページと同じ新しさ配色、leaf(サジェスト)は青
       for (const n of nodesRef.current) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = n.isSeed ? pal.seed : pal.leaf;
+        ctx.fillStyle = n.isSeed ? freshnessColor(n.firstSeen, nowSec) : pal.leaf;
         ctx.fill();
       }
 
@@ -732,19 +736,32 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
               <NewsCarousel news={selected.news} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
-                {mode === "mirror" ? tx.graph.mirrorHint : tx.graph.trendsHint}
+                {mode === "mirror"
+                  ? selected.isSeed
+                    ? tx.graph.seedMirror
+                    : tx.graph.leafMirror
+                  : selected.isSeed
+                    ? tx.graph.seedTrends
+                    : tx.graph.leafTrends}
               </p>
             )}
 
             {/* 選択語のGoogle検索はパネル内に集約(対象は上の見出しで明確。長語でも折り返さない) */}
             <a
               className="btn"
-              style={{ display: "inline-block", marginTop: 10, whiteSpace: "nowrap" }}
+              style={{
+                display: "block",
+                marginTop: 12,
+                padding: "10px 16px",
+                fontSize: 14,
+                textAlign: "center",
+                whiteSpace: "nowrap",
+              }}
               href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              {tx.detail.googleSearch} ↗
+              {tx.detail.googleSearch}
             </a>
           </div>
         </div>

@@ -149,10 +149,13 @@ select.btn {
   padding: 3px 10px;
   font-size: 13px;
   cursor: pointer;
+  text-decoration: none;
   transition: border-color 0.15s;
 }
-.btn:hover {
+.btn:hover,
+.btn:focus {
   border-color: var(--muted);
+  text-decoration: none;
 }
 .btn[data-active="true"] {
   background: var(--fg);
@@ -172,10 +175,12 @@ select.btn {
   align-items: center;
   padding: 10px 12px;
   max-width: calc(100vw - 24px);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--panel) 76%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 16px 50px -18px rgba(0, 0, 0, 0.5);
 }
 .dock .btn {
   padding: 7px 14px;
@@ -207,14 +212,25 @@ select.btn {
 /* キャンバスページの左上コントロール / 右上の詳細パネル */
 .canvas-controls {
   position: absolute;
-  top: 60px;
-  left: 12px;
+  top: 64px;
+  left: 14px;
   z-index: 12;
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   max-width: calc(100vw - 24px);
   flex-wrap: wrap;
+}
+/* 左上コントロールはグラスボタンで浮遊させる(ナビと同じ言語) */
+.canvas-controls .btn {
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
+}
+.canvas-controls .btn:hover {
+  border-color: var(--muted);
 }
 .detail-panel {
   position: fixed;
@@ -369,13 +385,30 @@ select.btn {
 
 /* パネル */
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 14px 44px -16px rgba(0, 0, 0, 0.45);
 }
 .muted {
   color: var(--muted);
+}
+
+/* ニュースの横スワイプ: スクロールバーは隠す(チラ見えで操作は伝わる) */
+.news-carousel::-webkit-scrollbar {
+  display: none;
+}
+/* 詳細パネル内: 見出し・本文・リンクのタイポを整える */
+.panel strong {
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.panel a:not(.btn) {
+  line-height: 1.45;
 }
 
 /* ===== ランディング(トップ/HP): Vercel調。モノクロ基調・余白・細い境界線。装飾なし ===== */

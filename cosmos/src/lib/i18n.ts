@@ -89,8 +89,10 @@ type Dict = {
     saveImage: string;
     dive: string;
     inputPlaceholder: string;
-    mirrorHint: string;
-    trendsHint: string;
+    seedTrends: string; // 分析: 親(トレンド語)
+    leafTrends: string; // 分析: 子(サジェスト)
+    seedMirror: string; // 探求: 親(あなたの問い)
+    leafMirror: string; // 探求: 子(問いの続き)
   };
   globe: { loading: string; loadFail: string; countries: (n: number) => string };
   share: { button: string; copied: string; image: string };
@@ -134,8 +136,10 @@ export const DICT: Record<Locale, Dict> = {
       saveImage: "画像で保存",
       dive: "潜る",
       inputPlaceholder: "問いを入力…（例: なぜ私は）",
-      mirrorHint: "世界が実際に検索している言葉。",
-      trendsHint: "検索者が次に調べている言葉。",
+      seedTrends: "いま急上昇している検索。",
+      leafTrends: "検索者が次に調べている言葉。",
+      seedMirror: "あなたが入力した問い。",
+      leafMirror: "あなたの問いの続き。",
     },
     globe: {
       loading: "読み込み中…",
@@ -181,8 +185,10 @@ export const DICT: Record<Locale, Dict> = {
       saveImage: "Save image",
       dive: "Dive",
       inputPlaceholder: "ask your own… (e.g. why am i)",
-      mirrorHint: "What the world is actually searching.",
-      trendsHint: "What searchers look up next.",
+      seedTrends: "Trending right now.",
+      leafTrends: "What searchers look up next.",
+      seedMirror: "The question you asked.",
+      leafMirror: "How the world continues this question.",
     },
     globe: {
       loading: "loading…",
