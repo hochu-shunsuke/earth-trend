@@ -43,6 +43,7 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
   const leaves = root ? root.leaves() : [];
   let offX = 0;
   let offY = 0;
+  let clusterBottom = OG_SIZE.height / 2; // クラスタの実下端(URLの下端を揃える基準)
   if (leaves.length > 0) {
     const minX = Math.min(...leaves.map((l) => l.x - l.r));
     const maxX = Math.max(...leaves.map((l) => l.x + l.r));
@@ -50,6 +51,7 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
     const maxY = Math.max(...leaves.map((l) => l.y + l.r));
     offX = CLUSTER_CX - (minX + maxX) / 2;
     offY = OG_SIZE.height / 2 - (minY + maxY) / 2;
+    clusterBottom = maxY + offY;
   }
 
   return new ImageResponse(
@@ -78,13 +80,14 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
           </svg>
         )}
 
+        {/* 見出し+サブ(右・縦中央) */}
         <div
           style={{
             position: "absolute",
-            right: 48,
+            right: 56,
             top: 0,
             height: "100%",
-            width: 430,
+            width: 420,
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -92,13 +95,28 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
             textAlign: "right",
           }}
         >
-          <div style={{ fontSize: 50, fontWeight: 700, color: "#fafafa", letterSpacing: -2 }}>
+          <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: "#fafafa", letterSpacing: -2 }}>
             {opts.title}
           </div>
-          <div style={{ fontSize: 27, color: "#aab2c0", marginTop: 8 }}>{opts.subtitle}</div>
-          <div style={{ fontSize: 25, color: "#52a8ff", marginTop: 26, fontWeight: 600 }}>
-            {SITE_DOMAIN}
+          <div style={{ display: "flex", fontSize: 27, color: "#aab2c0", marginTop: 8 }}>
+            {opts.subtitle}
           </div>
+        </div>
+
+        {/* ブランドアンカー: earth-trend.com を右下に大きく(白)。下端をクラスタ下端に揃える */}
+        <div
+          style={{
+            position: "absolute",
+            right: 56,
+            bottom: Math.round(OG_SIZE.height - clusterBottom),
+            display: "flex",
+            fontSize: 46,
+            fontWeight: 700,
+            color: "#fafafa",
+            letterSpacing: -1.5,
+          }}
+        >
+          {SITE_DOMAIN}
         </div>
       </div>
     ),
