@@ -44,6 +44,7 @@ body {
 }
 
 body {
+  overflow-x: clip; /* ヒーロー等の丸が画面右にはみ出しても横スクロールバーを出さない */
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
