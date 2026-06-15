@@ -71,6 +71,7 @@ type Dict = {
     all: string;
     seoHeading: (c: string) => string;
     loadFail: string;
+    updated: string;
   };
   bubbles: { legend: (n: number) => string };
   detail: {
@@ -107,6 +108,7 @@ export const DICT: Record<Locale, Dict> = {
       all: "← 一覧",
       seoHeading: (c) => `${c}でいま検索されていること`,
       loadFail: "データの取得に失敗しました。少し待って再読み込みしてください。",
+      updated: "最終更新",
     },
     bubbles: {
       legend: (n) =>
@@ -148,6 +150,7 @@ export const DICT: Record<Locale, Dict> = {
       all: "← All",
       seoHeading: (c) => `What ${c} is searching right now`,
       loadFail: "Failed to load data. Please wait a moment and reload.",
+      updated: "Updated",
     },
     bubbles: {
       legend: (n) =>

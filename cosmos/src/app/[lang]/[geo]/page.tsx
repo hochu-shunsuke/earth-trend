@@ -99,15 +99,39 @@ export default async function CountryPage({
           <p className="muted">{d.country.loadFail}</p>
         )}
 
-        {/* サーバー描画のテキスト一覧: 原語＋訳がHTMLに入る=SEO/JS無し/読み上げの土台 */}
+        {/* サーバー描画のテキスト一覧: 原語＋訳＋ニュースがHTMLに入る=SEO/JS無し/読み上げの土台 */}
         {items.length > 0 && (
           <section style={{ marginTop: 28 }}>
+            {/* 構造化データ: 急上昇のランキングを ItemList で明示 */}
+            <script
+              type="application/ld+json"
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "ItemList",
+                  name: d.country.seoHeading(country),
+                  numberOfItems: items.length,
+                  itemListElement: items.slice(0, 20).map((it, i) => ({
+                    "@type": "ListItem",
+                    position: i + 1,
+                    name: it.word,
+                  })),
+                }),
+              }}
+            />
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
-            <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0" }}>
+            <p className="muted" style={{ fontSize: 12, margin: "4px 0 0" }}>
+              {d.country.updated}{" "}
+              <time dateTime={new Date().toISOString()}>
+                {new Date().toLocaleString(locale === "ja" ? "ja-JP" : "en-US")}
+              </time>
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
               {items.map((it) => (
                 <li
                   key={it.word}
-                  style={{ padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
+                  style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
                 >
                   <Link
                     href={`${localePath(locale, "/analysis")}?geo=${code}&seed=${encodeURIComponent(it.word)}`}
@@ -120,6 +144,23 @@ export default async function CountryPage({
                     {" "}
                     ・ {d.detail.searches} {it.traffic}
                   </span>
+                  {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
+                  {it.news.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
+                      {it.news.slice(0, 2).map((n, i) => (
+                        <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
+                          {n.url ? (
+                            <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
+                              {n.title}
+                            </a>
+                          ) : (
+                            n.title
+                          )}
+                          {n.source && <span> ({n.source})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
