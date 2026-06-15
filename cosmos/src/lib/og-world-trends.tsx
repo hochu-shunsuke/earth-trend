@@ -9,8 +9,8 @@ import { SITE_DOMAIN } from "@/lib/site";
 // トップ=ランダム1か国+「World Trends」、国別=指定国+その国名。レイアウト/フォントは完全共通。
 export const OG_SIZE = { width: 1200, height: 630 };
 
-// バブルの描画領域。正方形=直径は高さ基準で固定(縦いっぱい)。右側はテキスト用に空ける
-const REGION = { ox: 90, oy: 30, w: 570, h: 570 };
+const PACK = 540; // パックの基準サイズ(直径スケール)
+const CLUSTER_CX = 378; // クラスタの水平中心(右はテキスト用に空ける)
 
 interface OgOpts {
   geo?: string; // 未指定ならランダム1か国
@@ -30,13 +30,27 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
   const root =
     items.length > 0
       ? pack<Datum>()
-          .size([REGION.w, REGION.h])
+          .size([PACK, PACK])
           .padding(6)(
           hierarchy<Datum>({ children: items })
             .sum((d) => ("traffic" in d ? Math.max(1, parseTraffic(d.traffic)) : 0))
             .sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
         )
       : null;
+
+  // 外接円の箱ではなく「実際のバブル群の外接矩形」を画像の縦中央/指定x中心に合わせる
+  // (pack は外接円の上側に円が寄り、見た目が上寄りになるのを補正)
+  const leaves = root ? root.leaves() : [];
+  let offX = 0;
+  let offY = 0;
+  if (leaves.length > 0) {
+    const minX = Math.min(...leaves.map((l) => l.x - l.r));
+    const maxX = Math.max(...leaves.map((l) => l.x + l.r));
+    const minY = Math.min(...leaves.map((l) => l.y - l.r));
+    const maxY = Math.max(...leaves.map((l) => l.y + l.r));
+    offX = CLUSTER_CX - (minX + maxX) / 2;
+    offY = OG_SIZE.height / 2 - (minY + maxY) / 2;
+  }
 
   return new ImageResponse(
     (
@@ -52,11 +66,11 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
       >
         {root && (
           <svg width={OG_SIZE.width} height={OG_SIZE.height} style={{ position: "absolute", left: 0, top: 0 }}>
-            {root.leaves().map((leaf, i) => (
+            {leaves.map((leaf, i) => (
               <circle
                 key={i}
-                cx={REGION.ox + leaf.x}
-                cy={REGION.oy + leaf.y}
+                cx={offX + leaf.x}
+                cy={offY + leaf.y}
                 r={leaf.r}
                 fill={freshnessColor((leaf.data as Item).firstSeen, nowSec)}
               />
