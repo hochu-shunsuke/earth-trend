@@ -24,8 +24,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: languages(suffix) },
     }));
 
+  // ホームは ルート(/) を x-default ハブにしたクラスタ(/・/ja・/en)
+  const homeLanguages = { ja: `${SITE_URL}/ja`, en: `${SITE_URL}/en`, "x-default": SITE_URL };
+  const home = [SITE_URL, `${SITE_URL}/ja`, `${SITE_URL}/en`].map((url) => ({
+    url,
+    lastModified: now,
+    changeFrequency: "hourly" as ChangeFreq,
+    priority: 1,
+    alternates: { languages: homeLanguages },
+  }));
+
   return [
-    ...pages("", "hourly", 1),
+    ...home,
     ...geos.flatMap((g) => pages(`/${g}`, "hourly", 0.8)),
     ...pages("/quest", "weekly", 0.6),
     ...pages("/analysis", "hourly", 0.6),

@@ -4,14 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { LOCALES, DEFAULT_LOCALE, isLocale, t } from "@/lib/i18n";
+import { LOCALES, DEFAULT_LOCALE, isLocale, t, type Locale } from "@/lib/i18n";
 
-export default function SiteHeader({ overlay = false }: { overlay?: boolean }) {
+export default function SiteHeader({
+  overlay = false,
+  locale: localeProp,
+}: {
+  overlay?: boolean;
+  locale?: Locale; // ルート(/)はURLにロケールが無いので、サーバーで決めた言語を渡す
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const parts = pathname.split("/").filter(Boolean); // [locale, section?, ...]
-  const locale = isLocale(parts[0]) ? parts[0] : DEFAULT_LOCALE;
+  const locale = localeProp ?? (isLocale(parts[0]) ? parts[0] : DEFAULT_LOCALE);
   const section = parts[1] ?? "";
   const d = t(locale);
 

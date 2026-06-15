@@ -12,6 +12,14 @@ export function toLocale(x: string | undefined): Locale {
   return isLocale(x) ? x : DEFAULT_LOCALE;
 }
 
+// Accept-Languageヘッダから対応ロケールを判定(ルート/のサーバー描画と proxy で共有)
+export function localeFromAcceptLanguage(al: string | null | undefined): Locale {
+  const first = (al || "").toLowerCase().split(",")[0]?.trim() ?? "";
+  if (first.startsWith("en")) return "en";
+  if (first.startsWith("ja")) return "ja";
+  return DEFAULT_LOCALE;
+}
+
 // 国名(UIなので訳す)。コードは ALLOWED_GEO と一致
 export const COUNTRY_LABELS: Record<Locale, Record<string, string>> = {
   ja: {

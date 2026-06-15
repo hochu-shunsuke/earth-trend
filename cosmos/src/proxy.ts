@@ -1,23 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n";
+import { LOCALES, localeFromAcceptLanguage } from "@/lib/i18n";
 
-function detectLocale(req: NextRequest): string {
-  const al = (req.headers.get("accept-language") || "").toLowerCase();
-  const first = al.split(",")[0]?.trim() ?? "";
-  if (first.startsWith("en")) return "en";
-  if (first.startsWith("ja")) return "ja";
-  return DEFAULT_LOCALE;
-}
-
-// ロケール無しのパスを /[locale]/... へ転送(初回はAccept-Language判定)。SEOのper-locale URL化
+// ロケール無しのパスを /[locale]/... へ転送(初回はAccept-Language判定)。SEOのper-locale URL化。
+// ただしルート(/)は「本物のトップ」を描画するのでリダイレクトしない(ブランドURLを正準ハブに)。
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  if (pathname === "/") return NextResponse.next();
+
   const hasLocale = LOCALES.some((l) => pathname === `/${l}` || pathname.startsWith(`/${l}/`));
   if (hasLocale) return NextResponse.next();
 
-  const locale = detectLocale(req);
+  const locale = localeFromAcceptLanguage(req.headers.get("accept-language"));
   const url = req.nextUrl.clone();
-  url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+  url.pathname = `/${locale}${pathname}`;
   return NextResponse.redirect(url);
 }
 
