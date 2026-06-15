@@ -2,6 +2,12 @@
 export const SITE_NAME = "earth-trend";
 export const SITE_URL = "https://earth-trend.com";
 export const SITE_DOMAIN = "earth-trend.com"; // OG等に表示するドメイン表記
+
+// 運営者(個人プロジェクト)の公開連絡先。about表示 + 構造化データ(sameAs/contactPoint)に使う
+export const SITE_OPERATOR = "hochu";
+export const SITE_EMAIL = "hochu.shunsuke.dev@gmail.com";
+export const SITE_GITHUB = "https://github.com/hochu-shunsuke";
+export const SITE_INSTAGRAM = "https://www.instagram.com/macho_hochu";
 export const GA_ID = "G-05T0DS9LM8"; // GA4測定ID(公開情報)
 export const SITE_TAGLINE = "世界のトレンドを、ひとつの生きた地図に。";
 export const SITE_DESCRIPTION =

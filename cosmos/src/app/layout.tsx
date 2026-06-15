@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/Analytics";
-import { SITE_NAME, SITE_URL, SITE_TAGLINE, SITE_DESCRIPTION } from "@/lib/site";
+import {
+  SITE_NAME,
+  SITE_URL,
+  SITE_TAGLINE,
+  SITE_DESCRIPTION,
+  SITE_EMAIL,
+  SITE_GITHUB,
+  SITE_INSTAGRAM,
+} from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,6 +73,13 @@ export default function RootLayout({
                   name: SITE_NAME,
                   url: SITE_URL,
                   description: SITE_TAGLINE,
+                  // 運営実体のシグナル(E-E-A-T/Trust): 公開アカウント・連絡先
+                  sameAs: [SITE_GITHUB, SITE_INSTAGRAM],
+                  contactPoint: {
+                    "@type": "ContactPoint",
+                    email: SITE_EMAIL,
+                    contactType: "customer support",
+                  },
                 },
               ],
             }),
