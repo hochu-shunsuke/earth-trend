@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
-import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isLocale, t, localePath, COUNTRY_LABELS } from "@/lib/i18n";
 
 interface NewsItem {
   title: string;
@@ -383,7 +383,7 @@ export default function GlobePage() {
                 </a>
                 <Link
                   className="btn"
-                  href={`/${locale}/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+                  href={`${localePath(locale, "/analysis")}?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
                 >
                   {tx.detail.explore}
                 </Link>

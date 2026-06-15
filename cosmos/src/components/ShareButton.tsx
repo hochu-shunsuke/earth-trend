@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { t, type Locale } from "@/lib/i18n";
+import { t, localePath, type Locale } from "@/lib/i18n";
 
 // 共有ボタン: ネイティブ共有(モバイル)→ダメならリンクコピー。画像保存はOG画像へのDLリンク。
 // 共有リンクは現在の(=利用者の言語の)URLなので、受け手もその言語で着地する。
@@ -63,7 +63,7 @@ export default function ShareButton({
       </button>
       <a
         className="btn"
-        href={`/${locale}/${geo.toLowerCase()}/opengraph-image`}
+        href={localePath(locale, `/${geo.toLowerCase()}/opengraph-image`)}
         download={`earth-trend-${geo.toLowerCase()}.png`}
       >
         {d.share.image}

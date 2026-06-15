@@ -5,7 +5,7 @@ import { TrendsPreview, BranchPreview, GlobePreview } from "@/components/landing
 import HeroMarquee from "@/components/landing/HeroMarquee";
 import { getGalleryData } from "@/lib/gallery-data";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
-import type { Locale } from "@/lib/i18n";
+import { localePath, type Locale } from "@/lib/i18n";
 
 interface Card {
   key: string;
@@ -139,7 +139,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
         <div className="lp-hero-scrim" />
         <div className="lp-hero-overlay lp-container">
           <p className="lp-hero-lead">{c.heroLead}</p>
-          <Link className="lp-hero-link" href={`/${locale}/trends`}>
+          <Link className="lp-hero-link" href={localePath(locale, "/trends")}>
             {c.ctaPrimary} →
           </Link>
           <h1 className="lp-hero-giant">{c.heroGiant}</h1>
@@ -153,7 +153,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
 
       <section className="lp-cards">
         {c.cards.map((card) => (
-          <Link className="lp-card" key={card.key} href={`/${locale}${card.path}`}>
+          <Link className="lp-card" key={card.key} href={localePath(locale, card.path)}>
             <div className="lp-card-visual">{card.visual}</div>
             <div className="lp-card-text">
               <h3 className="lp-h3">{card.title}</h3>
@@ -165,7 +165,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
 
       <section className="lp-cta lp-container">
         <h2 className="lp-h2">{c.ctaTitle}</h2>
-        <Link className="lp-btn lp-btn-primary" href={`/${locale}/trends`}>
+        <Link className="lp-btn lp-btn-primary" href={localePath(locale, "/trends")}>
           {c.ctaPrimary}
         </Link>
       </section>
@@ -175,7 +175,7 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
           © {year} {SITE_NAME}
         </span>
         <span className="lp-foot-links">
-          <Link className="muted" href={`/${locale}/about`}>
+          <Link className="muted" href={localePath(locale, "/about")}>
             {c.ctaSecondary}
           </Link>
           <a className="muted" href={`${SITE_URL}/sitemap.xml`}>

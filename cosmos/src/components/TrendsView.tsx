@@ -5,7 +5,7 @@ import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
-import { t, type Locale } from "@/lib/i18n";
+import { t, localePath, type Locale } from "@/lib/i18n";
 import NewsCarousel from "@/components/NewsCarousel";
 
 // 「登場からの経過」をロケール別の短い文字列に
@@ -438,7 +438,7 @@ export default function TrendsView({
           </a>
           <Link
             className="btn"
-            href={`/${locale}/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
+            href={`${localePath(locale, "/analysis")}?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
           >
             {d.detail.explore}
           </Link>

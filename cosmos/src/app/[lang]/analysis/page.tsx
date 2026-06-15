@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import GraphExplorer from "@/components/GraphExplorer";
-import { toLocale } from "@/lib/i18n";
+import { toLocale, localePath, altLanguages } from "@/lib/i18n";
 
 const META = {
   ja: {
@@ -22,8 +22,8 @@ export async function generateMetadata({
   return {
     ...META[locale],
     alternates: {
-      canonical: `/${locale}/analysis`,
-      languages: { ja: "/ja/analysis", en: "/en/analysis", "x-default": "/en/analysis" },
+      canonical: localePath(locale, "/analysis"),
+      languages: altLanguages("/analysis"),
     },
   };
 }

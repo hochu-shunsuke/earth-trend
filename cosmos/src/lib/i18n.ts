@@ -12,6 +12,22 @@ export function toLocale(x: string | undefined): Locale {
   return isLocale(x) ? x : DEFAULT_LOCALE;
 }
 
+// URL生成(prefix-except-default): デフォルト(ja)は接頭辞なし、enは /en 接頭辞。
+// section は "" (ホーム) または "/trends" 等の先頭スラッシュ付き相対パス。
+export function localePath(locale: Locale, section = ""): string {
+  if (locale === "ja") return section === "" ? "/" : section;
+  return `/en${section}`;
+}
+
+// メタデータの hreflang alternates。ja=接頭辞なし / en=/en / x-default=en(海外フォールバックは英語)
+export function altLanguages(section = ""): Record<string, string> {
+  return {
+    ja: localePath("ja", section),
+    en: localePath("en", section),
+    "x-default": localePath("en", section),
+  };
+}
+
 // Accept-Languageヘッダから対応ロケールを判定(ルート/のサーバー描画と proxy で共有)
 export function localeFromAcceptLanguage(al: string | null | undefined): Locale {
   const first = (al || "").toLowerCase().split(",")[0]?.trim() ?? "";

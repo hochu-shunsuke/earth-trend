@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
+import { localePath, type Locale } from "@/lib/i18n";
 
 interface TrendItem {
   word: string;
@@ -18,7 +19,7 @@ export default function CountryTile({
   nowSec,
 }: {
   geo: string;
-  locale: string;
+  locale: Locale;
   label: string;
   items: TrendItem[];
   nowSec: number;
@@ -36,7 +37,7 @@ export default function CountryTile({
 
   return (
     <Link
-      href={`/${locale}/${geo.toLowerCase()}`}
+      href={localePath(locale, `/${geo.toLowerCase()}`)}
       className="card-link"
       style={{
         display: "block",

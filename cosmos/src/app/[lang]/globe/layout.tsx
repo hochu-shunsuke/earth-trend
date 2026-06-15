@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { toLocale } from "@/lib/i18n";
+import { toLocale, localePath, altLanguages } from "@/lib/i18n";
 
 // globe/page は client component なのでメタはここ(server layout)で出す
 const META = {
@@ -22,8 +22,8 @@ export async function generateMetadata({
   return {
     ...META[locale],
     alternates: {
-      canonical: `/${locale}/globe`,
-      languages: { ja: "/ja/globe", en: "/en/globe", "x-default": "/en/globe" },
+      canonical: localePath(locale, "/globe"),
+      languages: altLanguages("/globe"),
     },
   };
 }

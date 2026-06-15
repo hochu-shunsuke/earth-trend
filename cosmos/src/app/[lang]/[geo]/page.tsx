@@ -9,7 +9,7 @@ import ShareButton from "@/components/ShareButton";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { translate } from "@/lib/translate";
-import { toLocale, t, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { toLocale, t, localePath, altLanguages, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
 
@@ -53,12 +53,8 @@ export async function generateMetadata({
     title: d.country.title(country),
     description: d.country.seoHeading(country),
     alternates: {
-      canonical: `/${locale}/${geo.toLowerCase()}`,
-      languages: {
-        ja: `/ja/${geo.toLowerCase()}`,
-        en: `/en/${geo.toLowerCase()}`,
-        "x-default": `/en/${geo.toLowerCase()}`,
-      },
+      canonical: localePath(locale, `/${geo.toLowerCase()}`),
+      languages: altLanguages(`/${geo.toLowerCase()}`),
     },
   };
 }
@@ -87,7 +83,7 @@ export default async function CountryPage({
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.01em" }}>
               {d.country.title(country)}
             </h1>
-            <Link href={`/${locale}/trends`} className="muted" style={{ fontSize: 13 }}>
+            <Link href={localePath(locale, "/trends")} className="muted" style={{ fontSize: 13 }}>
               {d.country.all}
             </Link>
           </div>
@@ -114,7 +110,7 @@ export default async function CountryPage({
                   style={{ padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
                 >
                   <Link
-                    href={`/${locale}/analysis?geo=${code}&seed=${encodeURIComponent(it.word)}`}
+                    href={`${localePath(locale, "/analysis")}?geo=${code}&seed=${encodeURIComponent(it.word)}`}
                     translate="no"
                   >
                     {it.word}

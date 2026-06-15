@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import LandingPage from "@/components/LandingPage";
 import { ALLOWED_GEO } from "@/lib/trends";
-import { toLocale, t } from "@/lib/i18n";
+import { toLocale, t, localePath, altLanguages } from "@/lib/i18n";
 
 export const revalidate = 600;
 
@@ -17,9 +17,8 @@ export async function generateMetadata({
     title: d.home.title,
     description: d.home.desc,
     alternates: {
-      canonical: `/${locale}`,
-      // ホームの x-default はブランドのルート(/)。ja/en は各言語版のランディング
-      languages: { ja: "/ja", en: "/en", "x-default": "/" },
+      canonical: localePath(locale), // ja="/" / en="/en"
+      languages: altLanguages(),
     },
   };
 }
@@ -34,9 +33,10 @@ export default async function LangHome({
 }) {
   const locale = toLocale((await params).lang);
 
-  // 旧ホームが一覧だった頃の /[lang]?geo=XX リンクは各国ルートへ転送(SEO/互換)
+  // 旧ホームが一覧だった頃の ?geo=XX リンクは各国ルートへ転送(SEO/互換)
   const { geo } = await searchParams;
-  if (geo && ALLOWED_GEO.has(geo.toUpperCase())) redirect(`/${locale}/${geo.toLowerCase()}`);
+  if (geo && ALLOWED_GEO.has(geo.toUpperCase()))
+    redirect(localePath(locale, `/${geo.toLowerCase()}`));
 
   return <LandingPage locale={locale} />;
 }

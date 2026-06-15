@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { LOCALES, DEFAULT_LOCALE, isLocale, t, type Locale } from "@/lib/i18n";
+import { LOCALES, DEFAULT_LOCALE, t, localePath, type Locale } from "@/lib/i18n";
 
 export default function SiteHeader({
   overlay = false,
@@ -16,29 +16,32 @@ export default function SiteHeader({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const parts = pathname.split("/").filter(Boolean); // [locale, section?, ...]
-  const locale = localeProp ?? (isLocale(parts[0]) ? parts[0] : DEFAULT_LOCALE);
-  const section = parts[1] ?? "";
+  // prefix-except-default: ja は接頭辞なし(/trends)、en は /en 接頭辞(/en/trends)。
+  // URLは rewrite で素のまま見えるので、先頭が "en" なら英語・それ以外はデフォルト(ja)。
+  const parts = pathname.split("/").filter(Boolean);
+  const isEn = parts[0] === "en";
+  const locale = localeProp ?? (isEn ? "en" : DEFAULT_LOCALE);
+  const section = isEn ? (parts[1] ?? "") : (parts[0] ?? "");
   const d = t(locale);
 
-  // トレンド = /[lang]/trends と 各国ページ /[lang]/[geo](2文字)。ホーム(section==="")は非アクティブ
+  // トレンド = /trends と 各国ページ /[geo](2文字)。ホーム(section==="")は非アクティブ
   const isTrends = section === "trends" || section.length === 2;
   const tabs: { href: string; label: string; active: boolean }[] = [
-    { href: `/${locale}/trends`, label: d.nav.trends, active: isTrends },
-    { href: `/${locale}/quest`, label: d.nav.quest, active: section === "quest" },
-    { href: `/${locale}/analysis`, label: d.nav.analysis, active: section === "analysis" },
-    { href: `/${locale}/globe`, label: d.nav.globe, active: section === "globe" },
+    { href: localePath(locale, "/trends"), label: d.nav.trends, active: isTrends },
+    { href: localePath(locale, "/quest"), label: d.nav.quest, active: section === "quest" },
+    { href: localePath(locale, "/analysis"), label: d.nav.analysis, active: section === "analysis" },
+    { href: localePath(locale, "/globe"), label: d.nav.globe, active: section === "globe" },
   ];
 
-  // ロケール接頭辞を除いた残り(例: /ja/trends → /trends)。ルート(/)は空に正規化(末尾スラッシュ回避)
-  const rest = pathname.replace(/^\/(ja|en)(?=\/|$)/, "").replace(/^\/$/, "");
-  const switchLang = (l: string) => router.push(`/${l}${rest}`);
+  // 言語切替: 現在のセクションを保ったまま言語だけ差し替える(ja=接頭辞なし / en=/en)
+  const rest = isEn ? pathname.slice(3) : pathname; // "/en/trends"→"/trends", "/en"→"", ja はそのまま
+  const switchLang = (l: Locale) => router.push(localePath(l, rest === "/" ? "" : rest));
 
   const langSelect = (
     <select
       className="btn"
       value={locale}
-      onChange={(e) => switchLang(e.target.value)}
+      onChange={(e) => switchLang(e.target.value as Locale)}
       aria-label="Language"
       style={{ flexShrink: 0 }}
     >
@@ -53,7 +56,7 @@ export default function SiteHeader({
   return (
     <>
       <header className={`site-header${overlay ? " overlay" : ""}`}>
-        <Link href={`/${locale}`} className="brand">
+        <Link href={localePath(locale)} className="brand">
           earth-trend
         </Link>
         <nav className="nav-inline">

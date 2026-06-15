@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import SiteHeader from "@/components/SiteHeader";
 import CountryTile from "@/components/CountryTile";
 import { getGalleryData } from "@/lib/gallery-data";
-import { t, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { t, localePath, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 // 各国の「注意の地図」一覧。ルート(/) と /ja /en で共有(ロケールだけ差し替え)。
 // SiteHeaderにはlocaleを明示で渡す(ルートはURLにロケールが無いため)。
@@ -52,7 +52,7 @@ export default async function Gallery({ locale }: { locale: Locale }) {
 
         <p className="muted" style={{ marginTop: 24, fontSize: 12 }}>
           {d.home.legendFooter}{" "}
-          <Link href={`/${locale}/about`} className="muted">
+          <Link href={localePath(locale, "/about")} className="muted">
             {d.home.about}
           </Link>
         </p>

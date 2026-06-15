@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
-import { toLocale } from "@/lib/i18n";
+import { toLocale, localePath, altLanguages } from "@/lib/i18n";
 
 const CONTENT = {
   ja: {
@@ -48,13 +48,14 @@ export async function generateMetadata({
 }: {
   params: Promise<{ lang: string }>;
 }): Promise<Metadata> {
-  const c = CONTENT[toLocale((await params).lang)];
+  const locale = toLocale((await params).lang);
+  const c = CONTENT[locale];
   return {
     title: c.title,
     description: c.desc,
     alternates: {
-      canonical: `/${toLocale((await params).lang)}/about`,
-      languages: { ja: "/ja/about", en: "/en/about", "x-default": "/en/about" },
+      canonical: localePath(locale, "/about"),
+      languages: altLanguages("/about"),
     },
   };
 }
@@ -102,7 +103,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
         </section>
 
         <p style={{ marginTop: 32 }}>
-          <Link href={`/${locale}`}>← {SITE_NAME}</Link>
+          <Link href={localePath(locale)}>← {SITE_NAME}</Link>
         </p>
       </main>
     </>

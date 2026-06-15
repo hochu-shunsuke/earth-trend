@@ -1,41 +1,36 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { GEO_LABELS } from "@/lib/trends";
-import { LOCALES } from "@/lib/i18n";
 
 type ChangeFreq = MetadataRoute.Sitemap[number]["changeFrequency"];
 
-// 各ページを全ロケール分出力し、hreflang(言語別alternates)とlastModifiedを付ける。
-// = Googleに「ja/enは同一ページの言語違い」と明示し、国際SEOを正しくする。
+// prefix-except-default: ja(デフォルト)=接頭辞なし / en=/en 接頭辞。
+// 各ページを両ロケール分出力し、hreflang(言語別alternates)とlastModifiedを付ける。
+const jaUrl = (suffix: string) => `${SITE_URL}${suffix}`; // "" → ルート(bare domain)
+const enUrl = (suffix: string) => `${SITE_URL}/en${suffix}`;
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const geos = Object.keys(GEO_LABELS).map((g) => g.toLowerCase());
   const now = new Date();
 
-  // ある相対パスの言語別URL一覧(hreflang alternatesとして各エントリに付与)
-  const languages = (suffix: string): Record<string, string> =>
-    Object.fromEntries(LOCALES.map((l) => [l, `${SITE_URL}/${l}${suffix}`]));
+  // x-default は英語(海外の非マッチユーザーへのフォールバック)
+  const languages = (suffix: string): Record<string, string> => ({
+    ja: jaUrl(suffix),
+    en: enUrl(suffix),
+    "x-default": enUrl(suffix),
+  });
 
   const pages = (suffix: string, changeFrequency: ChangeFreq, priority: number) =>
-    LOCALES.map((lang) => ({
-      url: `${SITE_URL}/${lang}${suffix}`,
+    [jaUrl(suffix), enUrl(suffix)].map((url) => ({
+      url,
       lastModified: now,
       changeFrequency,
       priority,
       alternates: { languages: languages(suffix) },
     }));
 
-  // ホームは ルート(/) を x-default ハブにしたクラスタ(/・/ja・/en)
-  const homeLanguages = { ja: `${SITE_URL}/ja`, en: `${SITE_URL}/en`, "x-default": SITE_URL };
-  const home = [SITE_URL, `${SITE_URL}/ja`, `${SITE_URL}/en`].map((url) => ({
-    url,
-    lastModified: now,
-    changeFrequency: "hourly" as ChangeFreq,
-    priority: 1,
-    alternates: { languages: homeLanguages },
-  }));
-
   return [
-    ...home,
+    ...pages("", "hourly", 1), // ホーム(ランディング)。ja=bare domain
     ...pages("/trends", "hourly", 0.9),
     ...geos.flatMap((g) => pages(`/${g}`, "hourly", 0.8)),
     ...pages("/quest", "weekly", 0.6),

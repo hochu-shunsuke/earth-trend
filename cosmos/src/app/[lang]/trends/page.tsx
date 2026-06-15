@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Gallery from "@/components/Gallery";
 import { ALLOWED_GEO } from "@/lib/trends";
-import { toLocale, t } from "@/lib/i18n";
+import { toLocale, t, localePath, altLanguages } from "@/lib/i18n";
 
 export const revalidate = 600;
 
@@ -17,8 +17,8 @@ export async function generateMetadata({
     title: d.home.title,
     description: d.home.desc,
     alternates: {
-      canonical: `/${locale}/trends`,
-      languages: { ja: "/ja/trends", en: "/en/trends", "x-default": "/en/trends" },
+      canonical: localePath(locale, "/trends"),
+      languages: altLanguages("/trends"),
     },
   };
 }
@@ -33,9 +33,10 @@ export default async function TrendsPage({
 }) {
   const locale = toLocale((await params).lang);
 
-  // 旧 /[lang]/trends?geo=XX リンクは各国ルートへ転送(SEO/互換)
+  // /trends?geo=XX リンクは各国ルートへ転送(SEO/互換)
   const { geo } = await searchParams;
-  if (geo && ALLOWED_GEO.has(geo.toUpperCase())) redirect(`/${locale}/${geo.toLowerCase()}`);
+  if (geo && ALLOWED_GEO.has(geo.toUpperCase()))
+    redirect(localePath(locale, `/${geo.toLowerCase()}`));
 
   return <Gallery locale={locale} />;
 }
