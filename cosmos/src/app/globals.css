@@ -656,18 +656,18 @@ select.btn {
 }
 /* 地球儀の#タグ: 左から表示→保持→バックスペースで消去(タイプライタ風)をループ */
 .lp-type {
-  animation: lp-type 7s steps(12, end) infinite both;
+  animation: lp-type 5s steps(12, end) infinite both;
 }
 @keyframes lp-type {
   0%,
-  7% {
+  5% {
     clip-path: inset(0 100% 0 0);
   }
-  34%,
+  22%,
   72% {
     clip-path: inset(0 0 0 0);
   }
-  97%,
+  92%,
   100% {
     clip-path: inset(0 100% 0 0);
   }

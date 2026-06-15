@@ -147,10 +147,10 @@ export function GlobePreview() {
   // 各国の#トレンド語(球の周りに・タイプライタ風に出ては消える)
   const tags: { x: number; y: number; anchor?: "start" | "middle" | "end"; t: string; delay: number }[] = [
     { x: 30, y: 52, t: "#トレンド", delay: 0 },
-    { x: 214, y: 44, t: "#trend", delay: -1.4 },
-    { x: 286, y: 166, anchor: "end", t: "#트렌드", delay: -2.8 },
-    { x: 196, y: 300, t: "#tendência", delay: -4.2 },
-    { x: 2, y: 252, t: "#流行", delay: -5.6 },
+    { x: 214, y: 44, t: "#trend", delay: -1 },
+    { x: 286, y: 166, anchor: "end", t: "#트렌드", delay: -2 },
+    { x: 196, y: 300, t: "#tendência", delay: -3 },
+    { x: 2, y: 252, t: "#流行", delay: -4 },
   ];
   return (
     <svg viewBox={`0 0 ${S} ${S}`} role="img" aria-label="globe">
