@@ -40,31 +40,6 @@ export function TrendsPreview() {
   );
 }
 
-// ヒーロー背景: 大きい丸がフルカバーで背景に広がる。テキストはこの上に重なる。
-// viewBox="0 0 100 100" + preserveAspectRatio="xMidYMid slice" でcover的に全面を覆う
-export function HeroBubbles() {
-  const bubbles = [
-    { r: 38, cx: 50,  cy: 100, color: "var(--trend)",   op: 0.80 }, // 下中央・大きい、画面外へ
-    { r: 30, cx: 85,  cy: 10,  color: "var(--suggest)", op: 0.72 }, // 右上
-    { r: 24, cx:  6,  cy: 55,  color: "var(--new)",     op: 0.68 }, // 左中
-    { r: 20, cx: 68,  cy: 52,  color: "var(--accent)",  op: 0.60 }, // 右中
-    { r: 16, cx: 28,  cy: 18,  color: "var(--trend)",   op: 0.55 }, // 左上
-    { r: 12, cx: 42,  cy: 70,  color: "var(--suggest)", op: 0.50 }, // 下左寄り
-  ];
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-    >
-      {bubbles.map((b, i) => (
-        <circle key={i} cx={b.cx} cy={b.cy} r={b.r} fill={b.color} opacity={b.op} />
-      ))}
-    </svg>
-  );
-}
-
 // 分析/探求: 起点(seed)から枝分かれする連想グラフを想起
 export function BranchPreview() {
   const W = 440;

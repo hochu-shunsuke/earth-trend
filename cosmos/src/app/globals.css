@@ -364,105 +364,66 @@ select.btn {
   color: var(--muted);
 }
 
-/* ===== ランディング(トップ/HP): Vercel/Supabase調。色はテーマ変数で両テーマ追従 ===== */
+/* ===== ランディング(トップ/HP): Vercel調。モノクロ基調・余白・細い境界線。装飾なし ===== */
 .lp-container {
   width: 100%;
-  max-width: 1080px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 24px;
 }
 .lp-eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--muted);
+  font-weight: 500;
   margin: 0;
 }
 .lp-h1 {
-  font-size: clamp(30px, 5.2vw, 52px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-weight: 700;
-  margin: 14px 0 0;
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .lp-lead {
   color: var(--muted);
-  font-size: clamp(15px, 2.2vw, 18px);
-  line-height: 1.7;
-  margin-top: 18px;
-  max-width: 46ch;
+  font-size: clamp(16px, 2.2vw, 20px);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 36ch;
 }
 
-/* ヒーロー: フルスクリーン。丸が背景を覆い、テキストが中央に重なる */
+/* ヒーロー: 中央寄せ・大きな余白。テキスト→ボタン→プロダクト枠 */
 .lp-hero {
-  position: relative;
-  overflow: hidden;
-  min-height: 92vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* 丸の背景レイヤー */
-.lp-hero-bubbles {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-/* テキスト可読性のための中央グロー(背景色の薄いハロー) */
-.lp-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: radial-gradient(
-    ellipse 55% 55% at 50% 42%,
-    color-mix(in srgb, var(--bg) 52%, transparent),
-    transparent
-  );
-  pointer-events: none;
-}
-/* テキストは中央・z-index:2でハローの上 */
-.lp-hero-copy {
-  position: relative;
-  z-index: 2;
   text-align: center;
-  padding: 100px 24px 80px;
-  max-width: 820px;
-}
-.lp-hero .lp-h1 {
-  font-size: clamp(48px, 8vw, 88px);
+  padding: 128px 0 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
 }
 .lp-hero .lp-lead {
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
-.lp-hero .lp-cta-row {
-  justify-content: center;
-}
-/* フィーチャーグリッドの項目はmin-width:0が必要(長い見出しでトラックが膨張しないよう) */
-.lp-feature-copy {
-  min-width: 0;
-}
+
 .lp-cta-row {
   display: flex;
   gap: 12px;
-  margin-top: 28px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 .lp-btn {
   display: inline-flex;
   align-items: center;
   height: 44px;
-  padding: 0 20px;
-  border-radius: 10px;
+  padding: 0 22px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   color: var(--fg);
   font-size: 15px;
   font-weight: 500;
-  transition: border-color 0.15s, opacity 0.15s;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
 }
 .lp-btn:hover {
   border-color: var(--muted);
@@ -474,119 +435,154 @@ select.btn {
   border-color: var(--fg);
 }
 .lp-btn-primary:hover {
-  opacity: 0.88;
+  opacity: 0.85;
   border-color: var(--fg);
 }
 
-/* ビジュアル(各ビューのポスターSVG)＋背後のグロー */
-.lp-hero-visual,
-.lp-feature-visual {
-  position: relative;
+/* プロダクトを見せる「ウィンドウ枠」(スクショ風) */
+.lp-frame {
+  width: 100%;
+  max-width: 920px;
+  margin: 16px auto 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--canvas);
+}
+.lp-frame-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.lp-frame-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.lp-frame-body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 240px;
+  padding: 28px;
 }
-.lp-glow {
-  position: absolute;
-  inset: 8% 6%;
-  z-index: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    color-mix(in srgb, var(--accent) 26%, transparent),
-    transparent 62%
-  );
-  filter: blur(22px);
-  pointer-events: none;
-}
-.lp-hero-visual svg,
-.lp-feature-visual svg {
-  position: relative;
-  z-index: 1;
+.lp-frame-body svg {
   width: 100%;
-  max-width: 440px;
+  max-width: 560px;
   height: auto;
 }
 
-/* 機能セクション(交互レイアウト) */
-.lp-features {
-  width: 100%;
-  max-width: 1080px;
+/* セクション見出し */
+.lp-section-head {
+  text-align: center;
+  max-width: 640px;
   margin: 0 auto;
-  padding: 24px 24px 96px;
-  display: flex;
-  flex-direction: column;
-  gap: 96px;
-}
-.lp-feature {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 56px;
-  align-items: center;
-}
-.lp-feature:nth-child(even) .lp-feature-copy {
-  order: 2;
+  padding: 96px 24px 8px;
 }
 .lp-h2 {
-  font-size: clamp(24px, 4vw, 36px);
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  margin: 12px 0 0;
+  font-size: clamp(26px, 4vw, 38px);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0;
   overflow-wrap: anywhere;
 }
-.lp-body {
-  color: var(--muted);
-  line-height: 1.7;
-  margin-top: 14px;
-  max-width: 44ch;
-}
-.lp-link {
-  display: inline-block;
-  margin-top: 18px;
-  font-weight: 600;
-  color: var(--accent);
+.lp-section-head .lp-lead {
+  margin: 14px auto 0;
+  max-width: 48ch;
 }
 
-/* 下部CTA帯 + フッター */
-.lp-cta-band {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 80px 0;
-  text-align: center;
-  background: color-mix(in srgb, var(--fg) 3%, transparent);
+/* 機能カード(2x2グリッド・境界線で区切る) */
+.lp-cards {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
-.lp-cta-band .lp-h2 {
-  margin: 0 0 24px;
+.lp-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--fg);
+  transition: border-color 0.15s;
+}
+.lp-card:hover {
+  border-color: var(--muted);
+  text-decoration: none;
+}
+.lp-card-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 20px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--border);
+}
+.lp-card-visual svg {
+  width: 100%;
+  max-width: 320px;
+  height: 100%;
+}
+.lp-card-text {
+  padding: 22px 24px 26px;
+}
+.lp-card-text .lp-h3 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 6px 0 0;
+}
+.lp-card-text .lp-body {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 10px 0 0;
+}
+
+/* 下部CTA + フッター */
+.lp-cta {
+  text-align: center;
+  padding: 112px 24px;
+}
+.lp-cta .lp-h2 {
+  margin: 0 auto 24px;
+  max-width: 18ch;
 }
 .lp-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32px 24px;
+  border-top: 1px solid var(--border);
+  padding: 28px 24px;
   font-size: 13px;
 }
 .lp-foot-links {
   display: flex;
-  gap: 16px;
+  gap: 18px;
 }
 
 @media (max-width: 760px) {
   .lp-hero {
-    min-height: 85vh;
+    padding: 96px 0 48px;
   }
-  .lp-hero .lp-h1 {
-    font-size: clamp(38px, 10vw, 64px);
-  }
-  .lp-feature {
+  .lp-cards {
     grid-template-columns: 1fr;
-    gap: 28px;
   }
-  /* モバイルは常に「文章→ビジュアル」の順に揃える */
-  .lp-feature:nth-child(even) .lp-feature-copy {
-    order: 0;
+  .lp-section-head {
+    padding-top: 72px;
   }
-  .lp-features {
-    gap: 64px;
-    padding-bottom: 64px;
+  .lp-cta {
+    padding: 80px 24px;
   }
 }
