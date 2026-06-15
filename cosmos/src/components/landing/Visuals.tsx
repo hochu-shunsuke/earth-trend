@@ -40,6 +40,32 @@ export function TrendsPreview() {
   );
 }
 
+// ヒーロー装飾: 大きい丸の集合が右から画面外にはみ出して覗く
+export function HeroBubbles() {
+  // viewBox内の座標。右端(x≈670+)は意図的に画面外へはみ出す
+  const bubbles = [
+    { r: 188, cx: 460, cy: 270, color: "var(--trend)",   op: 0.72 },
+    { r: 152, cx: 300, cy: 190, color: "var(--suggest)", op: 0.76 },
+    { r: 128, cx: 590, cy: 148, color: "var(--new)",     op: 0.68 },
+    { r:  98, cx: 240, cy: 368, color: "var(--accent)",  op: 0.70 },
+    { r: 136, cx: 548, cy: 418, color: "var(--trend)",   op: 0.58 },
+    { r:  78, cx: 145, cy: 252, color: "var(--suggest)", op: 0.66 },
+    { r: 168, cx: 672, cy: 308, color: "var(--new)",     op: 0.52 },
+  ];
+  return (
+    <svg
+      viewBox="0 0 750 500"
+      preserveAspectRatio="xMinYMid meet"
+      aria-hidden="true"
+      style={{ width: "100%", height: "100%", overflow: "visible" }}
+    >
+      {bubbles.map((b, i) => (
+        <circle key={i} cx={b.cx} cy={b.cy} r={b.r} fill={b.color} opacity={b.op} />
+      ))}
+    </svg>
+  );
+}
+
 // 分析/探求: 起点(seed)から枝分かれする連想グラフを想起
 export function BranchPreview() {
   const W = 440;

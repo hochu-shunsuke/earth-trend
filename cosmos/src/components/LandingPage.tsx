@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import { TrendsPreview, BranchPreview, GlobePreview } from "@/components/landing/Visuals";
+import { TrendsPreview, BranchPreview, GlobePreview, HeroBubbles } from "@/components/landing/Visuals";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { Locale } from "@/lib/i18n";
 
@@ -130,7 +130,11 @@ export default function LandingPage({ locale }: { locale: Locale }) {
       <SiteHeader locale={locale} />
 
       <section className="lp-hero">
-        <div className="lp-container lp-hero-inner">
+        {/* 右から画面外にはみ出す大きい丸の集合 */}
+        <div className="lp-hero-bubbles" aria-hidden="true">
+          <HeroBubbles />
+        </div>
+        <div className="lp-container">
           <div className="lp-hero-copy">
             <p className="lp-eyebrow">{c.eyebrow}</p>
             <h1 className="lp-h1">{c.heroTitle}</h1>
@@ -143,10 +147,6 @@ export default function LandingPage({ locale }: { locale: Locale }) {
                 {c.ctaSecondary}
               </Link>
             </div>
-          </div>
-          <div className="lp-hero-visual">
-            <span className="lp-glow" />
-            <TrendsPreview />
           </div>
         </div>
       </section>

@@ -394,19 +394,29 @@ select.btn {
   max-width: 46ch;
 }
 
-/* ヒーロー */
+/* ヒーロー: コピーは左、大きい丸の集合が右から画面外にはみ出す */
 .lp-hero {
   position: relative;
   padding: 120px 0 80px;
+  overflow: hidden; /* 右にはみ出す大きい丸をクリップ */
 }
-.lp-hero-inner {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 48px;
-  align-items: center;
+/* コピーはコンテナ内・左寄せで最大幅を絞る(丸と被らないように) */
+.lp-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
 }
-/* グリッド項目はmin-width:autoだと長い見出しでトラックが膨張するので0に(=折り返す) */
-.lp-hero-copy,
+/* 大きい丸の集合: 右半分から右画面外にかけて絶対配置 */
+.lp-hero-bubbles {
+  position: absolute;
+  top: 0;
+  right: -80px;
+  bottom: 0;
+  width: 58%;
+  pointer-events: none;
+  z-index: 0;
+}
+/* フィーチャーグリッドの項目はmin-width:0が必要(長い見出しでトラックが膨張しないよう) */
 .lp-feature-copy {
   min-width: 0;
 }
@@ -536,9 +546,15 @@ select.btn {
 
 @media (max-width: 760px) {
   .lp-hero {
-    padding: 88px 0 56px;
+    padding: 88px 0 280px; /* 下にスペースを確保して丸を下に表示 */
   }
-  .lp-hero-inner,
+  .lp-hero-bubbles {
+    top: auto;
+    right: -40px;
+    bottom: -60px;
+    width: 100%;
+    height: 300px;
+  }
   .lp-feature {
     grid-template-columns: 1fr;
     gap: 28px;
