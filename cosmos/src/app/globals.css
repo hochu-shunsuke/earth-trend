@@ -67,7 +67,7 @@ a.card-link:hover {
   text-decoration: none;
 }
 
-/* 共通ヘッダー(全ページ同一: 固定・高さ48px) */
+/* 共通ヘッダー(全ページ同一: 固定・枠なし・半透明グラス) */
 .site-header {
   position: fixed;
   top: 0;
@@ -77,18 +77,19 @@ a.card-link:hover {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 4px;
-  height: 48px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  gap: 6px;
+  height: 56px;
+  padding: 0 22px;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
 }
 .site-header .brand {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
   color: var(--fg);
-  margin-right: 12px;
-  letter-spacing: -0.01em;
+  margin-right: 14px;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -104,10 +105,11 @@ a.card-link:hover {
 }
 .site-header nav a {
   color: var(--muted);
-  font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-size: 13.5px;
+  padding: 6px 12px;
+  border-radius: 8px;
   white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
 }
 /* テーマ切替は潰さない(改行/欠けを防ぐ) */
 .site-header > .btn {
@@ -115,10 +117,22 @@ a.card-link:hover {
 }
 .site-header nav a:hover {
   color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
   text-decoration: none;
 }
 .site-header nav a[data-active="true"] {
   color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 9%, transparent);
+}
+/* ヘッダー内のボタン(言語/テーマ)は枠なしゴースト */
+.site-header .btn {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.site-header .btn:hover {
+  color: var(--fg);
+  border-color: transparent;
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
 /* セレクタ(ボタンと同じ見た目・矢印はネイティブ) */
