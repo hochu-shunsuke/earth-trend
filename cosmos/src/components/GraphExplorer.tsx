@@ -96,6 +96,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
   } | null>(null);
   // 「俯瞰→ダイブ」の二段カメラ用タイマー(新規ロード/アンマウントで破棄)
   const diveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // マウント世代。StrictMode等で前マウントの非同期loadTrendsが現状態を汚すのを防ぐガード
+  const genRef = useRef(0);
   // 詳細パネルの実DOM矩形を読んで、フィット時にその領域を避ける(隠れ防止)
   const panelRef = useRef<HTMLDivElement>(null);
   const cancelCamera = () => {
@@ -134,7 +136,8 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     const mobile = w < 560;
     const top = mobile ? 96 : 64;
     let right = 12;
-    let bottom = mobile ? 100 : 104;
+    // ドックは探求(mirror)のみ。分析(trends)は下の確保を小さくして上ズレを防ぐ
+    let bottom = mode === "mirror" ? (mobile ? 100 : 104) : mobile ? 32 : 28;
     const left = 12;
     const pr = panelRef.current?.getBoundingClientRect();
     if (pr && pr.width > 0) {
@@ -194,6 +197,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
 
   // trends: 指定国のトレンドを読む。seedで自動ダイブ
   const loadTrends = async (geo: string, seed?: string) => {
+    const myGen = genRef.current; // この呼び出しの世代。await後に古ければ中断
     setLoading(true);
     setError(null);
     setSelected(null);
@@ -203,8 +207,10 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     const { w, h } = sizeRef.current;
     try {
       const res = await fetch(`/api/trends?geo=${geo}`);
+      if (genRef.current !== myGen) return; // 別マウントに切り替わっていたら触らない
       if (!res.ok) throw new Error(`trends ${res.status}`);
       const data: { items: TrendItem[] } = await res.json();
+      if (genRef.current !== myGen) return;
       nodesRef.current = data.items.map((it) => ({
         id: it.word,
         isSeed: true,
@@ -243,9 +249,13 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
         // 着地では詳細シートは開かない(画面半分を占有しない)。詳細はタップで初めて出す
         const node = seedNode;
         diveTimerRef.current = setTimeout(async () => {
+          if (genRef.current !== myGen) return; // 古いマウントのダイブは実行しない
           node.fx = node.x; // 中心を固定→ズーム対象がブレず、固定目標へ正確に着地する
           node.fy = node.y;
+          node.vx = 0; // 残存速度で吹き飛ばない
+          node.vy = 0;
           await onNodeHit(node, { select: false }); // 子をリング配置で開く(整定不要)
+          if (genRef.current !== myGen) return;
           tweenTo(node.id, 1500); // 開くのと同時に対象へ緩やかにズーム
         }, 200);
       }
@@ -325,6 +335,7 @@ export default function GraphExplorer({ mode }: { mode: Mode }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    genRef.current++; // このマウントを最新世代に(前マウントの非同期処理を無効化)
 
     let dpr = window.devicePixelRatio || 1;
     {
