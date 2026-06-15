@@ -40,24 +40,23 @@ export function TrendsPreview() {
   );
 }
 
-// ヒーロー装飾: 大きい丸の集合が右から画面外にはみ出して覗く
+// ヒーロー背景: 大きい丸がフルカバーで背景に広がる。テキストはこの上に重なる。
+// viewBox="0 0 100 100" + preserveAspectRatio="xMidYMid slice" でcover的に全面を覆う
 export function HeroBubbles() {
-  // viewBox内の座標。右端(x≈670+)は意図的に画面外へはみ出す
   const bubbles = [
-    { r: 188, cx: 460, cy: 270, color: "var(--trend)",   op: 0.72 },
-    { r: 152, cx: 300, cy: 190, color: "var(--suggest)", op: 0.76 },
-    { r: 128, cx: 590, cy: 148, color: "var(--new)",     op: 0.68 },
-    { r:  98, cx: 240, cy: 368, color: "var(--accent)",  op: 0.70 },
-    { r: 136, cx: 548, cy: 418, color: "var(--trend)",   op: 0.58 },
-    { r:  78, cx: 145, cy: 252, color: "var(--suggest)", op: 0.66 },
-    { r: 168, cx: 672, cy: 308, color: "var(--new)",     op: 0.52 },
+    { r: 38, cx: 50,  cy: 100, color: "var(--trend)",   op: 0.80 }, // 下中央・大きい、画面外へ
+    { r: 30, cx: 85,  cy: 10,  color: "var(--suggest)", op: 0.72 }, // 右上
+    { r: 24, cx:  6,  cy: 55,  color: "var(--new)",     op: 0.68 }, // 左中
+    { r: 20, cx: 68,  cy: 52,  color: "var(--accent)",  op: 0.60 }, // 右中
+    { r: 16, cx: 28,  cy: 18,  color: "var(--trend)",   op: 0.55 }, // 左上
+    { r: 12, cx: 42,  cy: 70,  color: "var(--suggest)", op: 0.50 }, // 下左寄り
   ];
   return (
     <svg
-      viewBox="0 0 750 500"
-      preserveAspectRatio="xMinYMid meet"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
-      style={{ width: "100%", height: "100%", overflow: "visible" }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
     >
       {bubbles.map((b, i) => (
         <circle key={i} cx={b.cx} cy={b.cy} r={b.r} fill={b.color} opacity={b.op} />
