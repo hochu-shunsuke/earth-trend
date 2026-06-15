@@ -22,6 +22,11 @@ export default function ThemeToggle() {
     const stored = (localStorage.getItem("theme") as Pref) || "system";
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPref(stored);
+    // 初期インラインscriptのmatchMediaがリロード直後に誤判定する端末(Android Chrome等)を是正。
+    // ハイドレーション後はmatchMediaが安定するので、systemなら再解決して適用し直す。
+    if (stored === "system") {
+      document.documentElement.dataset.theme = resolve("system");
+    }
     const mq = matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
       if (((localStorage.getItem("theme") as Pref) || "system") === "system") {
