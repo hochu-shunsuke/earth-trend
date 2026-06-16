@@ -7,7 +7,6 @@ import {
   SITE_OPERATOR,
   SITE_EMAIL,
   SITE_GITHUB,
-  SITE_INSTAGRAM,
 } from "@/lib/site";
 import { toLocale, localePath, altLanguages } from "@/lib/i18n";
 
@@ -120,9 +119,6 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
           <p>{c.operator}</p>
           <p style={{ margin: "4px 0 0", display: "flex", gap: 16, flexWrap: "wrap" }}>
             <a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a>
-            <a href={SITE_INSTAGRAM} target="_blank" rel="me noopener">
-              Instagram
-            </a>
             <a href={SITE_GITHUB} target="_blank" rel="me noopener">
               GitHub
             </a>

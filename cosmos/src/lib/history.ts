@@ -98,10 +98,18 @@ async function fetchRecentTrends(
       }
     }
 
+    // 選抜は「検索量 × 新しさ」のブレンド。lastSeen が古い(=失速した)語は減衰させ、
+    // いま上昇中の新鮮な語が、ピークを打って失速した語より上に来るようにする(=liveな好奇心)。
+    // 半減期30分(1800s): 最新snapshot=1.0, 30分前=0.5, 60分前=0.25。色付け(firstSeen)とも整合。
+    const now = Date.now() / 1000;
     return [...byWord.values()]
-      .sort((a, b) => b._tv - a._tv)
-      .slice(0, max) // 件数は最大 max(=20) に制限
       .map((v) => ({
+        v,
+        score: v._tv * Math.pow(0.5, Math.max(0, (now - (v.lastSeen ?? now)) / 1800)),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, max) // 件数は最大 max(=20) に制限
+      .map(({ v }) => ({
         word: v.word,
         traffic: v.traffic,
         news: v.news,

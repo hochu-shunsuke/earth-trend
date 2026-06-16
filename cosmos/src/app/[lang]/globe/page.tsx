@@ -139,7 +139,7 @@ export default function GlobePage() {
       }
     }
     const bg = v("--bg", "#0a0a0a");
-    const sphere = light ? "#dbe0e8" : "#161616"; // ライトは明るいクールグレーの球(白背景と差をつけ地平線を出す) / ダークは暗い球
+    const sphere = light ? "#c7cfdb" : "#161616"; // ライトは少し濃いめのクールグレー(白背景と差をつけ地平線/輪郭を出す) / ダークは暗い球
     // 大陸は塗らず輪郭線だけ(塗りを球と同色にして線だけ見せる)
     globe
       .showGlobe(true)

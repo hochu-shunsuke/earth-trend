@@ -9,7 +9,6 @@ import {
   SITE_DESCRIPTION,
   SITE_EMAIL,
   SITE_GITHUB,
-  SITE_INSTAGRAM,
   jsonLd,
 } from "@/lib/site";
 
@@ -75,7 +74,7 @@ export default function RootLayout({
                   url: SITE_URL,
                   description: SITE_TAGLINE,
                   // 運営実体のシグナル(E-E-A-T/Trust): 公開アカウント・連絡先
-                  sameAs: [SITE_GITHUB, SITE_INSTAGRAM],
+                  sameAs: [SITE_GITHUB],
                   contactPoint: {
                     "@type": "ContactPoint",
                     email: SITE_EMAIL,
