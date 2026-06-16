@@ -62,17 +62,21 @@ export default function CountryTile({
             in-view前は描かない=画面外タイルは一斉ポップしない */}
         <g key={runId}>
           {inView &&
-            root.leaves().map((l, i) => (
-              <circle
-                key={i}
-                className="tile-pop"
-                style={{ animationDelay: `${i * 0.045}s` }}
-                cx={l.x}
-                cy={l.y}
-                r={l.r}
-                fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
-              />
-            ))}
+            root
+              .leaves()
+              // 国にデータが無い時は pack が r=NaN の擬似ルートを出すので弾く(空タイルは円なし)
+              .filter((l) => Number.isFinite(l.r) && l.r > 0 && "traffic" in l.data)
+              .map((l, i) => (
+                <circle
+                  key={i}
+                  className="tile-pop"
+                  style={{ animationDelay: `${i * 0.045}s` }}
+                  cx={l.x}
+                  cy={l.y}
+                  r={l.r}
+                  fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
+                />
+              ))}
         </g>
       </svg>
       <div

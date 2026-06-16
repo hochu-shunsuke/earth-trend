@@ -594,12 +594,15 @@ select.btn {
 }
 .lp-hero-giant {
   margin: 3vh 0 0;
-  font-size: clamp(40px, 12vw, 184px); /* ja「地球のトレンド」/ en「EARTH TRENDS」が画面内に収まる幅 */
-  line-height: 0.86;
+  /* 言語で文字数が違う(en「EARTH TRENDS」/ es「TENDENCIAS DEL PLANETA」)ので可変+折返し許容。
+     短い言語は1行、長い言語は2行に折り返して画面内に収める(はみ出さない) */
+  font-size: clamp(40px, 10vw, 150px);
+  line-height: 0.9;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--fg);
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .lp-cta-row {
