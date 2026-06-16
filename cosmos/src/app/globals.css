@@ -55,6 +55,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* キーボード操作時のみ明確なフォーカスリング(マウス/タップでは出さない=:focus-visible)。
+   バブルのbutton・リンク・select・パネルの✕など全インタラクティブ要素のキーボード可視性を担保 */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* outlineを消していた検索inputも、キーボード時だけはリングを戻す */
+.dock input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 a {
   color: var(--accent);
   text-decoration: none;

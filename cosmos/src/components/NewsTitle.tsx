@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useInView } from "@/lib/useInView";
 
 // 国別ページのニュース見出し。SSRでは原語のまま出る(=一次HTML/SEOは原語)。
-// ハイドレート後にUIロケールへ訳す(訳が来たら差し替え、原文はtitle属性=hoverで原文)。
-// 訳は/api/translate(ブラウザ+CDN+Upstashの全段キャッシュ)流用でコストほぼゼロ。
+// ハイドレート後、ビューポート近くに来たらUIロケールへ訳す(訳が来たら差し替え、原文はtitle属性=
+// hoverで原文)。可視範囲だけ訳すので初期リクエストのバーストを抑える。訳は/api/translate
+// (ブラウザ+CDN+Upstashの全段キャッシュ・rate-limited)流用でコストほぼゼロ。
 export default function NewsTitle({
   title,
   from,
@@ -14,9 +16,10 @@ export default function NewsTitle({
   from: string;
   to: string;
 }) {
+  const { ref, inView } = useInView<HTMLSpanElement>();
   const [tr, setTr] = useState<string | null>(null);
   useEffect(() => {
-    if (!from || from === to || from === "auto") return; // 同言語/不明は訳さない
+    if (!inView || tr || !from || from === to || from === "auto") return; // 範囲外/既訳/不要はしない
     let alive = true;
     fetch(`/api/translate?q=${encodeURIComponent(title)}&from=${from}&to=${to}`)
       .then((r) => (r.ok ? r.json() : { translated: null }))
@@ -27,6 +30,10 @@ export default function NewsTitle({
     return () => {
       alive = false;
     };
-  }, [title, from, to]);
-  return <span title={tr ? title : undefined}>{tr ?? title}</span>;
+  }, [inView, tr, title, from, to]);
+  return (
+    <span ref={ref} title={tr ? title : undefined}>
+      {tr ?? title}
+    </span>
+  );
 }
