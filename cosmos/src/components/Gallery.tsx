@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import SiteHeader from "@/components/SiteHeader";
-import CountryTile from "@/components/CountryTile";
+import GalleryGrid from "@/components/GalleryGrid";
 import { getGalleryData } from "@/lib/gallery-data";
 import { t, localePath, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
@@ -31,24 +31,7 @@ export default async function Gallery({ locale }: { locale: Locale }) {
           </p>
         </header>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {data.map(([g, items]) => (
-            <CountryTile
-              key={g}
-              geo={g}
-              locale={locale}
-              label={labels[g] ?? g}
-              items={items}
-              nowSec={nowSec}
-            />
-          ))}
-        </div>
+        <GalleryGrid initial={data} locale={locale} labels={labels} nowSec={nowSec} />
 
         <p className="muted" style={{ marginTop: 24, fontSize: 12 }}>
           {d.home.legendFooter}{" "}

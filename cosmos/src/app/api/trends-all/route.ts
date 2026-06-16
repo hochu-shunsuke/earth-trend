@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server";
-import { ALLOWED_GEO } from "@/lib/trends";
-import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
+import { getGalleryData } from "@/lib/gallery-data";
 
-// 全対象国の急上昇をまとめて返す(地球儀ビュー用)。トレンド/分析と同じunion(firstSeen付き)で色を一致
+// 全対象国の急上昇をまとめて返す(地球儀/一覧の図用)。全画面が同一の getGalleryData(単一キャッシュ
+// キー)を参照する=どのページの図も「同じ瞬間」のデータになり、時刻/内容のドリフトが起きない。
 export async function GET() {
-  const geos = [...ALLOWED_GEO];
-  const entries = await Promise.all(
-    geos.map(async (g): Promise<[string, RecentTrendItem[]]> => {
-      try {
-        return [g, await fetchTrendsUnioned(g)];
-      } catch {
-        return [g, []];
-      }
-    }),
-  );
+  const data = await getGalleryData();
   return NextResponse.json(
-    { data: Object.fromEntries(entries) },
+    { data: Object.fromEntries(data) },
     { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } },
   );
 }
