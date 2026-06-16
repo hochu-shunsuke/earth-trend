@@ -24,6 +24,24 @@ export const ALLOWED_GEO = new Set([
   "DE",
   "FR",
   "BR",
+  // 英語クラスタ(en既存=今すぐネイティブ)
+  "CA",
+  "AU",
+  "PH",
+  "NG",
+  "ZA",
+  // スペイン語クラスタ(将来 es UI 追加で一気にネイティブ化)
+  "MX",
+  "ES",
+  "AR",
+  "CO",
+  // 個別大国(当面ja/enへ翻訳。検索量/地球儀カバレッジ)
+  "ID",
+  "RU",
+  "TR",
+  "VN",
+  "TH",
+  "IT",
 ]);
 
 export const GEO_LABELS: Record<string, string> = {
@@ -36,6 +54,21 @@ export const GEO_LABELS: Record<string, string> = {
   DE: "ドイツ",
   FR: "フランス",
   BR: "ブラジル",
+  CA: "カナダ",
+  AU: "オーストラリア",
+  PH: "フィリピン",
+  NG: "ナイジェリア",
+  ZA: "南アフリカ",
+  MX: "メキシコ",
+  ES: "スペイン",
+  AR: "アルゼンチン",
+  CO: "コロンビア",
+  ID: "インドネシア",
+  RU: "ロシア",
+  TR: "トルコ",
+  VN: "ベトナム",
+  TH: "タイ",
+  IT: "イタリア",
 };
 
 /** 翻訳の原文言語(その国の主要言語)。MyMemory等のlangpairに使う */
@@ -49,6 +82,21 @@ export const GEO_LANG: Record<string, string> = {
   DE: "de",
   FR: "fr",
   BR: "pt-BR",
+  CA: "en",
+  AU: "en",
+  PH: "en",
+  NG: "en",
+  ZA: "en",
+  MX: "es",
+  ES: "es",
+  AR: "es",
+  CO: "es",
+  ID: "id",
+  RU: "ru",
+  TR: "tr",
+  VN: "vi",
+  TH: "th",
+  IT: "it",
 };
 
 /** サジェストAPIに渡す言語(国の主要言語) */
@@ -62,6 +110,21 @@ export const GEO_HL: Record<string, string> = {
   DE: "de",
   FR: "fr",
   BR: "pt-BR",
+  CA: "en",
+  AU: "en",
+  PH: "en",
+  NG: "en",
+  ZA: "en",
+  MX: "es",
+  ES: "es",
+  AR: "es",
+  CO: "es",
+  ID: "id",
+  RU: "ru",
+  TR: "tr",
+  VN: "vi",
+  TH: "th",
+  IT: "it",
 };
 
 /** Google TrendsのRSSから急上昇ワードを取得(Next fetchキャッシュ10分) */

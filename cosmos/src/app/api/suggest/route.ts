@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
-  const ALLOWED_HL = new Set(["ja", "en", "ko", "zh-TW", "de", "fr", "pt-BR"]);
+  const ALLOWED_HL = new Set([
+    "ja", "en", "ko", "zh-TW", "de", "fr", "pt-BR",
+    "es", "id", "ru", "tr", "vi", "th", "it",
+  ]);
   const hlRaw = req.nextUrl.searchParams.get("hl") ?? "ja";
   const hl = ALLOWED_HL.has(hlRaw) ? hlRaw : "ja";
   if (!q || q.length > 100) {
