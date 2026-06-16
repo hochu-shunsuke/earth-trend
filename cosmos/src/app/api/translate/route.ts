@@ -30,8 +30,8 @@ export async function GET(req: Request) {
   // ② レート制限内ならライブ翻訳。全体(gtx保護)とIP(乱用/枯渇防止)の二段
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "anon";
   const [okGlobal, okIp] = await Promise.all([
-    underLimit("rl:tr:global", 120, 60), // 全体 120/分(≈2/s)= gtxに優しい上限
-    underLimit(`rl:tr:ip:${ip}`, 60, 60), // IP 60/分(1ページの見出し群を許容しつつ乱用は弾く)
+    underLimit("rl:tr:global", 60, 60), // 全体 60/分(≈1/s)= 非公式EPに控えめ。warm+自己キャッシュで定常は遥か下
+    underLimit(`rl:tr:ip:${ip}`, 40, 60), // IP 40/分(乱用/枯渇防止。コールド頁は数回の閲覧で自己回復)
   ]);
   if (!okGlobal || !okIp) {
     // 超過: ライブせず原語にフォールバック(短期キャッシュ=窓が空けば次回ライブに戻る)
