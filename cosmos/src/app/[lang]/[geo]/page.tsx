@@ -8,6 +8,7 @@ import LiveStamp from "@/components/LiveStamp";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
 import NewsTitle from "@/components/NewsTitle";
+import WordGloss from "@/components/WordGloss";
 import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
@@ -142,12 +143,7 @@ export default async function CountryPage({
                   >
                     {it.word}
                   </Link>
-                  {it.translation && (
-                    <>
-                      <span className="muted"> — </span>
-                      <span style={{ color: "var(--fg)", fontWeight: 500 }}>{it.translation}</span>
-                    </>
-                  )}
+                  <WordGloss word={it.word} from={newsLang} to={locale} initial={it.translation} />
                   <span className="muted" style={{ fontSize: 12 }}>
                     {" "}
                     ・ {d.detail.searches} {it.traffic}
