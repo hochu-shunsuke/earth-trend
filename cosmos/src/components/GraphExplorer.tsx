@@ -173,6 +173,8 @@ export default function GraphExplorer() {
   // 選択語のニュース見出しの訳(海外記事の日本語/英語訳が欲しい需要)。analysisはクライアント
   // 描画=非SEO面なので翻訳公開のスパムリスクは無い。原語は保持しhoverで原文を出す。
   const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
+  // 選択語そのものの訳(ノードは/api/trends由来で訳を持たないので開いた時に取りこぼし回収)
+  const [wordTr, setWordTr] = useState<string | null>(null);
   // パネルを開いた直後は非インタラクティブに(タップの合成クリックがリンクに当たって飛ぶのを防ぐ)
   const [panelArmed, setPanelArmed] = useState(true);
 
@@ -204,6 +206,25 @@ export default function GraphExplorer() {
     ).then((res) => {
       if (alive) setNewsTr(res);
     });
+    return () => {
+      alive = false;
+    };
+  }, [selected, locale]);
+
+  // 選択語の訳(記事と同じrate-limited経路・自己キャッシュ)。同言語ならしない
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWordTr(null);
+    if (!selected) return;
+    const src = GEO_LANG[selected.geo] ?? "auto";
+    if (src === locale) return;
+    let alive = true;
+    fetch(`/api/translate?q=${encodeURIComponent(selected.word)}&from=${src}&to=${locale}`)
+      .then((r) => (r.ok ? r.json() : { translated: null }))
+      .then((d) => {
+        if (alive) setWordTr((d.translated as string | null) ?? null);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -675,7 +696,7 @@ export default function GraphExplorer() {
         <div className="detail-panel" ref={panelRef}>
           <div className="panel" style={{ pointerEvents: panelArmed ? "auto" : "none" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <strong>{selected.word}</strong>
+              <strong translate="no">{selected.word}</strong>
               <button
                 className="btn"
                 style={{ padding: "1px 8px" }}
@@ -685,6 +706,11 @@ export default function GraphExplorer() {
                 ✕
               </button>
             </div>
+            {wordTr && (
+              <div style={{ marginTop: 2, fontSize: 13, color: "var(--fg)", fontWeight: 500 }}>
+                {wordTr}
+              </div>
+            )}
 
             {selected.news.length > 0 ? (
               <NewsCarousel news={selected.news} translated={newsTr} />
