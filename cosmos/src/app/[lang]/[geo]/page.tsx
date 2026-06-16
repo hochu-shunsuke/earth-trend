@@ -7,6 +7,7 @@ import GeoSelect from "@/components/GeoSelect";
 import LiveStamp from "@/components/LiveStamp";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
+import NewsTitle from "@/components/NewsTitle";
 import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
@@ -75,6 +76,8 @@ export default async function CountryPage({
 
   // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋10分キャッシュ
   const items = await getCountryItems(code, locale);
+  // ニュース見出しの原語。SSRは原語(=SEO)、クライアントでlocaleへ訳す(NewsTitle)
+  const newsLang = GEO_LANG[code] ?? "auto";
 
   return (
     <>
@@ -150,10 +153,10 @@ export default async function CountryPage({
                         <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
                           {n.url ? (
                             <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                              {n.title}
+                              <NewsTitle title={n.title} from={newsLang} to={locale} />
                             </a>
                           ) : (
-                            n.title
+                            <NewsTitle title={n.title} from={newsLang} to={locale} />
                           )}
                           {n.source && <span> ({n.source})</span>}
                         </li>
