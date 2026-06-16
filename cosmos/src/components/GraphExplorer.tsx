@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
-import { GEO_LABELS, GEO_HL } from "@/lib/trends";
+import { GEO_LABELS, GEO_HL, GEO_LANG } from "@/lib/trends";
 import { freshnessColor } from "@/lib/trendsVisual";
 import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
 import {
@@ -166,9 +166,13 @@ export default function GraphExplorer() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<{
     word: string;
+    geo: string;
     news: NewsItem[];
     isSeed: boolean;
   } | null>(null);
+  // 選択語のニュース見出しの訳(海外記事の日本語/英語訳が欲しい需要)。analysisはクライアント
+  // 描画=非SEO面なので翻訳公開のスパムリスクは無い。原語は保持しhoverで原文を出す。
+  const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
   // パネルを開いた直後は非インタラクティブに(タップの合成クリックがリンクに当たって飛ぶのを防ぐ)
   const [panelArmed, setPanelArmed] = useState(true);
 
@@ -179,6 +183,31 @@ export default function GraphExplorer() {
     (sim.force("link") as ForceLink<GNode, GLink>).links(linksRef.current);
     sim.alpha(alpha).restart();
   };
+
+  // 選択語が変わるたび、その国の言語→UIロケールへニュース見出しを翻訳(訳は全段キャッシュ済)。
+  // 同言語なら何もしない。原語は保持され、訳が来るまでは原文を表示。
+  useEffect(() => {
+    // 選択が変わったら前の訳を即クリア(古い訳が一瞬残らない)。意図的な同期リセット
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNewsTr(null);
+    if (!selected || selected.news.length === 0) return;
+    const src = GEO_LANG[selected.geo] ?? "auto";
+    if (src === locale) return;
+    let alive = true;
+    Promise.all(
+      selected.news.slice(0, 3).map((n) =>
+        fetch(`/api/translate?q=${encodeURIComponent(n.title)}&from=${src}&to=${locale}`)
+          .then((r) => (r.ok ? r.json() : { translated: null }))
+          .then((d) => (d.translated as string | null) ?? null)
+          .catch(() => null),
+      ),
+    ).then((res) => {
+      if (alive) setNewsTr(res);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [selected, locale]);
 
   // trends: 指定国のトレンドを読む。seedで自動ダイブ
   const loadTrends = async (geo: string, seed?: string) => {
@@ -260,7 +289,7 @@ export default function GraphExplorer() {
   // select: 詳細シートを開くか。自動ダイブ(着地)では展開だけして開かない
   const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
     if (opts?.select !== false) {
-      setSelected({ word: node.id, news: node.news, isSeed: node.isSeed });
+      setSelected({ word: node.id, geo: node.geo, news: node.news, isSeed: node.isSeed });
       // 開いた直後の合成クリックがパネル内リンクに当たらないよう一時的に無効化
       setPanelArmed(false);
       setTimeout(() => setPanelArmed(true), 350);
@@ -658,7 +687,7 @@ export default function GraphExplorer() {
             </div>
 
             {selected.news.length > 0 ? (
-              <NewsCarousel news={selected.news} />
+              <NewsCarousel news={selected.news} translated={newsTr} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {selected.isSeed ? tx.graph.seedTrends : tx.graph.leafTrends}
