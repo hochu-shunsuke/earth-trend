@@ -13,7 +13,7 @@ import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { translate } from "@/lib/translate";
-import { toLocale, t, localePath, altLanguages, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { toLocale, t, localePath, altLanguages, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
 
@@ -79,6 +79,9 @@ export default async function CountryPage({
   const items = await getCountryItems(code, locale);
   // ニュース見出しの原語。SSRは原語(=SEO)、クライアントでlocaleへ訳す(NewsTitle)
   const newsLang = GEO_LANG[code] ?? "auto";
+  // 「登場からの経過」表示用の基準時刻(ISR 10分なので分解能は十分)
+  // eslint-disable-next-line react-hooks/purity
+  const nowSec = Math.floor(Date.now() / 1000);
 
   return (
     <>
@@ -147,6 +150,8 @@ export default async function CountryPage({
                   <span className="muted" style={{ fontSize: 12 }}>
                     {" "}
                     ・ {d.detail.searches} {it.traffic}
+                    {it.firstSeen &&
+                      ` ・ ${d.detail.appeared(durationStr(it.firstSeen, nowSec, locale) ?? "")}`}
                   </span>
                   {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
                   {it.news.length > 0 && (

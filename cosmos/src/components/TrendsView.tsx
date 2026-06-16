@@ -5,23 +5,8 @@ import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
-import { t, localePath, type Locale } from "@/lib/i18n";
+import { t, localePath, durationStr, type Locale } from "@/lib/i18n";
 import NewsCarousel from "@/components/NewsCarousel";
-
-// 「登場からの経過」をロケール別の短い文字列に
-function durationStr(sec: number | undefined, nowSec: number, locale: Locale): string | null {
-  if (!sec) return null;
-  const m = Math.max(0, Math.floor((nowSec - sec) / 60));
-  const h = Math.floor(m / 60);
-  if (locale === "en") {
-    if (m < 60) return `${m} min`;
-    if (h < 24) return `${h} hr`;
-    return `${Math.floor(h / 24)} days`;
-  }
-  if (m < 60) return `${m}分`;
-  if (h < 24) return `${h}時間`;
-  return `${Math.floor(h / 24)}日`;
-}
 
 interface NewsItem {
   title: string;

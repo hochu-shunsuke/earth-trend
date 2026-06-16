@@ -183,3 +183,18 @@ const DICT: Record<Locale, Dict> = {
 export function t(locale: Locale): Dict {
   return DICT[locale] ?? DICT[DEFAULT_LOCALE];
 }
+
+// 「登場(=燃え始め)からの経過」をロケール別の短い文字列に。d.detail.appeared(...) と組み合わせる。
+export function durationStr(sec: number | undefined, nowSec: number, locale: Locale): string | null {
+  if (!sec) return null;
+  const m = Math.max(0, Math.floor((nowSec - sec) / 60));
+  const h = Math.floor(m / 60);
+  if (locale === "en") {
+    if (m < 60) return `${m} min`;
+    if (h < 24) return `${h} hr`;
+    return `${Math.floor(h / 24)} days`;
+  }
+  if (m < 60) return `${m}分`;
+  if (h < 24) return `${h}時間`;
+  return `${Math.floor(h / 24)}日`;
+}
