@@ -18,13 +18,3 @@ export function freshnessColor(firstSeen: number | undefined, nowSec: number, dl
   const light = Math.round(52 - t * 12) + dl;
   return `hsl(${hue} ${sat}% ${light}%)`;
 }
-
-// 「約X前に登場」(我々が最初に観測した時刻。発生そのものではない点に注意)
-export function appearedText(firstSeen: number | undefined, nowSec: number): string | null {
-  if (!firstSeen) return null;
-  const m = Math.max(0, Math.floor((nowSec - firstSeen) / 60));
-  if (m < 60) return `約${m}分前に登場`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `約${h}時間前に登場`;
-  return `約${Math.floor(h / 24)}日前に登場`;
-}

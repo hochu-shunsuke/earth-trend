@@ -38,7 +38,7 @@ function trafficNum(t: string): number {
  * 直近 ticks 個のスナップショットを union して「直近の急上昇」を返す。
  * 重複語は traffic 最大を採用、lastSeen は最新ts、firstSeen は firstseen ハッシュから。
  */
-export async function fetchRecentTrends(
+async function fetchRecentTrends(
   geo: string,
   ticks = 3,
   max = 20,

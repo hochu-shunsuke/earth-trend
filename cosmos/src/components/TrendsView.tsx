@@ -334,7 +334,7 @@ function ScaleBubbles({
 }
 
 // トレンドページ本体: パック円で規模を見せ、タップで詳細(記事+検索+探索)を出す
-// (地球儀ページと同じ操作感)。旧リスト表示は TrendsList.tsx に退避(未使用)。
+// (地球儀ページと同じ操作感)。
 export default function TrendsView({
   items,
   geo,
@@ -347,6 +347,22 @@ export default function TrendsView({
   const d = t(locale);
   const [selected, setSelected] = useState<TrendItem | null>(null);
   const [nowSec, setNowSec] = useState(0);
+  // 着地時に図を最新へ更新。ISRのHTMLが古くても、アクセス時にCDNキャッシュ済みの最新図へ
+  // 置き換える(=「リロードしないと古い」を解消)。/api/trendsはUpstash+CDNで上流は叩かない。
+  // 下のSEO一覧はSSRのまま=インデックスの土台は維持(別物として扱う)。
+  const [liveItems, setLiveItems] = useState(items);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/trends?geo=${geo}&to=${locale}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (alive && data?.items?.length) setLiveItems(data.items as TrendItem[]);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [geo, locale]);
   // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
   const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
   useEffect(() => {
@@ -386,7 +402,7 @@ export default function TrendsView({
 
   return (
     <>
-      <ScaleBubbles items={items} locale={locale} onSelect={setSelected} />
+      <ScaleBubbles items={liveItems} locale={locale} onSelect={setSelected} />
 
       {selected && (
         <div className="detail-panel">

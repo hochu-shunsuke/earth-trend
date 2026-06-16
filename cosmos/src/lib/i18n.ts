@@ -28,13 +28,6 @@ export function altLanguages(section = ""): Record<string, string> {
   };
 }
 
-// Accept-Languageヘッダから対応ロケールを判定(ルート/のサーバー描画と proxy で共有)
-export function localeFromAcceptLanguage(al: string | null | undefined): Locale {
-  const first = (al || "").toLowerCase().split(",")[0]?.trim() ?? "";
-  if (first.startsWith("en")) return "en";
-  if (first.startsWith("ja")) return "ja";
-  return DEFAULT_LOCALE;
-}
 
 // 国名(UIなので訳す)。コードは ALLOWED_GEO と一致
 export const COUNTRY_LABELS: Record<Locale, Record<string, string>> = {
@@ -95,7 +88,8 @@ type Dict = {
   langName: string;
 };
 
-export const DICT: Record<Locale, Dict> = {
+// t() 内部からのみ参照(外部exportは不要)
+const DICT: Record<Locale, Dict> = {
   ja: {
     nav: { trends: "トレンド", analysis: "分析", globe: "地球儀" },
     theme: { label: "テーマ", system: "システム", light: "ライト", dark: "ダーク" },
