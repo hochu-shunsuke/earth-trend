@@ -365,6 +365,8 @@ export default function TrendsView({
   }, [geo, locale]);
   // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
   const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
+  // 選択語の訳。SSR(it.translation)が温済なら即出す。未温なら開いた時に取りこぼし回収(self-cache)
+  const [selWordTr, setSelWordTr] = useState<string | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNowSec(Date.now() / 1000);
@@ -398,7 +400,25 @@ export default function TrendsView({
     };
   }, [selected, srcLang, canTranslate, locale]);
 
+  // 選択語の訳: SSRに無ければライブで回収(記事と同じrate-limited経路・自己キャッシュ)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelWordTr(null);
+    if (!selected || selected.translation || !canTranslate) return;
+    let alive = true;
+    fetch(`/api/translate?q=${encodeURIComponent(selected.word)}&from=${encodeURIComponent(srcLang)}&to=${locale}`)
+      .then((r) => (r.ok ? r.json() : { translated: null }))
+      .then((d) => {
+        if (alive) setSelWordTr((d.translated as string | null) ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [selected, srcLang, canTranslate, locale]);
+
   const appeared = selected ? durationStr(selected.firstSeen, nowSec, locale) : null;
+  const selGloss = selected?.translation ?? selWordTr;
 
   return (
     <>
@@ -411,8 +431,8 @@ export default function TrendsView({
               <span>
                 {/* 原語は常に残す(translate=noでブラウザ翻訳でも保護) */}
                 <strong translate="no">{selected.word}</strong>
-                {selected.translation && (
-                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {selected.translation}</span>
+                {selGloss && (
+                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {selGloss}</span>
                 )}
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
                   {d.detail.searches} {selected.traffic}
