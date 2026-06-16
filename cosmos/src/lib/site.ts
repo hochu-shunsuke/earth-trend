@@ -7,7 +7,6 @@ export const SITE_DOMAIN = "earth-trend.com"; // OG等に表示するドメイ�
 export const SITE_OPERATOR = "hochu";
 export const SITE_EMAIL = "hochu.shunsuke.dev@gmail.com";
 export const SITE_GITHUB = "https://github.com/hochu-shunsuke";
-export const SITE_INSTAGRAM = "https://www.instagram.com/macho_hochu";
 
 // JSON-LD用: <script>へ安全に埋め込む。JSON.stringifyは "</script>" を escape しないため
 // "<" を < に置換し、外部データ(トレンド語等)由来のscript脱出=XSSを防ぐ。
