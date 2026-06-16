@@ -11,6 +11,7 @@ export interface TrendItem {
   traffic: string;
   picture?: string;
   news: NewsItem[];
+  firstSeen?: number; // RSSのpubDate(燃え始め, unix秒)。スナップ未蓄積でフォールバック時もこれで「登場」を出す
 }
 
 export const ALLOWED_GEO = new Set([
@@ -78,9 +79,11 @@ export async function fetchTrends(geo: string): Promise<TrendItem[]> {
   return items.map((it: Record<string, unknown>) => {
     const newsRaw = it["ht:news_item"] ?? [];
     const newsArr = Array.isArray(newsRaw) ? newsRaw : [newsRaw];
+    const pubMs = it.pubDate ? Date.parse(String(it.pubDate)) : NaN;
     return {
       word: String(it.title ?? ""),
       traffic: String(it["ht:approx_traffic"] ?? ""),
+      firstSeen: Number.isFinite(pubMs) ? Math.floor(pubMs / 1000) : undefined,
       picture: it["ht:picture"] ? String(it["ht:picture"]) : undefined,
       news: newsArr.filter(Boolean).map((n: Record<string, unknown>) => ({
         title: String(n["ht:news_item_title"] ?? ""),
