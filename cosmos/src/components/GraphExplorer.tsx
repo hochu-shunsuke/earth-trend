@@ -63,7 +63,7 @@ function trendRadius(traffic: string): number {
 // ズーム倍率 k に応じて深さ depth の「ラベル(文字)」をどれだけ見せるか(0=非表示 / 1=完全表示)。
 // ノードの円自体は常に表示。文字だけを段階化する: 初期の引き(=100%)では親(depth0)の文字だけ、
 // ズームインで子→孫…の文字が順にフェードイン。k は最大5なので拡大しきれば全部の文字が出る。
-const K_THRESH = [0, 1.3, 2.2, 3.1, 4.0, 4.8]; // depthごとの「出現開始」ズーム
+const K_THRESH = [0, 1.0, 1.5, 2.1, 2.8, 3.5]; // depthごとの「出現開始」ズーム(早めに段階化)
 function depthAlpha(depth: number, k: number): number {
   if (depth <= 0) return 1;
   const start = K_THRESH[Math.min(depth, K_THRESH.length - 1)];
