@@ -11,7 +11,8 @@ import NewsTitle from "@/components/NewsTitle";
 import WordGloss from "@/components/WordGloss";
 import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
-import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
+import { type RecentTrendItem } from "@/lib/history";
+import { getGalleryData } from "@/lib/gallery-data";
 import { translate } from "@/lib/translate";
 import { toLocale, t, localePath, altLanguages, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
@@ -19,10 +20,12 @@ type TranslatedItem = RecentTrendItem & { translation?: string };
 
 export const revalidate = 600;
 
-// データ＋翻訳を10分キャッシュ(訪問あたりのUpstash/翻訳コストをほぼゼロに。ローンチ耐性)
+// データ＋翻訳を10分キャッシュ(訪問あたりのUpstash/翻訳コストをほぼゼロに。ローンチ耐性)。
+// データは getGalleryData(全画面共通の単一ソース)から取り出す=trends/と各国ページが同じ瞬間に揃う。
 const getCountryItems = unstable_cache(
   async (code: string, locale: Locale): Promise<TranslatedItem[]> => {
-    const raw = await fetchTrendsUnioned(code);
+    const all = await getGalleryData();
+    const raw = all.find(([g]) => g === code)?.[1] ?? [];
     const src = GEO_LANG[code] ?? "auto";
     if (src === locale) return raw;
     // cacheOnly: 温め済みの訳だけを使う(同時バーストでGoogleに弾かれるのを防ぐ)
@@ -33,7 +36,7 @@ const getCountryItems = unstable_cache(
       })),
     );
   },
-  ["country-items-v2"],
+  ["country-items-v3"],
   { revalidate: 600 },
 );
 
