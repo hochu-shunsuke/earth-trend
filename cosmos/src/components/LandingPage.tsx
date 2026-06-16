@@ -93,7 +93,7 @@ const CONTENT: Record<Locale, Content> = {
   es: {
     heroLead:
       "Lo que la Tierra está buscando ahora mismo.\nCada palabra que fluye es una búsqueda en auge, en directo.",
-    heroGiant: "TENDENCIAS DE LA TIERRA",
+    heroGiant: "TENDENCIAS",
     ctaPrimary: "Ver las tendencias del mundo",
     ctaSecondary: "¿Qué es esto?",
     sectionTitle: "Explora la curiosidad del mundo desde tres ángulos",
