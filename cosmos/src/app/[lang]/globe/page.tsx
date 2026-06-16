@@ -139,7 +139,7 @@ export default function GlobePage() {
       }
     }
     const bg = v("--bg", "#0a0a0a");
-    const sphere = light ? "#c7cfdb" : "#161616"; // ライトは少し濃いめのクールグレー(白背景と差をつけ地平線/輪郭を出す) / ダークは暗い球
+    const sphere = light ? "#e9ecf1" : "#161616"; // ライトはうっすい均一グレー(輪郭は出るが主張しない) / ダークは暗い球
     // 大陸は塗らず輪郭線だけ(塗りを球と同色にして線だけ見せる)
     globe
       .showGlobe(true)
@@ -154,7 +154,9 @@ export default function GlobePage() {
     const tint = () => {
       const mat = globe.globeMaterial();
       if (!mat) return;
-      mat.color?.set(sphere);
+      // color(拡散光)を切る=照明で南北の明るさが変わらず、球全面が均一なグレーになる。
+      // 色は emissive(自発光)だけで与える。これで「南半球しか色がつかない」現象を解消。
+      mat.color?.set("#000000");
       mat.emissive?.set(sphere);
       mat.specular?.set("#000000");
     };
