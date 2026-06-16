@@ -14,7 +14,8 @@ export interface RecentTrendItem extends TrendItem {
 interface Snapshot {
   ts: number;
   // スナップショットのnewsは「タイトル文字列の配列」(snapshot.mjs)。RSS経路は{title,url,source}。
-  items: { word: string; traffic: string; news: (string | NewsItem)[] }[];
+  // firstSeen=RSSのpubDate(=そのトレンドの燃え始め, unix秒)。古いスナップには無いことがある。
+  items: { word: string; traffic: string; news: (string | NewsItem)[]; firstSeen?: number }[];
 }
 
 // news を {title,url,source} 形へ正規化(snapshotは文字列配列なので吸収)
@@ -36,7 +37,7 @@ function trafficNum(t: string): number {
 
 /**
  * 直近 ticks 個のスナップショットを union して「直近の急上昇」を返す。
- * 重複語は traffic 最大を採用、lastSeen は最新ts、firstSeen は firstseen ハッシュから。
+ * 重複語は traffic 最大を採用、lastSeen は最新ts、firstSeen は各スナップの pubDate(燃え始め)。
  */
 async function fetchRecentTrends(
   geo: string,
@@ -54,7 +55,6 @@ async function fetchRecentTrends(
       },
       body: JSON.stringify([
         ["ZREVRANGE", `snapshot:${geo}`, "0", String(ticks - 1)], // 新しい順
-        ["HGETALL", `firstseen:${geo}`],
       ]),
       cache: "no-store",
     });
@@ -64,13 +64,8 @@ async function fetchRecentTrends(
     const snapsRaw = (out[0]?.result as string[]) ?? [];
     if (snapsRaw.length === 0) return null;
 
-    const firstRaw = (out[1]?.result as string[]) ?? []; // [field,val,field,val,...]
-    const firstSeen = new Map<string, number>();
-    for (let i = 0; i + 1 < firstRaw.length; i += 2) {
-      firstSeen.set(firstRaw[i], parseInt(firstRaw[i + 1], 10));
-    }
-
-    // snapsRaw は新しい順。先に入れた方(=新しい)の lastSeen/news を優先、traffic は最大
+    // snapsRaw は新しい順。先に入れた方(=新しい)の news を優先、traffic は最大、
+    // firstSeen(=pubDate=燃え始め)は最小(最も早い)を採用。古いスナップでpubDate無しなら ts に退避。
     const byWord = new Map<string, RecentTrendItem & { _tv: number }>();
     for (const raw of snapsRaw) {
       let snap: Snapshot;
@@ -81,19 +76,23 @@ async function fetchRecentTrends(
       }
       for (const it of snap.items ?? []) {
         const tv = trafficNum(it.traffic);
+        const fs = it.firstSeen ?? snap.ts; // pubDate優先、無ければ観測時刻
         const ex = byWord.get(it.word);
         if (!ex) {
           byWord.set(it.word, {
             word: it.word,
             traffic: it.traffic,
             news: normNews(it.news),
-            firstSeen: firstSeen.get(it.word),
+            firstSeen: fs,
             lastSeen: snap.ts,
             _tv: tv,
           });
-        } else if (tv > ex._tv) {
-          ex._tv = tv;
-          ex.traffic = it.traffic;
+        } else {
+          if (tv > ex._tv) {
+            ex._tv = tv;
+            ex.traffic = it.traffic;
+          }
+          if (fs < (ex.firstSeen ?? Infinity)) ex.firstSeen = fs;
         }
       }
     }

@@ -62,6 +62,10 @@ function parseRss(xml) {
     const title = block.match(/<title>([\s\S]*?)<\/title>/);
     if (!title) continue;
     const traffic = block.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/);
+    // pubDate = そのトレンドの「燃え始め」(unix秒)。色付け/新しさ選抜に使う(観測時刻より正確)
+    const pub = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+    const pubMs = pub ? Date.parse(decode(pub[1])) : NaN;
+    const firstSeen = Number.isFinite(pubMs) ? Math.floor(pubMs / 1000) : undefined;
     // news_item ブロック単位で title/url/source をまとめて拾う(URLを残す=記事リンク化)
     const news = [...block.matchAll(/<ht:news_item>([\s\S]*?)<\/ht:news_item>/g)]
       .map((ni) => {
@@ -81,6 +85,7 @@ function parseRss(xml) {
       word: decode(title[1]),
       traffic: traffic ? decode(traffic[1]) : "",
       news,
+      firstSeen,
     });
   }
   return items;
@@ -126,6 +131,18 @@ async function main() {
       continue;
     }
 
+    // 直前のlatestを読み、新規語(=warming対象)の判定に使う。firstseenハッシュは廃止
+    // (燃え始めはRSSのpubDateを各itemに持たせる方式に変更=書込コスト約1/4)。
+    const prevWords = new Set();
+    try {
+      const p = await redis([["GET", `latest:${geo}`]]);
+      const prevRaw = p?.[0]?.result;
+      if (prevRaw) {
+        const prev = JSON.parse(prevRaw);
+        for (const it of prev.items ?? []) prevWords.add(it.word);
+      }
+    } catch {}
+
     const snapshot = JSON.stringify({ ts, items });
     const cmds = [
       // 時系列(score=unix秒)。同秒衝突を避けるためmemberにtsを内包
@@ -135,27 +152,21 @@ async function main() {
       // 便利な最新値
       ["SET", `latest:${geo}`, snapshot],
     ];
-    // 各ワードの初出時刻(velocity/「燃え始めた時刻」用)。既存は上書きしない
-    for (const it of items) {
-      cmds.push(["HSETNX", `firstseen:${geo}`, it.word, String(ts)]);
-    }
 
-    let res;
     try {
-      res = await redis(cmds);
+      await redis(cmds);
       console.log(`${geo}: stored ${items.length} items`);
     } catch (e) {
       console.error(`store ${geo} failed:`, e.message);
       continue;
     }
 
-    // 新規語(HSETNXが1=初出)だけを ja/en に温める(コスト最小・放置で回る)。語そのものに加えて
-    // その語のニュース見出し(なぜ流行ってるか)も温める → 国別/analysisのNewsTitleは「キャッシュを
-    // 読むだけ」になり、ユーザーが何人来ても非公式翻訳EPを叩かない(=スケールしてもブロックされない)。
-    // 一括並列(Promise.all)は使わず、逐次+sleep+WARM_CAPで差分だけドリップする。
+    // 新規語(前回のlatestに無い語)だけを ja/en に温める(コスト最小・放置で回る)。語+その語の
+    // ニュース見出しも温める → 国別/analysisのNewsTitleは「キャッシュを読むだけ」になり、ユーザーが
+    // 何人来ても非公式翻訳EPを叩かない。一括並列は使わず逐次+sleep+WARM_CAPで差分だけドリップ。
     const geoLang = GEO_LANG[geo];
     for (let i = 0; i < items.length && warmed < WARM_CAP; i++) {
-      if (res?.[3 + i]?.result !== 1) continue; // 既出語は skip(新規語の初出時だけ温める=差分)
+      if (prevWords.has(items[i].word)) continue; // 既出語は skip(新規語だけ温める=差分)
       const it = items[i];
       // ニュース見出しは client(/api/translate)が q を200字に切るのでキーを揃える
       const targets = [it.word, ...it.news.map((n) => n.title.slice(0, 200).trim())];

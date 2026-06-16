@@ -3,7 +3,7 @@ name: snapshot
 # 注意の時系列をUpstashに蓄積する。コストゼロ運用のためVercel Cron(無料は1日1回)でなくGitHub Actionsを使う。
 on:
   schedule:
-    - cron: "*/30 * * * *" # 30分ごと(GitHub側の負荷で多少遅延しうる)
+    - cron: "*/15 * * * *" # 15分ごと(pubDate採用で書込が約1/4=15分でも無料枠に余裕。GitHub側負荷で多少遅延しうる)
   workflow_dispatch: {} # 手動実行も可
 
 # 同時実行を防ぐ(遅延で重なった場合は新しい方を優先)
