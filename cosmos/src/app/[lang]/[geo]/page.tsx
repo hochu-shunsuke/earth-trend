@@ -82,6 +82,8 @@ export default async function CountryPage({
   // 「登場からの経過」表示用の基準時刻(ISR 10分なので分解能は十分)
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
+  // 「最終更新」は描画時刻ではなく実データの時刻(最新スナップのlastSeen)を出す=鮮度に正直
+  const updatedSec = items.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
 
   return (
     <>
@@ -131,7 +133,11 @@ export default async function CountryPage({
             />
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
             <p style={{ margin: "4px 0 0" }}>
-              <LiveStamp iso={new Date().toISOString()} locale={locale} label={d.country.updated} />
+              <LiveStamp
+                iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
+                locale={locale}
+                label={d.country.updated}
+              />
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
               {items.map((it) => (
