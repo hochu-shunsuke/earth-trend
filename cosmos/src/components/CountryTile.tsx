@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
+import { useInView } from "@/lib/useInView";
 import { localePath, type Locale } from "@/lib/i18n";
 
 interface TrendItem {
@@ -40,6 +41,9 @@ export default function CountryTile({
   );
 
   const [runId, setRunId] = useState(0);
+  // タイルが画面に入って初めて円を描く=出現アニメも入った時だけ発火。スマホ縦で9国が
+  // 一斉にポップするのを防ぎ、スクロールで見えたタイルから順に出る。
+  const { ref, inView } = useInView<SVGSVGElement>("150px");
 
   return (
     <Link
@@ -48,24 +52,27 @@ export default function CountryTile({
       onMouseEnter={() => setRunId((n) => n + 1)}
     >
       <svg
+        ref={ref}
         viewBox={`0 0 ${W} ${H}`}
         width="100%"
         style={{ display: "block", background: "var(--canvas)" }}
         aria-hidden
       >
-        {/* key を変えると再マウント=出現アニメが頭から再生(ホバーのたび) */}
+        {/* key を変えると再マウント=出現アニメが頭から再生(ホバーのたび)。
+            in-view前は描かない=画面外タイルは一斉ポップしない */}
         <g key={runId}>
-          {root.leaves().map((l, i) => (
-            <circle
-              key={i}
-              className="tile-pop"
-              style={{ animationDelay: `${i * 0.045}s` }}
-              cx={l.x}
-              cy={l.y}
-              r={l.r}
-              fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
-            />
-          ))}
+          {inView &&
+            root.leaves().map((l, i) => (
+              <circle
+                key={i}
+                className="tile-pop"
+                style={{ animationDelay: `${i * 0.045}s` }}
+                cx={l.x}
+                cy={l.y}
+                r={l.r}
+                fill={freshnessColor((l.data as TrendItem).firstSeen, nowSec)}
+              />
+            ))}
         </g>
       </svg>
       <div

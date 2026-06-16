@@ -270,6 +270,18 @@ export default function GlobePage() {
           void applyStyle();
         });
 
+      // 球の素材色を即適用(applyStyle=国データ取得待ちより前に)。これでロード中に既定素材の
+      // 「黒い球」が一瞬出るのを防ぐ。色は emissive(自発光)のみ=照明に依らず全面均一。
+      {
+        const m0 = globe.globeMaterial();
+        if (m0) {
+          const lt = document.documentElement.dataset.theme !== "dark";
+          m0.color?.set("#000000");
+          m0.emissive?.set(lt ? "#e9ecf1" : "#161616");
+          m0.specular?.set("#000000");
+        }
+      }
+
       // 慣性つきの操作感: 投げた方向にすーっと回る
       const controls = globe.controls();
       controls.autoRotate = true;
