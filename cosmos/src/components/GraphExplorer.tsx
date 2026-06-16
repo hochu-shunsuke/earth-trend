@@ -40,6 +40,7 @@ interface GNode {
   news: NewsItem[];
   firstSeen?: number; // seedの「燃え始め」近似。色付け(新しさ)に使う
   bornAt?: number; // 出現時刻(ms)。半径を0→フルにスケールインさせる出生アニメ用
+  depth?: number; // 階層の深さ(seed=0, その子=1, 孫=2…)。ズーム倍率で表示段階を制御
   r: number;
   x: number;
   y: number;
@@ -57,6 +58,16 @@ interface GLink {
 function trendRadius(traffic: string): number {
   const n = parseInt(traffic.replace(/[^0-9]/g, ""), 10) || 0;
   return Math.max(10, Math.log10(n + 1) * 5 + 6);
+}
+
+// ズーム倍率 k に応じて深さ depth の「ラベル(文字)」をどれだけ見せるか(0=非表示 / 1=完全表示)。
+// ノードの円自体は常に表示。文字だけを段階化する: 初期の引き(=100%)では親(depth0)の文字だけ、
+// ズームインで子→孫…の文字が順にフェードイン。k は最大5なので拡大しきれば全部の文字が出る。
+const K_THRESH = [0, 1.3, 2.2, 3.1, 4.0, 4.8]; // depthごとの「出現開始」ズーム
+function depthAlpha(depth: number, k: number): number {
+  if (depth <= 0) return 1;
+  const start = K_THRESH[Math.min(depth, K_THRESH.length - 1)];
+  return Math.max(0, Math.min(1, (k - start) / 0.6)); // 0.6幅でじわっとフェードイン
 }
 
 // --- 本体: 分析(トレンド語→サジェストの連想グラフ) ---
@@ -255,6 +266,7 @@ export default function GraphExplorer() {
         geo,
         news: it.news,
         firstSeen: it.firstSeen,
+        depth: 0, // 親(トレンド語)
         bornAt: born + i * 14, // 少しずつ生まれる
         r: trendRadius(it.traffic),
         x: w / 2 + (Math.random() - 0.5) * w * 0.35,
@@ -275,6 +287,7 @@ export default function GraphExplorer() {
             isSeed: true,
             geo,
             news: [],
+            depth: 0,
             // eslint-disable-next-line react-hooks/purity
             bornAt: performance.now(),
             r: 13,
@@ -341,6 +354,7 @@ export default function GraphExplorer() {
           isSeed: false,
           geo: node.geo,
           news: [],
+          depth: (node.depth ?? 0) + 1, // 親より1段深い
           bornAt: bornC + i * 22, // 子も少しずつ生まれる
           r: 7,
           x: node.x + Math.cos(a) * ringR,
@@ -463,6 +477,9 @@ export default function GraphExplorer() {
         (a, b) => (b.isSeed ? 1 : 0) - (a.isSeed ? 1 : 0),
       );
       for (const n of order) {
+        // 100%では親(depth0)だけ文字表示。ズームで段階に達した深さの語からフェードインで出す
+        const la = depthAlpha(n.depth ?? 0, t.k);
+        if (la <= 0.05) continue;
         const tw = ctx.measureText(n.id).width;
         const bx = n.x - tw / 2 - 2;
         const by = n.y + n.r + 3;
@@ -474,12 +491,14 @@ export default function GraphExplorer() {
         if (hit && !n.isSeed) continue;
         const lx = n.x;
         const ly = n.y + n.r + 5;
+        ctx.globalAlpha = la;
         ctx.strokeStyle = pal.canvas;
         ctx.strokeText(n.id, lx, ly);
         ctx.fillStyle = pal.labelFg;
         ctx.fillText(n.id, lx, ly);
         placed.push(box);
       }
+      ctx.globalAlpha = 1;
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);

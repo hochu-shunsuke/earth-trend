@@ -51,7 +51,6 @@ function ScaleBubbles({
 }) {
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const [nowSec, setNowSec] = useState(0);
-  const [appeared, setAppeared] = useState(false); // 図がビューポートに入ったか(=出現アニメの起点)
   const [view, setView] = useState({ x: 0, y: 0, k: 1 }); // pan/zoom
   const [hint, setHint] = useState<string | null>(null); // 操作ヒント(一瞬)
   const [ctrlShown, setCtrlShown] = useState(true); // ズームボタン: 操作後しばらくでフェードアウト
@@ -92,27 +91,10 @@ function ScaleBubbles({
     const ro = new ResizeObserver(calc);
     if (wrapRef.current) ro.observe(wrapRef.current);
     window.addEventListener("resize", calc);
-    // 出現アニメは「図が画面に入った時」に発火(PC/スマホ共通の条件)。一度入ったら以降は出さない
-    let io: IntersectionObserver | null = null;
-    if (typeof IntersectionObserver !== "undefined" && wrapRef.current) {
-      io = new IntersectionObserver(
-        (es) => {
-          if (es.some((e) => e.isIntersecting)) {
-            setAppeared(true);
-            io?.disconnect();
-          }
-        },
-        { rootMargin: "0px 0px -8% 0px" },
-      );
-      io.observe(wrapRef.current);
-    } else {
-      setAppeared(true);
-    }
     // 初期は見せて、操作が無ければ2.5秒で静かに消す
     ctrlTimer.current = setTimeout(() => setCtrlShown(false), 2500);
     return () => {
       ro.disconnect();
-      io?.disconnect();
       window.removeEventListener("resize", calc);
       if (hintTimer.current) clearTimeout(hintTimer.current);
       if (ctrlTimer.current) clearTimeout(ctrlTimer.current);
@@ -286,7 +268,7 @@ function ScaleBubbles({
             return (
               <button
                 key={it.word}
-                className={appeared ? "bubble-pop" : undefined}
+                className="bubble-pop"
                 onClick={() => {
                   if (moved.current) return; // ドラッグ後のクリックは無視
                   onSelect(it);
