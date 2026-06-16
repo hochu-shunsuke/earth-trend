@@ -20,8 +20,12 @@ export default function SiteHeader({
   // URLは rewrite で素のまま見えるので、先頭が "en" なら英語・それ以外はデフォルト(ja)。
   const parts = pathname.split("/").filter(Boolean);
   const isEn = parts[0] === "en";
+  // SSRではproxyのrewriteで pathname が /ja/... になる(クライアントは接頭辞なしの /...)。
+  // 先頭が "ja"/"en" ならロケール接頭辞として剥がす。これを剥がさないと section が "ja" になり
+  // "ja".length===2 で誤ってトレンドがアクティブ判定→ハードリロード時にナビが一瞬トレンドに化ける。
+  const hasLocalePrefix = parts[0] === "ja" || parts[0] === "en";
   const locale = localeProp ?? (isEn ? "en" : DEFAULT_LOCALE);
-  const section = isEn ? (parts[1] ?? "") : (parts[0] ?? "");
+  const section = hasLocalePrefix ? (parts[1] ?? "") : (parts[0] ?? "");
   const d = t(locale);
 
   // トレンド = /trends と 各国ページ /[geo](2文字)。ホーム(section==="")は非アクティブ
