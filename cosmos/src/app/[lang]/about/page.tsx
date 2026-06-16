@@ -53,6 +53,27 @@ const CONTENT = {
     privacy:
       "There is no sign-up, and we do not store your personal information. We may use anonymous usage statistics (Google Analytics) to improve the site.",
   },
+  es: {
+    title: "Acerca de",
+    desc: `Qué es ${SITE_NAME}, de dónde vienen los datos y la privacidad.`,
+    tagline: "Las tendencias del mundo, como un mapa vivo.",
+    whatTitle: "Qué es esto",
+    what: `La búsqueda es el registro más honesto de la humanidad sobre "lo que queremos saber". ${SITE_NAME} es un lugar para observar a qué presta atención el mundo en este momento, y cómo se conecta esa curiosidad — como un grafo vivo. Más que una herramienta de análisis, es un espejo de la curiosidad del mundo.`,
+    views: [
+      ["Tendencias", "Lo que el mundo busca ahora mismo"],
+      ["Análisis", "Sigue las asociaciones a partir de una palabra en auge"],
+      ["Globo", "Mira la atención del mundo desde arriba"],
+    ],
+    whyTitle: "Por qué lo creé",
+    why: "Este proyecto nació de una idea, no de una función. Hoy las redes sociales y los buscadores están tan personalizados que casi solo nos reflejan a nosotros mismos; Google Trends, por su parte, no es más que una tabla fría. Quería observar el flujo de la atención colectiva del mundo desde un ángulo distinto y más lúdico — y experimentar con cómo se pueden expresar los datos. Este es ese intento. Lo seguiré actualizando mientras me replanteo continuamente para qué sirve.",
+    dataTitle: "Sobre los datos",
+    data: `Mostramos datos públicos de Google Trends (búsquedas en tendencia) y del autocompletado de Google (sugerencias), obtenidos y almacenados en caché a intervalos regulares (cada 10 minutos por país). Las palabras se traducen automáticamente y las disponemos con nuestra propia codificación: tamaño del círculo = volumen de búsqueda, color = qué tan reciente apareció. Este es un proyecto personal no oficial, sin relación alguna con Google LLC ni ninguna empresa.`,
+    operatorTitle: "Quién lo gestiona",
+    operator: `Un proyecto personal e independiente gestionado por ${SITE_OPERATOR}. Se agradecen comentarios, correcciones e informes de errores.`,
+    privacyTitle: "Privacidad",
+    privacy:
+      "No hay registro de cuenta y no almacenamos tu información personal. Podemos usar estadísticas de uso anónimas (Google Analytics) para mejorar el sitio.",
+  },
 };
 
 export async function generateMetadata({

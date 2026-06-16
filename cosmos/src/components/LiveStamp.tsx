@@ -8,6 +8,8 @@ import type { Locale } from "@/lib/i18n";
 function rel(iso: string, locale: Locale): string {
   const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
   if (locale === "ja") return min < 1 ? "たった今" : min < 60 ? `${min}分前` : `${Math.floor(min / 60)}時間前`;
+  if (locale === "es")
+    return min < 1 ? "ahora mismo" : min < 60 ? `hace ${min} min` : `hace ${Math.floor(min / 60)} h`;
   return min < 1 ? "just now" : min < 60 ? `${min} min ago` : `${Math.floor(min / 60)} h ago`;
 }
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { LOCALES, DEFAULT_LOCALE, t, localePath, type Locale } from "@/lib/i18n";
+import { LOCALES, DEFAULT_LOCALE, isLocale, t, localePath, type Locale } from "@/lib/i18n";
 
 export default function SiteHeader({
   overlay = false,
@@ -16,15 +16,14 @@ export default function SiteHeader({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  // prefix-except-default: ja は接頭辞なし(/trends)、en は /en 接頭辞(/en/trends)。
-  // URLは rewrite で素のまま見えるので、先頭が "en" なら英語・それ以外はデフォルト(ja)。
-  const parts = pathname.split("/").filter(Boolean);
-  const isEn = parts[0] === "en";
+  // prefix-except-default: ja は接頭辞なし(/trends)、en/es は /en /es 接頭辞(/en/trends)。
   // SSRではproxyのrewriteで pathname が /ja/... になる(クライアントは接頭辞なしの /...)。
-  // 先頭が "ja"/"en" ならロケール接頭辞として剥がす。これを剥がさないと section が "ja" になり
-  // "ja".length===2 で誤ってトレンドがアクティブ判定→ハードリロード時にナビが一瞬トレンドに化ける。
-  const hasLocalePrefix = parts[0] === "ja" || parts[0] === "en";
-  const locale = localeProp ?? (isEn ? "en" : DEFAULT_LOCALE);
+  // 先頭が ja/en/es ならロケール接頭辞として剥がす。剥がさないと section が "ja" になり
+  // "ja".length===2 で誤ってトレンドがアクティブ判定→ハードリロード時にナビが一瞬化ける。
+  const parts = pathname.split("/").filter(Boolean);
+  const prefix = parts[0];
+  const hasLocalePrefix = isLocale(prefix);
+  const locale = localeProp ?? (isLocale(prefix) ? prefix : DEFAULT_LOCALE);
   const section = hasLocalePrefix ? (parts[1] ?? "") : (parts[0] ?? "");
   const d = t(locale);
 
@@ -36,8 +35,9 @@ export default function SiteHeader({
     { href: localePath(locale, "/globe"), label: d.nav.globe, active: section === "globe" },
   ];
 
-  // 言語切替: 現在のセクションを保ったまま言語だけ差し替える(ja=接頭辞なし / en=/en)
-  const rest = isEn ? pathname.slice(3) : pathname; // "/en/trends"→"/trends", "/en"→"", ja はそのまま
+  // 言語切替: 現在のセクションを保ったまま言語だけ差し替える(ja=接頭辞なし / en,es=/xx)
+  // en/es は接頭辞3文字(/en, /es)を剥がす。ja(接頭辞なし)はそのまま
+  const rest = prefix === "en" || prefix === "es" ? pathname.slice(3) : pathname;
   const switchLang = (l: Locale) => router.push(localePath(l, rest === "/" ? "" : rest));
 
   const langSelect = (

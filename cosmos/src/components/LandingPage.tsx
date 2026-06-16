@@ -38,7 +38,7 @@ const CONTENT: Record<Locale, Content> = {
       {
         key: "trends",
         title: "トレンド",
-        body: "円の大きさは検索ボリューム、色は燃え始めの新しさ。9カ国の急上昇を一枚の地図で。",
+        body: "円の大きさは検索ボリューム、色は燃え始めの新しさ。24カ国の急上昇を一枚の地図で。",
         path: "/trends",
         visual: <TrendsPreview />,
       },
@@ -70,7 +70,7 @@ const CONTENT: Record<Locale, Content> = {
       {
         key: "trends",
         title: "Trends",
-        body: "Circle size is search volume, color is how freshly it ignited. Nine countries' rising searches on one map.",
+        body: "Circle size is search volume, color is how freshly it ignited. 24 countries' rising searches on one map.",
         path: "/trends",
         visual: <TrendsPreview />,
       },
@@ -85,6 +85,40 @@ const CONTENT: Record<Locale, Content> = {
         key: "globe",
         title: "Globe",
         body: "The world's attention on a turning globe. See at a glance which country is buzzing about what.",
+        path: "/globe",
+        visual: <GlobePreview />,
+      },
+    ],
+  },
+  es: {
+    heroLead:
+      "Lo que la Tierra está buscando ahora mismo.\nCada palabra que fluye es una búsqueda en auge, en directo.",
+    heroGiant: "TENDENCIAS DE LA TIERRA",
+    ctaPrimary: "Ver las tendencias del mundo",
+    ctaSecondary: "¿Qué es esto?",
+    sectionTitle: "Explora la curiosidad del mundo desde tres ángulos",
+    sectionLead:
+      "Desde las búsquedas en auge hasta las ramas de asociación y el globo.\nLos mismos datos, distintas vistas.",
+    ctaTitle: "Asómate a la\ncuriosidad del mundo.",
+    cards: [
+      {
+        key: "trends",
+        title: "Tendencias",
+        body: "El tamaño del círculo es el volumen de búsqueda; el color, qué tan reciente surgió. Las búsquedas en auge de 24 países en un solo mapa.",
+        path: "/trends",
+        visual: <TrendsPreview />,
+      },
+      {
+        key: "analysis",
+        title: "Análisis",
+        body: "Parte de una palabra en auge y sigue lo que la gente busca después. Recorre las ramas y observa el flujo de la atención.",
+        path: "/analysis",
+        visual: <AnalysisPreview />,
+      },
+      {
+        key: "globe",
+        title: "Globo",
+        body: "La atención del mundo sobre un globo que gira. Ve de un vistazo qué país está vibrando con qué.",
         path: "/globe",
         visual: <GlobePreview />,
       },

@@ -11,6 +11,11 @@ const META = {
     title: "Globe",
     description: "See the world's attention on a globe. Each country's risings light up as live pulses.",
   },
+  es: {
+    title: "Globo",
+    description:
+      "Mira la atención del mundo en un globo. Las búsquedas en auge de cada país se encienden como pulsos en vivo.",
+  },
 };
 
 export async function generateMetadata({

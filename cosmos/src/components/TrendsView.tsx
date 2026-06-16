@@ -48,8 +48,18 @@ function ScaleBubbles({
   const midPrev = useRef<{ x: number; y: number } | null>(null); // 2本指の中点(パン用)
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const twoFingerHint = locale === "en" ? "Use two fingers to move the map" : "2本指で地図を動かせます";
-  const wheelHint = locale === "en" ? "Use ⌘ / Ctrl + scroll to zoom" : "⌘ / Ctrl + スクロールでズーム";
+  const twoFingerHint =
+    locale === "ja"
+      ? "2本指で地図を動かせます"
+      : locale === "es"
+        ? "Usa dos dedos para mover el mapa"
+        : "Use two fingers to move the map";
+  const wheelHint =
+    locale === "ja"
+      ? "⌘ / Ctrl + スクロールでズーム"
+      : locale === "es"
+        ? "⌘ / Ctrl + scroll para acercar"
+        : "Use ⌘ / Ctrl + scroll to zoom";
   const showHint = (msg: string) => {
     setHint(msg);
     if (hintTimer.current) clearTimeout(hintTimer.current);

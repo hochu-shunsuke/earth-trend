@@ -2,14 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // prefix-except-default ルーティング:
 // - デフォルト言語(ja)は接頭辞なしURL(/ , /trends , /jp ...)。内部で /ja/... へ rewrite(URLは素のまま)
-// - 英語は /en/... 。そのまま通す
+// - 非デフォルト言語(en, es)は /en/... /es/... 。そのまま通す
 // - 旧 /ja/... は重複なので 301 で接頭辞を剥がす(/ja/trends → /trends)
 // これにより bare domain(/) が日本語の正準ページになり、被リンクが主力ページに集中する。
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 英語ロケールはそのまま
-  if (pathname === "/en" || pathname.startsWith("/en/")) return NextResponse.next();
+  // 非デフォルトの接頭辞ロケール(/en, /es)はそのまま通す
+  if (/^\/(en|es)(\/|$)/.test(pathname)) return NextResponse.next();
 
   // /ja* は接頭辞を剥がして 301(重複解消・旧URL救済・クエリは保持)
   if (pathname === "/ja" || pathname.startsWith("/ja/")) {

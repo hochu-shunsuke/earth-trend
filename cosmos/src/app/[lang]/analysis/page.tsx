@@ -11,6 +11,10 @@ const META = {
     title: "Analysis",
     description: "Trace what people search next, out from a rising word.",
   },
+  es: {
+    title: "Análisis",
+    description: "Sigue, a partir de una palabra en auge, lo que la gente busca después.",
+  },
 };
 
 export async function generateMetadata({

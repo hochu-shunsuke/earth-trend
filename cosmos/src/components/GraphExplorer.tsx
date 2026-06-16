@@ -616,9 +616,9 @@ export default function GraphExplorer() {
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
 
-    // 初期化(URLパラメータ反映の一度きりのsetState)。geo未指定の既定: 英語UIは米国/日本語UIは日本
+    // 初期化(URLパラメータ反映の一度きりのsetState)。geo未指定の既定: en=米国 / es=メキシコ / ja=日本
     const params = new URLSearchParams(window.location.search);
-    const fallbackGeo = locale === "en" ? "US" : "JP";
+    const fallbackGeo = locale === "en" ? "US" : locale === "es" ? "MX" : "JP";
     const raw = (params.get("geo") || fallbackGeo).toUpperCase();
     const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
     const seedParam = params.get("seed") || undefined;

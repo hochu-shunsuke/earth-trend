@@ -1,7 +1,7 @@
 // UI多言語化の中核。ロケールはURLの先頭セグメント(/ja, /en)。
 // コンテンツ(トレンド語/ニュース)は別途lib/translateで訳す。ここはUIガワの辞書。
 
-export const LOCALES = ["ja", "en"] as const;
+export const LOCALES = ["ja", "en", "es"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "ja";
 
@@ -12,20 +12,19 @@ export function toLocale(x: string | undefined): Locale {
   return isLocale(x) ? x : DEFAULT_LOCALE;
 }
 
-// URL生成(prefix-except-default): デフォルト(ja)は接頭辞なし、enは /en 接頭辞。
+// URL生成(prefix-except-default): デフォルト(ja)は接頭辞なし、他は /<locale> 接頭辞(/en, /es…)。
 // section は "" (ホーム) または "/trends" 等の先頭スラッシュ付き相対パス。
 export function localePath(locale: Locale, section = ""): string {
-  if (locale === "ja") return section === "" ? "/" : section;
-  return `/en${section}`;
+  if (locale === DEFAULT_LOCALE) return section === "" ? "/" : section;
+  return `/${locale}${section}`;
 }
 
-// メタデータの hreflang alternates。ja=接頭辞なし / en=/en / x-default=en(海外フォールバックは英語)
+// メタデータの hreflang alternates。全ロケール + x-default=en(海外フォールバックは英語)
 export function altLanguages(section = ""): Record<string, string> {
-  return {
-    ja: localePath("ja", section),
-    en: localePath("en", section),
-    "x-default": localePath("en", section),
-  };
+  const out: Record<string, string> = {};
+  for (const l of LOCALES) out[l] = localePath(l, section);
+  out["x-default"] = localePath("en", section);
+  return out;
 }
 
 
@@ -82,6 +81,32 @@ export const COUNTRY_LABELS: Record<Locale, Record<string, string>> = {
     VN: "Vietnam",
     TH: "Thailand",
     IT: "Italy",
+  },
+  es: {
+    JP: "Japón",
+    US: "Estados Unidos",
+    GB: "Reino Unido",
+    IN: "India",
+    KR: "Corea del Sur",
+    TW: "Taiwán",
+    DE: "Alemania",
+    FR: "Francia",
+    BR: "Brasil",
+    CA: "Canadá",
+    AU: "Australia",
+    PH: "Filipinas",
+    NG: "Nigeria",
+    ZA: "Sudáfrica",
+    MX: "México",
+    ES: "España",
+    AR: "Argentina",
+    CO: "Colombia",
+    ID: "Indonesia",
+    RU: "Rusia",
+    TR: "Turquía",
+    VN: "Vietnam",
+    TH: "Tailandia",
+    IT: "Italia",
   },
 };
 
@@ -208,6 +233,51 @@ const DICT: Record<Locale, Dict> = {
     share: { button: "Share", copied: "Copied", image: "Save image" },
     langName: "English",
   },
+  es: {
+    nav: { trends: "Tendencias", analysis: "Análisis", globe: "Globo" },
+    theme: { label: "Tema", system: "Sistema", light: "Claro", dark: "Oscuro" },
+    home: {
+      title: "Tendencias del mundo",
+      desc: "Lo que cada país busca ahora mismo. Toca un país para explorar hacia dónde lleva su curiosidad.",
+      legendFooter:
+        "Tamaño = volumen de búsqueda / color = novedad. Datos: Google Trends (actualizado cada 10 min) · ",
+      about: "Acerca de",
+    },
+    country: {
+      title: (c) => `Tendencias de ${c}`,
+      all: "← Todos",
+      seoHeading: (c) => `Lo que ${c} está buscando ahora`,
+      loadFail: "No se pudieron cargar los datos. Espera un momento y vuelve a cargar.",
+      updated: "Actualizado",
+      others: "Tendencias en otros países",
+      compare: (c) => `Compara las búsquedas en aumento de ${c} con las de otros países.`,
+    },
+    bubbles: {
+      legend: (n) =>
+        `Tamaño = volumen de búsqueda / color = novedad (cálido = recién aparecido). ${n} tendencias recientes (no es una proporción de todas las búsquedas). Arrastra para mover, rueda/pellizca para acercar.`,
+    },
+    detail: {
+      searches: "Búsquedas",
+      trendingNow: "En tendencia ahora.",
+      googleSearch: "Buscar en Google",
+      explore: "Análisis",
+      appeared: (s) => `apareció hace ~${s}`,
+      close: "Cerrar",
+    },
+    graph: {
+      selectCountry: "Elegir país",
+      saveImage: "Guardar imagen",
+      seedTrends: "En tendencia ahora mismo.",
+      leafTrends: "Lo que los usuarios buscan después.",
+    },
+    globe: {
+      loading: "cargando…",
+      loadFail: "No se pudieron cargar los datos",
+      countries: (n) => `${n} países`,
+    },
+    share: { button: "Compartir", copied: "Copiado", image: "Guardar imagen" },
+    langName: "Español",
+  },
 };
 
 export function t(locale: Locale): Dict {
@@ -223,6 +293,11 @@ export function durationStr(sec: number | undefined, nowSec: number, locale: Loc
     if (m < 60) return `${m} min`;
     if (h < 24) return `${h} hr`;
     return `${Math.floor(h / 24)} days`;
+  }
+  if (locale === "es") {
+    if (m < 60) return `${m} min`;
+    if (h < 24) return `${h} h`;
+    return `${Math.floor(h / 24)} días`;
   }
   if (m < 60) return `${m}分`;
   if (h < 24) return `${h}時間`;
