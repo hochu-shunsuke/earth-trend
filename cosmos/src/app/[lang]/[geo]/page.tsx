@@ -138,10 +138,16 @@ export default async function CountryPage({
                   <Link
                     href={`${localePath(locale, "/analysis")}?geo=${code}&seed=${encodeURIComponent(it.word)}`}
                     translate="no"
+                    style={{ fontWeight: 600 }}
                   >
                     {it.word}
                   </Link>
-                  {it.translation && <span className="muted"> — {it.translation}</span>}
+                  {it.translation && (
+                    <>
+                      <span className="muted"> — </span>
+                      <span style={{ color: "var(--fg)", fontWeight: 500 }}>{it.translation}</span>
+                    </>
+                  )}
                   <span className="muted" style={{ fontSize: 12 }}>
                     {" "}
                     ・ {d.detail.searches} {it.traffic}

@@ -14,8 +14,9 @@ const GEO_LANG = {
   TW: "zh-TW", DE: "de", FR: "fr", BR: "pt-BR",
 };
 const UI_LOCALES = ["ja", "en"];
-// 1回の実行で温める翻訳の上限(Google無料EPに優しく)。残りは次回以降で
-const WARM_CAP = 80;
+// 1回の実行で温める翻訳の上限(Google無料EPに優しく)。語+ニュース見出しを相乗りで温めるので
+// 少し広め。逐次+sleepで叩くので一括バーストにはならない。超過分は新規語が出た次回以降で
+const WARM_CAP = 120;
 
 // 直近どれだけのスナップショットを保持するか(30分間隔で約6週間)。古いものは間引く
 const KEEP_PER_GEO = 2000;
@@ -148,20 +149,28 @@ async function main() {
       continue;
     }
 
-    // 新規語(HSETNXが1=初出)だけを ja/en に訳してキャッシュを温める(コスト最小・放置で回る)
+    // 新規語(HSETNXが1=初出)だけを ja/en に温める(コスト最小・放置で回る)。語そのものに加えて
+    // その語のニュース見出し(なぜ流行ってるか)も温める → 国別/analysisのNewsTitleは「キャッシュを
+    // 読むだけ」になり、ユーザーが何人来ても非公式翻訳EPを叩かない(=スケールしてもブロックされない)。
+    // 一括並列(Promise.all)は使わず、逐次+sleep+WARM_CAPで差分だけドリップする。
     const geoLang = GEO_LANG[geo];
     for (let i = 0; i < items.length && warmed < WARM_CAP; i++) {
-      if (res?.[3 + i]?.result !== 1) continue; // 既出語は skip
-      const word = items[i].word;
-      for (const to of UI_LOCALES) {
-        if (to === geoLang || warmed >= WARM_CAP) continue;
-        const tr = await translateGoogle(word, to);
-        if (tr) {
-          try {
-            await redis([["SET", `tr2:${geoLang}:${to}:${word}`, tr, "EX", "2592000"]]);
-          } catch {}
-          warmed++;
-          await sleep(150);
+      if (res?.[3 + i]?.result !== 1) continue; // 既出語は skip(新規語の初出時だけ温める=差分)
+      const it = items[i];
+      // ニュース見出しは client(/api/translate)が q を200字に切るのでキーを揃える
+      const targets = [it.word, ...it.news.map((n) => n.title.slice(0, 200).trim())];
+      for (const text of targets) {
+        if (!text) continue;
+        for (const to of UI_LOCALES) {
+          if (to === geoLang || warmed >= WARM_CAP) continue;
+          const tr = await translateGoogle(text, to);
+          if (tr) {
+            try {
+              await redis([["SET", `tr2:${geoLang}:${to}:${text}`, tr, "EX", "2592000"]]);
+            } catch {}
+            warmed++;
+            await sleep(150);
+          }
         }
       }
     }
