@@ -180,8 +180,10 @@ export async function warmTranslations(jobs: WarmJob[]): Promise<number> {
   }
   if (cands.length === 0) return 0;
 
-  // ランダム開始のローテーション窓(毎回違う部分を見る=全体を時間で網羅)
-  const start = Math.floor(Math.random() * cands.length);
+  // 決定的ローテーション窓: 15分ごとの実行で開始位置を WARM_WINDOW ずつ進める=全候補を
+  // 順に確実に網羅(ランダムだと当たらない候補が残るため)。候補が入れ替わっても順送りで進む。
+  const tick = Math.floor(Date.now() / 900_000); // 15分単位の通し番号
+  const start = (tick * WARM_WINDOW) % cands.length;
   const window: typeof cands = [];
   for (let i = 0; i < WARM_WINDOW && i < cands.length; i++) {
     window.push(cands[(start + i) % cands.length]);
