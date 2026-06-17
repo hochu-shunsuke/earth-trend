@@ -12,9 +12,10 @@ const GEOS = Object.keys(GEO_LABELS);
 const KEEP_PER_GEO = 300;
 // 1回の warming で温める翻訳の上限と時間予算(route maxDuration 60s 内で打ち切る)。
 // gtx(非公式EP)に優しく: 1回60件・各120ms間隔=warming中は約1.3/s・最大~5,760件/日に抑える。
-const WARM_CAP = 80; // 1回に実際にgtxを叩く上限(未キャッシュ分のみ)
-const WARM_WINDOW = 110; // cache-firstで存在チェックする候補数(=Upstash読みの上限/回)
+const WARM_CAP = 80; // 1回に温める翻訳の上限(新規語のみ=普段は遥かに下)
 const WARM_BUDGET_MS = 33_000; // route内で同期実行(snapshot~3s込みで~36s。QStash 60s以内)
+// trim(古いスナップ間引き)は毎回やらず ~10回に1回だけ(Upstashコマンド節約)。間の数件超過は無害
+const TRIM_EVERY = 10;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -129,8 +130,9 @@ async function translateGoogle(text: string, to: string): Promise<string | null>
   }
 }
 
-// 1国: RSS取得→直前latestと比較し新規語を出す→保存→新規語+見出しを温め候補として返す
-async function snapshotGeo(geo: string, ts: number): Promise<WarmJob[]> {
+// 1国: RSS取得→直前latestと比較し新規語を出す→保存→新規語+見出しを温め候補として返す。
+// 既存(=前回もあった)語は温め対象外(コスト節約)。既存バックログは別途ローカルbackfillで一括。
+async function snapshotGeo(geo: string, ts: number, doTrim: boolean): Promise<WarmJob[]> {
   let items: SnapItem[];
   try {
     items = await fetchTrendsRaw(geo);
@@ -140,23 +142,35 @@ async function snapshotGeo(geo: string, ts: number): Promise<WarmJob[]> {
   }
   if (items.length === 0) return [];
 
-  const snapshot = JSON.stringify({ ts, items });
+  // 直前latestを読み新規語を判定(=warming対象)
+  const prevWords = new Set<string>();
   try {
-    await redis([
-      ["ZADD", `snapshot:${geo}`, String(ts), snapshot],
-      ["ZREMRANGEBYRANK", `snapshot:${geo}`, "0", String(-KEEP_PER_GEO - 1)],
-      ["SET", `latest:${geo}`, snapshot],
-    ]);
+    const p = await redis([["GET", `latest:${geo}`]]);
+    const raw = p?.[0]?.result;
+    if (typeof raw === "string") {
+      const prev = JSON.parse(raw) as { items?: SnapItem[] };
+      for (const it of prev.items ?? []) prevWords.add(it.word);
+    }
+  } catch {}
+
+  const snapshot = JSON.stringify({ ts, items });
+  const cmds: unknown[][] = [
+    ["ZADD", `snapshot:${geo}`, String(ts), snapshot],
+    ["SET", `latest:${geo}`, snapshot],
+  ];
+  if (doTrim) cmds.push(["ZREMRANGEBYRANK", `snapshot:${geo}`, "0", String(-KEEP_PER_GEO - 1)]);
+  try {
+    await redis(cmds);
   } catch (e) {
     console.error(`store ${geo} failed:`, (e as Error).message);
     return [];
   }
 
-  // 現在の全項目(語+見出し)を温め候補に。warming側で cache-first により未訳だけ叩く
-  // (=既存バックログも埋まる)。見出しは client/api/translate と同じ200字キーに揃える。
+  // 新規語 + その見出し(client/api/translateと同じ200字キー)を温め候補に
   const src = GEO_LANG[geo] ?? "auto";
   const jobs: WarmJob[] = [];
   for (const it of items) {
+    if (prevWords.has(it.word)) continue; // 既出はskip(新規語の初出時だけ温める=差分)
     if (it.word) jobs.push({ text: it.word, src });
     for (const n of it.news) {
       const t = n.title.slice(0, 200).trim();
@@ -166,55 +180,32 @@ async function snapshotGeo(geo: string, ts: number): Promise<WarmJob[]> {
   return jobs;
 }
 
-// 現在の項目の翻訳をUIロケールへ温める。cache-first(未訳だけgtxを叩く)+毎回ランダムな窓を
-// 取りローテーションで全体をカバー(=既存バックログも埋まる)。読みは WARM_WINDOW/回、gtxは
-// WARM_CAP/回・各120ms間隔で抑える。route の after() で背景実行される(応答は即返す)。
+// 新規語の翻訳をUIロケールへ温める(逐次+sleepでgtxに優しく、WARM_CAP/時間予算で打ち切り)。
+// 新規語=未訳前提なので cache-first はしない(読み節約)。再出現語の再訳は無害(同値SET)。
 export async function warmTranslations(jobs: WarmJob[]): Promise<number> {
-  // (text, src, to) に展開(targetはUIロケールでsrcと異なるもの)
-  const cands: { key: string; text: string; to: string }[] = [];
-  for (const { text, src } of jobs) {
-    for (const to of LOCALES) {
-      if (to === src) continue;
-      cands.push({ key: `tr2:${src}:${to}:${text}`, text, to });
-    }
-  }
-  if (cands.length === 0) return 0;
-
-  // 決定的ローテーション窓: 15分ごとの実行で開始位置を WARM_WINDOW ずつ進める=全候補を
-  // 順に確実に網羅(ランダムだと当たらない候補が残るため)。候補が入れ替わっても順送りで進む。
-  const tick = Math.floor(Date.now() / 900_000); // 15分単位の通し番号
-  const start = (tick * WARM_WINDOW) % cands.length;
-  const window: typeof cands = [];
-  for (let i = 0; i < WARM_WINDOW && i < cands.length; i++) {
-    window.push(cands[(start + i) % cands.length]);
-  }
-
-  // cache-first: まとめて存在チェック(1パイプライン=Upstash読みを窓サイズに固定)
-  let got: { result: unknown }[] | null = null;
-  try {
-    got = await redis(window.map((c) => ["GET", c.key]));
-  } catch {}
-
   const deadline = Date.now() + WARM_BUDGET_MS;
   let warmed = 0;
-  for (let i = 0; i < window.length; i++) {
+  for (const { text, src } of jobs) {
     if (warmed >= WARM_CAP || Date.now() > deadline) break;
-    if (got?.[i]?.result) continue; // 既にキャッシュ済み=gtxを叩かない
-    const tr = await translateGoogle(window[i].text, window[i].to);
-    if (tr) {
-      try {
-        await redis([["SET", window[i].key, tr, "EX", "2592000"]]);
-      } catch {}
-      warmed++;
-      await sleep(120);
+    for (const to of LOCALES) {
+      if (to === src || warmed >= WARM_CAP || Date.now() > deadline) continue;
+      const tr = await translateGoogle(text, to);
+      if (tr) {
+        try {
+          await redis([["SET", `tr2:${src}:${to}:${text}`, tr, "EX", "2592000"]]);
+        } catch {}
+        warmed++;
+        await sleep(120);
+      }
     }
   }
   return warmed;
 }
 
-// 9〜24国を並列にスナップショット。返り値の warmJobs を route が after() で温める。
+// 24国を並列にスナップショット。trimは ~TRIM_EVERY 回に1回だけ(コマンド節約)。
 export async function runSnapshot(): Promise<{ ts: number; geos: number; warmJobs: WarmJob[] }> {
   const ts = Math.floor(Date.now() / 1000);
-  const perGeo = await Promise.all(GEOS.map((g) => snapshotGeo(g, ts)));
+  const doTrim = Math.floor(Date.now() / 900_000) % TRIM_EVERY === 0;
+  const perGeo = await Promise.all(GEOS.map((g) => snapshotGeo(g, ts, doTrim)));
   return { ts, geos: GEOS.length, warmJobs: perGeo.flat() };
 }
