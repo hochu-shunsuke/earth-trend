@@ -127,6 +127,17 @@ export const GEO_HL: Record<string, string> = {
   IT: "it",
 };
 
+// 国コード ↔ URLスラグ。スペイン(ES)はロケール接頭辞 /es と衝突するためURLスラグは "spain"。
+// 他の国はコードの小文字がそのままスラグ(jp, us, …)。
+const GEO_SLUG: Record<string, string> = { ES: "spain" };
+const SLUG_GEO: Record<string, string> = { spain: "ES" };
+export function geoSlug(geo: string): string {
+  return GEO_SLUG[geo] ?? geo.toLowerCase();
+}
+export function slugToGeo(slug: string): string {
+  return SLUG_GEO[slug.toLowerCase()] ?? slug.toUpperCase();
+}
+
 /** Google TrendsのRSSから急上昇ワードを取得(Next fetchキャッシュ10分) */
 export async function fetchTrends(geo: string): Promise<TrendItem[]> {
   const res = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {

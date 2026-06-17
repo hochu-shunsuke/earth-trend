@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { GEO_LABELS } from "@/lib/trends";
+import { GEO_LABELS, geoSlug } from "@/lib/trends";
 import { DEFAULT_LOCALE, isLocale, COUNTRY_LABELS, localePath } from "@/lib/i18n";
 
 export default function GeoSelect({ geo }: { geo: string }) {
@@ -16,7 +16,7 @@ export default function GeoSelect({ geo }: { geo: string }) {
     <select
       className="btn"
       value={geo}
-      onChange={(e) => router.push(localePath(locale, `/${e.target.value.toLowerCase()}`))}
+      onChange={(e) => router.push(localePath(locale, `/${geoSlug(e.target.value)}`))}
       aria-label="Country"
     >
       {Object.keys(GEO_LABELS).map((code) => (

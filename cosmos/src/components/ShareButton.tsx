@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { geoSlug } from "@/lib/trends";
 import { t, localePath, type Locale } from "@/lib/i18n";
 
 // 共有ボタン: ネイティブ共有(モバイル)→ダメならリンクコピー。画像保存はOG画像へのDLリンク。
@@ -63,8 +64,8 @@ export default function ShareButton({
       </button>
       <a
         className="btn"
-        href={localePath(locale, `/${geo.toLowerCase()}/opengraph-image`)}
-        download={`earth-trend-${geo.toLowerCase()}.png`}
+        href={localePath(locale, `/${geoSlug(geo)}/opengraph-image`)}
+        download={`earth-trend-${geoSlug(geo)}.png`}
       >
         {d.share.image}
       </a>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import LandingPage from "@/components/LandingPage";
-import { ALLOWED_GEO } from "@/lib/trends";
+import { ALLOWED_GEO, geoSlug } from "@/lib/trends";
 import { toLocale, t, localePath, altLanguages } from "@/lib/i18n";
 
 export const revalidate = 600;
@@ -36,7 +36,7 @@ export default async function LangHome({
   // 旧ホームが一覧だった頃の ?geo=XX リンクは各国ルートへ転送(SEO/互換)
   const { geo } = await searchParams;
   if (geo && ALLOWED_GEO.has(geo.toUpperCase()))
-    redirect(localePath(locale, `/${geo.toLowerCase()}`));
+    redirect(localePath(locale, `/${geoSlug(geo.toUpperCase())}`));
 
   return <LandingPage locale={locale} />;
 }

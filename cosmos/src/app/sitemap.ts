@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
-import { GEO_LABELS } from "@/lib/trends";
+import { GEO_LABELS, geoSlug } from "@/lib/trends";
 import { LOCALES, localePath, type Locale } from "@/lib/i18n";
 
 type ChangeFreq = MetadataRoute.Sitemap[number]["changeFrequency"];
@@ -13,7 +13,7 @@ const fullUrl = (suffix: string, locale: Locale) => {
 };
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const geos = Object.keys(GEO_LABELS).map((g) => g.toLowerCase());
+  const geos = Object.keys(GEO_LABELS).map((g) => geoSlug(g));
   const now = new Date();
 
   // x-default は英語(海外の非マッチユーザーへのフォールバック)

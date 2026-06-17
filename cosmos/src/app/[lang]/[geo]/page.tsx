@@ -10,7 +10,7 @@ import ShareButton from "@/components/ShareButton";
 import NewsTitle from "@/components/NewsTitle";
 import WordGloss from "@/components/WordGloss";
 import { jsonLd } from "@/lib/site";
-import { ALLOWED_GEO, GEO_LABELS, GEO_LANG } from "@/lib/trends";
+import { ALLOWED_GEO, GEO_LABELS, GEO_LANG, geoSlug, slugToGeo } from "@/lib/trends";
 import { type RecentTrendItem } from "@/lib/history";
 import { getGalleryData } from "@/lib/gallery-data";
 import { translate } from "@/lib/translate";
@@ -42,7 +42,7 @@ const getCountryItems = unstable_cache(
 
 // 9カ国を静的生成(SEO: 各国×各ロケールが独立したインデックス可能ランディング)
 export function generateStaticParams() {
-  return Object.keys(GEO_LABELS).map((g) => ({ geo: g.toLowerCase() }));
+  return Object.keys(GEO_LABELS).map((g) => ({ geo: geoSlug(g) }));
 }
 
 export async function generateMetadata({
@@ -52,7 +52,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang, geo } = await params;
   const locale = toLocale(lang);
-  const code = geo.toUpperCase();
+  const code = slugToGeo(geo);
   const country = COUNTRY_LABELS[locale][code];
   if (!country) return {};
   const d = t(locale);
@@ -60,8 +60,8 @@ export async function generateMetadata({
     title: d.country.title(country),
     description: d.country.seoHeading(country),
     alternates: {
-      canonical: localePath(locale, `/${geo.toLowerCase()}`),
-      languages: altLanguages(`/${geo.toLowerCase()}`),
+      canonical: localePath(locale, `/${geoSlug(code)}`),
+      languages: altLanguages(`/${geoSlug(code)}`),
     },
   };
 }
@@ -74,8 +74,9 @@ export default async function CountryPage({
   const { lang, geo } = await params;
   const locale = toLocale(lang);
   const d = t(locale);
-  const code = geo.toUpperCase();
-  if (!ALLOWED_GEO.has(code)) notFound();
+  const code = slugToGeo(geo);
+  // 正準スラグ以外(例: /es/es や未対応geo)は弾く=重複URL/無効を防ぐ
+  if (!ALLOWED_GEO.has(code) || geo !== geoSlug(code)) notFound();
   const country = COUNTRY_LABELS[locale][code];
 
   // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋10分キャッシュ
@@ -194,7 +195,7 @@ export default async function CountryPage({
             {Object.keys(GEO_LABELS)
               .filter((g) => g !== code)
               .map((g) => (
-                <Link key={g} href={localePath(locale, `/${g.toLowerCase()}`)}>
+                <Link key={g} href={localePath(locale, `/${geoSlug(g)}`)}>
                   {COUNTRY_LABELS[locale][g] ?? g}
                 </Link>
               ))}

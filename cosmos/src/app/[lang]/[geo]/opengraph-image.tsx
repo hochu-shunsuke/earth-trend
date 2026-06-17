@@ -1,4 +1,4 @@
-import { ALLOWED_GEO } from "@/lib/trends";
+import { ALLOWED_GEO, slugToGeo } from "@/lib/trends";
 import { COUNTRY_LABELS } from "@/lib/i18n";
 import { trendsOgImage, OG_SIZE } from "@/lib/og-world-trends";
 
@@ -14,7 +14,7 @@ export default async function Image({
   params: Promise<{ lang: string; geo: string }>;
 }) {
   const { geo } = await params;
-  const code = (geo || "").toUpperCase();
+  const code = slugToGeo(geo || "");
   const country = ALLOWED_GEO.has(code) ? COUNTRY_LABELS.en[code] ?? code : code;
   // 国別は見出し自体が国名なのでキャプションは出さない
   return trendsOgImage({ geo: code, title: country, subtitle: "live search trends" });
