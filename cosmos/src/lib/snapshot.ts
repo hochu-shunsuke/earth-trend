@@ -12,9 +12,9 @@ const GEOS = Object.keys(GEO_LABELS);
 const KEEP_PER_GEO = 300;
 // 1回の warming で温める翻訳の上限と時間予算(route maxDuration 60s 内で打ち切る)。
 // gtx(非公式EP)に優しく: 1回60件・各120ms間隔=warming中は約1.3/s・最大~5,760件/日に抑える。
-const WARM_CAP = 60; // 1回に実際にgtxを叩く上限(未キャッシュ分のみ)
-const WARM_WINDOW = 100; // cache-firstで存在チェックする候補数(=Upstash読みの上限/回)
-const WARM_BUDGET_MS = 40_000;
+const WARM_CAP = 80; // 1回に実際にgtxを叩く上限(未キャッシュ分のみ)
+const WARM_WINDOW = 110; // cache-firstで存在チェックする候補数(=Upstash読みの上限/回)
+const WARM_BUDGET_MS = 33_000; // route内で同期実行(snapshot~3s込みで~36s。QStash 60s以内)
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
