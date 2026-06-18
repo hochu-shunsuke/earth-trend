@@ -164,7 +164,11 @@ export default async function LandingPage({ locale }: { locale: Locale }) {
           <Link className="lp-hero-link" href={localePath(locale, "/trends")}>
             {c.ctaPrimary} →
           </Link>
-          <h1 className="lp-hero-giant">{c.heroGiant}</h1>
+          <h1
+            className={`lp-hero-giant${locale === "en" ? " lp-hero-giant-nowrap" : ""}`}
+          >
+            {c.heroGiant}
+          </h1>
         </div>
       </section>
 

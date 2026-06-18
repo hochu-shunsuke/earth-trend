@@ -604,6 +604,11 @@ select.btn {
   overflow-wrap: break-word;
   max-width: 100%;
 }
+/* 英語「EARTH TRENDS」は語間スペースで折り返さず1行に(esは従来どおり折返し)。
+   clampでフォントがvw連動して縮むので狭い画面でもはみ出さない */
+.lp-hero-giant-nowrap {
+  white-space: nowrap;
+}
 
 .lp-cta-row {
   display: flex;
