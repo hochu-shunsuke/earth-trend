@@ -4,17 +4,14 @@ import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import GeoSelect from "@/components/GeoSelect";
-import LiveStamp from "@/components/LiveStamp";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
-import NewsTitle from "@/components/NewsTitle";
-import WordGloss from "@/components/WordGloss";
 import { jsonLd } from "@/lib/site";
 import { ALLOWED_GEO, GEO_LABELS, GEO_LANG, geoSlug, slugToGeo } from "@/lib/trends";
 import { type RecentTrendItem } from "@/lib/history";
 import { getGalleryData } from "@/lib/gallery-data";
 import { translate } from "@/lib/translate";
-import { toLocale, t, localePath, altLanguages, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { toLocale, t, localePath, altLanguages, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
 
@@ -81,13 +78,9 @@ export default async function CountryPage({
 
   // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋10分キャッシュ
   const items = await getCountryItems(code, locale);
-  // ニュース見出しの原語。SSRは原語(=SEO)、クライアントでlocaleへ訳す(NewsTitle)
-  const newsLang = GEO_LANG[code] ?? "auto";
-  // 「登場からの経過」表示用の基準時刻(ISR 10分なので分解能は十分)
+  // 「登場からの経過」表示用の基準時刻(ISR 10分なので分解能は十分)。TrendsViewへ渡す
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
-  // 「最終更新」は描画時刻ではなく実データの時刻(最新スナップのlastSeen)を出す=鮮度に正直
-  const updatedSec = items.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
 
   return (
     <>
@@ -109,16 +102,9 @@ export default async function CountryPage({
         </header>
 
         {items.length > 0 ? (
-          <TrendsView items={items} geo={code} locale={locale} />
-        ) : (
-          <p className="muted">{d.country.loadFail}</p>
-        )}
-
-        {/* サーバー描画のテキスト一覧: 原語＋訳＋ニュースがHTMLに入る=SEO/JS無し/読み上げの土台 */}
-        {items.length > 0 && (
-          <section style={{ marginTop: 28 }}>
-            {/* 構造化データ: 急上昇のランキングを ItemList で明示。トレンド語は外部由来なので
-                jsonLd()で "<" をエスケープし script脱出(XSS)を防ぐ */}
+          <>
+            {/* 構造化データ: 急上昇のランキングを ItemList で明示(SSR=クローラ向け)。トレンド語は
+                外部由来なので jsonLd()で "<" をエスケープし script脱出(XSS)を防ぐ */}
             <script
               type="application/ld+json"
               dangerouslySetInnerHTML={{
@@ -135,55 +121,12 @@ export default async function CountryPage({
                 }),
               }}
             />
-            <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
-            <p style={{ margin: "4px 0 0" }}>
-              <LiveStamp
-                iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
-                locale={locale}
-                label={d.country.updated}
-              />
-            </p>
-            <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
-              {items.map((it) => (
-                <li
-                  key={it.word}
-                  style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
-                >
-                  <Link
-                    href={`${localePath(locale, "/analysis")}?geo=${code}&seed=${encodeURIComponent(it.word)}`}
-                    translate="no"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {it.word}
-                  </Link>
-                  <WordGloss word={it.word} from={newsLang} to={locale} initial={it.translation} />
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {" "}
-                    ・ {d.detail.searches} {it.traffic}
-                    {it.firstSeen &&
-                      ` ・ ${d.detail.appeared(durationStr(it.firstSeen, nowSec, locale) ?? "")}`}
-                  </span>
-                  {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
-                  {it.news.length > 0 && (
-                    <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
-                      {it.news.slice(0, 2).map((n, i) => (
-                        <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
-                          {n.url ? (
-                            <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                              <NewsTitle title={n.title} from={newsLang} to={locale} />
-                            </a>
-                          ) : (
-                            <NewsTitle title={n.title} from={newsLang} to={locale} />
-                          )}
-                          {n.source && <span> ({n.source})</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+            {/* 図とSEOテキスト一覧の両方をTrendsViewが描く=同じliveItemsから同じ瞬間に更新。
+                SSRは初期state(items)で描かれる=JS無し/クローラ向けの土台は維持 */}
+            <TrendsView items={items} geo={code} locale={locale} nowSec={nowSec} />
+          </>
+        ) : (
+          <p className="muted">{d.country.loadFail}</p>
         )}
 
         {/* 横断比較=独自価値の言語化 + 他国への内部リンク(クロール深度/比較ナビ) */}

@@ -5,8 +5,11 @@ import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
-import { t, localePath, durationStr, type Locale } from "@/lib/i18n";
+import { t, localePath, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 import NewsCarousel from "@/components/NewsCarousel";
+import LiveStamp from "@/components/LiveStamp";
+import NewsTitle from "@/components/NewsTitle";
+import WordGloss from "@/components/WordGloss";
 
 interface NewsItem {
   title: string;
@@ -334,14 +337,17 @@ export default function TrendsView({
   items,
   geo,
   locale,
+  nowSec: nowSecInit,
 }: {
   items: TrendItem[];
   geo: string;
   locale: Locale;
+  nowSec: number; // サーバー時刻(秒)。リストの「経過」表示をSSRから正しく出すための基準
 }) {
   const d = t(locale);
   const [selected, setSelected] = useState<TrendItem | null>(null);
-  const [nowSec, setNowSec] = useState(0);
+  // サーバー時刻で初期化=SSRと一致(ハイドレーション差異なし)。effectでクライアント時刻に更新
+  const [nowSec, setNowSec] = useState(nowSecInit);
   // 着地時に図を最新へ更新。ISRのHTMLが古くても、アクセス時にCDNキャッシュ済みの最新図へ
   // 置き換える(=「リロードしないと古い」を解消)。/api/trendsはUpstash+CDNで上流は叩かない。
   // 下のSEO一覧はSSRのまま=インデックスの土台は維持(別物として扱う)。
@@ -415,6 +421,12 @@ export default function TrendsView({
   const appeared = selected ? durationStr(selected.firstSeen, nowSec, locale) : null;
   const selGloss = selected?.translation ?? selWordTr;
 
+  // 図と同じ liveItems からリストも描く=「図だけ新しくリストが古い」を解消。
+  // SSRは初期state(items)で描かれる=クローラ/JS無し向けSEO土台は維持(初期HTMLに原語＋訳＋ニュース)。
+  const country = COUNTRY_LABELS[locale][geo];
+  // 「最終更新」は最新スナップのlastSeen=鮮度に正直(描画時刻ではない)
+  const updatedSec = liveItems.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
+
   return (
     <>
       <ScaleBubbles items={liveItems} locale={locale} onSelect={setSelected} />
@@ -476,6 +488,60 @@ export default function TrendsView({
             {d.detail.explore}
           </Link>
         </div>
+      )}
+
+      {/* サーバー描画のテキスト一覧(SEO土台)。図と同じ liveItems を参照=同じ瞬間に更新される */}
+      {liveItems.length > 0 && (
+        <section style={{ marginTop: 28 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
+          <p style={{ margin: "4px 0 0" }}>
+            <LiveStamp
+              iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
+              locale={locale}
+              label={d.country.updated}
+            />
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
+            {liveItems.map((it) => (
+              <li
+                key={it.word}
+                style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
+              >
+                <Link
+                  href={`${localePath(locale, "/analysis")}?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
+                  translate="no"
+                  style={{ fontWeight: 600 }}
+                >
+                  {it.word}
+                </Link>
+                <WordGloss word={it.word} from={srcLang} to={locale} initial={it.translation} />
+                <span className="muted" style={{ fontSize: 12 }}>
+                  {" "}
+                  ・ {d.detail.searches} {it.traffic}
+                  {it.firstSeen &&
+                    ` ・ ${d.detail.appeared(durationStr(it.firstSeen, nowSec, locale) ?? "")}`}
+                </span>
+                {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
+                {it.news.length > 0 && (
+                  <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
+                    {it.news.slice(0, 2).map((n, i) => (
+                      <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
+                        {n.url ? (
+                          <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
+                            <NewsTitle title={n.title} from={srcLang} to={locale} />
+                          </a>
+                        ) : (
+                          <NewsTitle title={n.title} from={srcLang} to={locale} />
+                        )}
+                        {n.source && <span> ({n.source})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   );
