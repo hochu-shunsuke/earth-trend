@@ -5,7 +5,7 @@ earth-trend.com(本番公開済み)。検索の普遍的注意を可視化する
 
 - `src/` — アプリ本体(Next.js App Router)
 - `scripts/` — 翻訳ウォーミング等のバッチ
-- `docs/` — 意思決定記録(DECISIONS.md)・設計方針(ARCHITECTURE.md)・バックログ・哲学(PHILOSOPHY.md)
+- `docs/` — 意思決定記録(DECISIONS.md)・プロダクトの背骨(PHILOSOPHY.md)
 
 ## 開発ルール
 
