@@ -1,8 +1,11 @@
-# bizz — 個人事業モノレポ
+# earth-trend — 検索トレンド可視化「検索の宇宙」(仮称)
 
-- `app/` — kikaku-tools.com(規格ツールズ)。パーク中。触る前に `docs/DECISIONS.md` を読む
-- `cosmos/` — 検索トレンド可視化「検索の宇宙」(仮称)。現在の本命
-- `docs/` — 意思決定記録(DECISIONS.md)・設計方針(ARCHITECTURE.md)・バックログ
+earth-trend.com(本番公開済み)。検索の普遍的注意を可視化するNext.jsアプリ。
+旧 `bizz` モノレポの `cosmos/` を独立リポジトリに昇格したもの(kikaku-tools=旧`app/`は破棄)。
+
+- `src/` — アプリ本体(Next.js App Router)
+- `scripts/` — 翻訳ウォーミング等のバッチ
+- `docs/` — 意思決定記録(DECISIONS.md)・設計方針(ARCHITECTURE.md)・バックログ・哲学(PHILOSOPHY.md)
 
 ## 開発ルール
 
