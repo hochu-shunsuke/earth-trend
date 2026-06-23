@@ -3,10 +3,13 @@ import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import {
   SITE_NAME,
+  SITE_URL,
   SITE_TAGLINE,
+  SITE_DESCRIPTION,
   SITE_OPERATOR,
   SITE_EMAIL,
   SITE_GITHUB,
+  jsonLd,
 } from "@/lib/site";
 import { toLocale, localePath, altLanguages } from "@/lib/i18n";
 
@@ -31,6 +34,29 @@ const CONTENT = {
     privacyTitle: "プライバシー",
     privacy:
       "アカウント登録はなく、あなたの個人情報を保存することはありません。サイト改善のため、アクセス状況の匿名的な統計(Google Analytics)を利用する場合があります。",
+    faqTitle: "よくある質問",
+    faq: [
+      [
+        "データはリアルタイムですか?",
+        "完全なリアルタイムではありません。各国のデータを10分ごとにキャッシュして取得・表示しています。提供元(Google)へ礼儀正しくアクセスするための設計です。",
+      ],
+      [
+        "何カ国に対応していますか?",
+        "24カ国です。日本・アメリカ・イギリス・インド・韓国・台湾・ドイツ・フランス・ブラジルなどを起点に、英語圏・スペイン語圏・主要国へ広げています。",
+      ],
+      [
+        "Google 公式のサービスですか?",
+        "いいえ。Google LLC とは一切関係のない、個人による非公式なプロジェクトです。公開されている Google トレンド/オートコンプリートのデータを独自に可視化しています。",
+      ],
+      [
+        "Google トレンドと何が違いますか?",
+        "数字を分析するツールというより、世界の好奇心を眺める鏡です。円の大きさ=検索ボリューム、色=登場からの新しさ、という独自の表現で、関心の「いま」と繋がりを感じ取れるようにしています。",
+      ],
+      [
+        "表示される大きさや順位は正確な数値ですか?",
+        "相対的な表現です。円の大きさは検索ボリュームの大小を表しますが、全検索に占める割合ではありません。",
+      ],
+    ] as [string, string][],
   },
   en: {
     title: "About",
@@ -52,6 +78,29 @@ const CONTENT = {
     privacyTitle: "Privacy",
     privacy:
       "There is no sign-up, and we do not store your personal information. We may use anonymous usage statistics (Google Analytics) to improve the site.",
+    faqTitle: "FAQ",
+    faq: [
+      [
+        "Is the data real-time?",
+        "Not strictly real-time. Each country's data is fetched and cached every 10 minutes — a design choice to stay polite to the source (Google).",
+      ],
+      [
+        "How many countries are covered?",
+        "24 countries. Starting from Japan, the US, the UK, India, South Korea, Taiwan, Germany, France and Brazil, we keep expanding across the English- and Spanish-speaking world and major markets.",
+      ],
+      [
+        "Is this an official Google service?",
+        "No. It's an unofficial personal project with no affiliation to Google LLC. We independently visualize public data from Google Trends and search autocomplete.",
+      ],
+      [
+        "How is this different from Google Trends?",
+        "Less an analytics tool, more a mirror onto the world's curiosity. With our own encoding — circle size = search volume, color = how recently a word appeared — you can feel the 'now' of attention and how it connects.",
+      ],
+      [
+        "Are the sizes and rankings exact numbers?",
+        "They're relative. Circle size reflects the relative magnitude of search volume, not a share of all searches.",
+      ],
+    ] as [string, string][],
   },
   es: {
     title: "Acerca de",
@@ -73,6 +122,29 @@ const CONTENT = {
     privacyTitle: "Privacidad",
     privacy:
       "No hay registro de cuenta y no almacenamos tu información personal. Podemos usar estadísticas de uso anónimas (Google Analytics) para mejorar el sitio.",
+    faqTitle: "Preguntas frecuentes",
+    faq: [
+      [
+        "¿Los datos son en tiempo real?",
+        "No exactamente en tiempo real. Los datos de cada país se obtienen y se almacenan en caché cada 10 minutos, una decisión de diseño para acceder con cortesía a la fuente (Google).",
+      ],
+      [
+        "¿Cuántos países cubre?",
+        "24 países. Partiendo de Japón, Estados Unidos, Reino Unido, India, Corea del Sur, Taiwán, Alemania, Francia y Brasil, seguimos ampliando hacia el mundo angloparlante e hispanohablante y los mercados principales.",
+      ],
+      [
+        "¿Es un servicio oficial de Google?",
+        "No. Es un proyecto personal no oficial, sin relación alguna con Google LLC. Visualizamos de forma independiente datos públicos de Google Trends y del autocompletado de búsqueda.",
+      ],
+      [
+        "¿En qué se diferencia de Google Trends?",
+        "Más que una herramienta de análisis, es un espejo de la curiosidad del mundo. Con nuestra propia codificación — tamaño del círculo = volumen de búsqueda, color = qué tan reciente apareció — puedes sentir el 'ahora' de la atención y cómo se conecta.",
+      ],
+      [
+        "¿Los tamaños y posiciones son cifras exactas?",
+        "Son relativos. El tamaño del círculo refleja la magnitud relativa del volumen de búsqueda, no una proporción de todas las búsquedas.",
+      ],
+    ] as [string, string][],
   },
 };
 
@@ -150,6 +222,47 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
           <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.privacyTitle}</h2>
           <p>{c.privacy}</p>
         </section>
+
+        <section style={{ marginTop: 24 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.faqTitle}</h2>
+          {c.faq.map(([q, a]) => (
+            <div key={q} style={{ marginTop: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{q}</h3>
+              <p style={{ margin: "4px 0 0" }}>{a}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* 構造化データ: WebApplication(実体)＋ FAQPage(People Also Ask 獲得)。
+            事実の明示であり、サイトの「正直さ」と一致する */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLd({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebApplication",
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  description: SITE_DESCRIPTION,
+                  applicationCategory: "ReferenceApplication",
+                  operatingSystem: "Web",
+                  inLanguage: ["ja", "en", "es"],
+                  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+                },
+                {
+                  "@type": "FAQPage",
+                  mainEntity: c.faq.map(([q, a]) => ({
+                    "@type": "Question",
+                    name: q,
+                    acceptedAnswer: { "@type": "Answer", text: a },
+                  })),
+                },
+              ],
+            }),
+          }}
+        />
 
         <p style={{ marginTop: 32 }}>
           <Link href={localePath(locale)}>← {SITE_NAME}</Link>
