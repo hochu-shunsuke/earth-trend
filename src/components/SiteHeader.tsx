@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 import { LOCALES, DEFAULT_LOCALE, isLocale, t, localePath, type Locale } from "@/lib/i18n";
+import { gaEvent } from "@/lib/gtag";
 
 export default function SiteHeader({
   overlay = false,
@@ -38,7 +39,10 @@ export default function SiteHeader({
   // 言語切替: 現在のセクションを保ったまま言語だけ差し替える(ja=接頭辞なし / en,es=/xx)
   // en/es は接頭辞3文字(/en, /es)を剥がす。ja(接頭辞なし)はそのまま
   const rest = prefix === "en" || prefix === "es" ? pathname.slice(3) : pathname;
-  const switchLang = (l: Locale) => router.push(localePath(l, rest === "/" ? "" : rest));
+  const switchLang = (l: Locale) => {
+    gaEvent("language_switch", { from: locale, to: l });
+    router.push(localePath(l, rest === "/" ? "" : rest));
+  };
 
   const langSelect = (
     <select
