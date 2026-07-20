@@ -5,8 +5,7 @@ import { getGalleryData } from "@/lib/gallery-data";
 // キー)を参照する=どのページの図も「同じ瞬間」のデータになり、時刻/内容のドリフトが起きない。
 export async function GET() {
   const data = await getGalleryData();
-  return NextResponse.json(
-    { data: Object.fromEntries(data) },
-    { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } },
-  );
+  // CDNキャッシュは付けない: URLごとに別タイマーになり、getGalleryData(単一キャッシュキー)
+  // が持つ「全ページ同じ瞬間」という前提が崩れてドリフトする(内部のunstable_cacheで十分低コスト)
+  return NextResponse.json({ data: Object.fromEntries(data) });
 }

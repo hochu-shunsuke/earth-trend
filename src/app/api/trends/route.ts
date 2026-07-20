@@ -27,10 +27,9 @@ export async function GET(req: NextRequest) {
             })),
           )
         : raw;
-    return NextResponse.json(
-      { geo, items },
-      { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } },
-    );
+    // CDNキャッシュは付けない: URLごとに別タイマーになり、getGalleryData(単一キャッシュキー)
+    // が持つ「全ページ同じ瞬間」という前提が崩れてドリフトする(内部のunstable_cacheで十分低コスト)
+    return NextResponse.json({ geo, items });
   } catch {
     return NextResponse.json({ error: "upstream error" }, { status: 502 });
   }
