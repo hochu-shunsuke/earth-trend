@@ -6,6 +6,7 @@ import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
 import { t, localePath, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { gaEvent } from "@/lib/gtag";
 import NewsCarousel from "@/components/NewsCarousel";
 import LiveStamp from "@/components/LiveStamp";
 import NewsTitle from "@/components/NewsTitle";
@@ -31,10 +32,12 @@ interface TrendItem {
 function ScaleBubbles({
   items,
   locale,
+  geo,
   onSelect,
 }: {
   items: TrendItem[];
   locale: Locale;
+  geo: string;
   onSelect: (it: TrendItem) => void;
 }) {
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
@@ -269,6 +272,7 @@ function ScaleBubbles({
                 className="bubble-pop"
                 onClick={() => {
                   if (moved.current) return; // ドラッグ後のクリックは無視
+                  gaEvent("bubble_select", { geo, word: it.word });
                   onSelect(it);
                 }}
                 title={`${it.word} ・ ${it.traffic}`}
@@ -313,13 +317,34 @@ function ScaleBubbles({
           className="bubble-zoom"
           style={{ opacity: ctrlShown ? 1 : 0, pointerEvents: ctrlShown ? "auto" : "none" }}
         >
-          <button className="btn" onClick={() => zoomCenter(1.3)} aria-label="zoom in">
+          <button
+            className="btn"
+            onClick={() => {
+              gaEvent("zoom_button_click", { action: "in", geo });
+              zoomCenter(1.3);
+            }}
+            aria-label="zoom in"
+          >
             +
           </button>
-          <button className="btn" onClick={() => zoomCenter(1 / 1.3)} aria-label="zoom out">
+          <button
+            className="btn"
+            onClick={() => {
+              gaEvent("zoom_button_click", { action: "out", geo });
+              zoomCenter(1 / 1.3);
+            }}
+            aria-label="zoom out"
+          >
             −
           </button>
-          <button className="btn" onClick={resetView} aria-label="reset">
+          <button
+            className="btn"
+            onClick={() => {
+              gaEvent("zoom_button_click", { action: "reset", geo });
+              resetView();
+            }}
+            aria-label="reset"
+          >
             ⤢
           </button>
         </div>
@@ -429,7 +454,7 @@ export default function TrendsView({
 
   return (
     <>
-      <ScaleBubbles items={liveItems} locale={locale} onSelect={setSelected} />
+      <ScaleBubbles items={liveItems} locale={locale} geo={geo} onSelect={setSelected} />
 
       {selected && (
         <div className="detail-panel">
@@ -478,12 +503,14 @@ export default function TrendsView({
             href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => gaEvent("google_search_click", { geo, word: selected.word, source: "trends" })}
           >
             {d.detail.googleSearch}
           </a>
           <Link
             className="btn"
             href={`${localePath(locale, "/analysis")}?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
+            onClick={() => gaEvent("explore_click", { geo, word: selected.word, source: "trends" })}
           >
             {d.detail.explore}
           </Link>

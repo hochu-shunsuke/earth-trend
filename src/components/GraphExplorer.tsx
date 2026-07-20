@@ -7,6 +7,7 @@ import NewsCarousel from "@/components/NewsCarousel";
 import { GEO_LABELS, GEO_HL, GEO_LANG } from "@/lib/trends";
 import { freshnessColor } from "@/lib/trendsVisual";
 import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
+import { gaEvent } from "@/lib/gtag";
 import {
   forceSimulation,
   forceLink,
@@ -323,6 +324,7 @@ export default function GraphExplorer() {
   // select: 詳細シートを開くか。自動ダイブ(着地)では展開だけして開かない
   const onNodeHit = async (node: GNode, opts?: { select?: boolean }) => {
     if (opts?.select !== false) {
+      gaEvent("graph_node_select", { geo: node.geo, word: node.id, depth: node.depth ?? 0 });
       setSelected({ word: node.id, geo: node.geo, news: node.news, isSeed: node.isSeed });
       // 開いた直後の合成クリックがパネル内リンクに当たらないよう一時的に無効化
       setPanelArmed(false);
@@ -343,6 +345,7 @@ export default function GraphExplorer() {
       // 新規の子だけをリング状に配置する。force任せに広げないので整定が要らず、
       // 全体が一気に動く「ガコッ」が出ない & 置いた瞬間にズーム対象が確定する
       const fresh = suggestions.filter((s) => !ids.has(s));
+      gaEvent("graph_expand", { geo: node.geo, word: node.id, depth: node.depth ?? 0, count: fresh.length });
       // リング半径を子の数に応じて広げる(角度の混雑=重なり/交差を減らす)
       const ringR = Math.max(72, 9 * fresh.length);
       const bornC = performance.now();
@@ -753,6 +756,9 @@ export default function GraphExplorer() {
               href={`https://www.google.com/search?q=${encodeURIComponent(selected.word)}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() =>
+                gaEvent("google_search_click", { geo: selected.geo, word: selected.word, source: "analysis" })
+              }
             >
               {tx.detail.googleSearch}
             </a>
