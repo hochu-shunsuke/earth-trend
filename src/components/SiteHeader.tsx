@@ -18,9 +18,7 @@ export default function SiteHeader({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // prefix-except-default: ja は接頭辞なし(/trends)、en/es は /en /es 接頭辞(/en/trends)。
-  // SSRではproxyのrewriteで pathname が /ja/... になる(クライアントは接頭辞なしの /...)。
-  // 先頭が ja/en/es ならロケール接頭辞として剥がす。剥がさないと section が "ja" になり
-  // "ja".length===2 で誤ってトレンドがアクティブ判定→ハードリロード時にナビが一瞬化ける。
+  // config rewrite後のSSRでも安全なよう、先頭がja/en/esならロケール接頭辞として剥がす。
   const parts = pathname.split("/").filter(Boolean);
   const prefix = parts[0];
   const hasLocalePrefix = isLocale(prefix);

@@ -151,7 +151,7 @@ const DICT: Record<Locale, Dict> = {
     home: {
       title: "世界のトレンド",
       desc: "いま各国が検索していること。気になった国を押すと、その先に何が繋がっているかを探索できる。",
-      legendFooter: "大きさ＝検索ボリューム／色＝新しさ。データ: Google Trends（10分ごと更新）・",
+      legendFooter: "大きさ＝検索ボリューム／色＝新しさ。データ: Google Trends（30分ごと更新）・",
       about: "このサイトについて",
     },
     country: {
@@ -195,7 +195,7 @@ const DICT: Record<Locale, Dict> = {
     home: {
       title: "World Trends",
       desc: "What each country is searching right now. Tap a country to explore where its curiosity leads.",
-      legendFooter: "Size = search volume / color = freshness. Data: Google Trends (updated every 10 min) · ",
+      legendFooter: "Size = search volume / color = freshness. Data: Google Trends (updated every 30 min) · ",
       about: "About",
     },
     country: {
@@ -240,7 +240,7 @@ const DICT: Record<Locale, Dict> = {
       title: "Tendencias del mundo",
       desc: "Lo que cada país busca ahora mismo. Toca un país para explorar hacia dónde lleva su curiosidad.",
       legendFooter:
-        "Tamaño = volumen de búsqueda / color = novedad. Datos: Google Trends (actualizado cada 10 min) · ",
+        "Tamaño = volumen de búsqueda / color = novedad. Datos: Google Trends (actualizado cada 30 min) · ",
       about: "Acerca de",
     },
     country: {

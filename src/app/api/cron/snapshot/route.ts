@@ -12,6 +12,7 @@ import {
 // after()(背景実行)はHobbyで実行されないことがあったため、確実な同期実行に変更。
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+const QUARTER_HOUR_MS = 15 * 60 * 1000;
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -23,6 +24,13 @@ function authorized(req: Request): boolean {
 async function handle(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const url = new URL(req.url);
+  const force = url.searchParams.get("force") === "1";
+  // QStashの既存15分scheduleから呼ばれても、重い処理はUTCの:00/:30だけ実行する。
+  // 認証済みの手動実行は ?force=1 でこのガードを越えられる。
+  if (!force && Math.floor(Date.now() / QUARTER_HOUR_MS) % 2 !== 0) {
+    return NextResponse.json({ ok: true, skipped: true, cadenceMinutes: 30 });
   }
   try {
     const out = await runSnapshot(); // 保存(高速)
