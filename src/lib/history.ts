@@ -1,4 +1,5 @@
 import { fetchTrends, type NewsItem, type TrendItem } from "./trends";
+import { TRENDS_DATA_CACHE_TAG } from "./cache-tags";
 
 // 蓄積スナップショットを「読み取り時に結合(union)」して、取得頻度を上げずに
 // 件数を増やす(コスト~0)。各語に発生時刻(firstseen)を付ける。
@@ -139,6 +140,6 @@ import { unstable_cache } from "next/cache";
 /** OG画像など用: 1国のunionを10分キャッシュ(毎リクエストでUpstashを叩かない) */
 export const getTrendsUnionedCached = unstable_cache(
   (geo: string) => fetchTrendsUnioned(geo),
-  ["trends-unioned-og"],
-  { revalidate: 600 },
+  ["trends-unioned-og-v2"],
+  { revalidate: 600, tags: [TRENDS_DATA_CACHE_TAG] },
 );
