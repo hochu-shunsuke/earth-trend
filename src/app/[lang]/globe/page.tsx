@@ -355,7 +355,7 @@ export default function GlobePage() {
       globeRef.current = globe;
       await applyStyle();
       await load();
-      interval = setInterval(load, 10 * 60 * 1000); // 10分ごとに更新(新着はパルス)
+      interval = setInterval(load, 30 * 60 * 1000); // snapshot間隔に合わせて30分ごとに更新
     })();
 
     // テーマ切替に追従(ラインスタイルは背景・国土色が変わる)

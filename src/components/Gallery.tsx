@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import SiteHeader from "@/components/SiteHeader";
 import GalleryGrid from "@/components/GalleryGrid";
 import { getGalleryData } from "@/lib/gallery-data";
@@ -12,13 +11,7 @@ export default async function Gallery({ locale }: { locale: Locale }) {
   const labels = COUNTRY_LABELS[locale];
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
-  let data = await getGalleryData();
-
-  // 自動ロケーション: Vercelの国ヘッダで、訪問者の国が対象なら先頭に(俯瞰は壊さず関連性UP)
-  const visitorGeo = (await headers()).get("x-vercel-ip-country")?.toUpperCase();
-  if (visitorGeo && data.some(([g]) => g === visitorGeo)) {
-    data = [...data].sort((a) => (a[0] === visitorGeo ? -1 : 0));
-  }
+  const data = await getGalleryData();
 
   return (
     <>

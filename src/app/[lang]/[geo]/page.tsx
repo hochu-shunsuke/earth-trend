@@ -16,9 +16,10 @@ import { toLocale, t, localePath, altLanguages, COUNTRY_LABELS, type Locale } fr
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
 
-export const revalidate = 600;
+// snapshot完了時のタグ失効が主経路。1時間はcron停止時の安全網。
+export const revalidate = 3600;
 
-// データ＋翻訳を10分キャッシュ(訪問あたりのUpstash/翻訳コストをほぼゼロに。ローンチ耐性)。
+// データ＋翻訳をタグ失効＋1時間の安全網でキャッシュ(訪問あたりのUpstash/翻訳コストをほぼゼロに)。
 // データは getGalleryData(全画面共通の単一ソース)から取り出す=trends/と各国ページが同じ瞬間に揃う。
 const getCountryItems = unstable_cache(
   async (code: string, locale: Locale): Promise<TranslatedItem[]> => {
@@ -36,7 +37,7 @@ const getCountryItems = unstable_cache(
   },
   // v4で旧キャッシュを切り離す。snapshotの翻訳warming完了後にタグで失効する。
   ["country-items-v4"],
-  { revalidate: 600, tags: [TRENDS_TRANSLATED_CACHE_TAG] },
+  { revalidate: 3600, tags: [TRENDS_TRANSLATED_CACHE_TAG] },
 );
 
 // 9カ国を静的生成(SEO: 各国×各ロケールが独立したインデックス可能ランディング)
@@ -78,9 +79,9 @@ export default async function CountryPage({
   if (!ALLOWED_GEO.has(code) || geo !== geoSlug(code)) notFound();
   const country = COUNTRY_LABELS[locale][code];
 
-  // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋10分キャッシュ
+  // 語の翻訳はサーバー描画時(HTMLに原語＋訳=SEO/即時)＋タグ連動キャッシュ
   const items = await getCountryItems(code, locale);
-  // 「登場からの経過」表示用の基準時刻(ISR 10分なので分解能は十分)。TrendsViewへ渡す
+  // 「登場からの経過」表示用の基準時刻。TrendsViewへ渡す
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
 
@@ -123,8 +124,7 @@ export default async function CountryPage({
                 }),
               }}
             />
-            {/* 図とSEOテキスト一覧の両方をTrendsViewが描く=同じliveItemsから同じ瞬間に更新。
-                SSRは初期state(items)で描かれる=JS無し/クローラ向けの土台は維持 */}
+            {/* 図とSEOテキスト一覧の両方を同じ静的生成データから描く。 */}
             <TrendsView items={items} geo={code} locale={locale} nowSec={nowSec} />
           </>
         ) : (
