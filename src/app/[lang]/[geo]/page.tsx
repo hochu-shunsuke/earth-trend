@@ -11,6 +11,7 @@ import { ALLOWED_GEO, GEO_LABELS, GEO_LANG, geoSlug, slugToGeo } from "@/lib/tre
 import { type RecentTrendItem } from "@/lib/history";
 import { getGalleryData } from "@/lib/gallery-data";
 import { translate } from "@/lib/translate";
+import { TRENDS_TRANSLATED_CACHE_TAG } from "@/lib/cache-tags";
 import { toLocale, t, localePath, altLanguages, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 type TranslatedItem = RecentTrendItem & { translation?: string };
@@ -33,8 +34,9 @@ const getCountryItems = unstable_cache(
       })),
     );
   },
-  ["country-items-v3"],
-  { revalidate: 600 },
+  // v4で旧キャッシュを切り離す。snapshotの翻訳warming完了後にタグで失効する。
+  ["country-items-v4"],
+  { revalidate: 600, tags: [TRENDS_TRANSLATED_CACHE_TAG] },
 );
 
 // 9カ国を静的生成(SEO: 各国×各ロケールが独立したインデックス可能ランディング)
