@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { runSnapshot, warmTranslations } from "@/lib/snapshot";
+import {
+  TRENDS_DATA_CACHE_TAG,
+  TRENDS_TRANSLATED_CACHE_TAG,
+} from "@/lib/cache-tags";
 
 // スナップショット定期実行のエンドポイント。Upstash QStash が無料・高信頼で定期トリガする。
 // CRON_SECRET で保護(QStashは Upstash-Forward-Authorization で Bearer を転送、手動は ?key=)。
@@ -21,7 +26,12 @@ async function handle(req: Request) {
   }
   try {
     const out = await runSnapshot(); // 保存(高速)
+    // revalidate: 600だけでは期限切れ後の最初の閲覧者へ古い値を返してから背景更新する。
+    // snapshot保存を更新イベントとして即時失効し、次の読み取りは必ず新しいsnapshotを待つ。
+    revalidateTag(TRENDS_DATA_CACHE_TAG, { expire: 0 });
     const warmed = await warmTranslations(out.warmJobs); // 同期で温める(時間予算で打ち切り)
+    // 翻訳付き国別キャッシュはwarming後に失効し、未温の訳を再キャッシュしないようにする。
+    revalidateTag(TRENDS_TRANSLATED_CACHE_TAG, { expire: 0 });
     return NextResponse.json({
       ok: true,
       ts: out.ts,
