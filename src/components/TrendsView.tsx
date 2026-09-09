@@ -373,22 +373,6 @@ export default function TrendsView({
   const [selected, setSelected] = useState<TrendItem | null>(null);
   // サーバー時刻で初期化=SSRと一致(ハイドレーション差異なし)。effectでクライアント時刻に更新
   const [nowSec, setNowSec] = useState(nowSecInit);
-  // 着地時に図を最新へ更新。ISRのHTMLが古くても、アクセス時にCDNキャッシュ済みの最新図へ
-  // 置き換える(=「リロードしないと古い」を解消)。/api/trendsはUpstash+CDNで上流は叩かない。
-  // 下のSEO一覧はSSRのまま=インデックスの土台は維持(別物として扱う)。
-  const [liveItems, setLiveItems] = useState(items);
-  useEffect(() => {
-    let alive = true;
-    fetch(`/api/trends?geo=${geo}&to=${locale}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (alive && data?.items?.length) setLiveItems(data.items as TrendItem[]);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [geo, locale]);
   // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
   const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
   // 選択語の訳。SSR(it.translation)が温済なら即出す。未温なら開いた時に取りこぼし回収(self-cache)
@@ -446,15 +430,14 @@ export default function TrendsView({
   const appeared = selected ? durationStr(selected.firstSeen, nowSec, locale) : null;
   const selGloss = selected?.translation ?? selWordTr;
 
-  // 図と同じ liveItems からリストも描く=「図だけ新しくリストが古い」を解消。
-  // SSRは初期state(items)で描かれる=クローラ/JS無し向けSEO土台は維持(初期HTMLに原語＋訳＋ニュース)。
+  // snapshot完了時のタグ失効で静的HTMLごと更新されるため、図とリストは常に同じitemsを使う。
   const country = COUNTRY_LABELS[locale][geo];
   // 「最終更新」は最新スナップのlastSeen=鮮度に正直(描画時刻ではない)
-  const updatedSec = liveItems.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
+  const updatedSec = items.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
 
   return (
     <>
-      <ScaleBubbles items={liveItems} locale={locale} geo={geo} onSelect={setSelected} />
+      <ScaleBubbles items={items} locale={locale} geo={geo} onSelect={setSelected} />
 
       {selected && (
         <div className="detail-panel">
@@ -517,8 +500,8 @@ export default function TrendsView({
         </div>
       )}
 
-      {/* サーバー描画のテキスト一覧(SEO土台)。図と同じ liveItems を参照=同じ瞬間に更新される */}
-      {liveItems.length > 0 && (
+      {/* サーバー描画のテキスト一覧(SEO土台)。図と同じitemsを参照する */}
+      {items.length > 0 && (
         <section style={{ marginTop: 28 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
           <p style={{ margin: "4px 0 0" }}>
@@ -529,7 +512,7 @@ export default function TrendsView({
             />
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
-            {liveItems.map((it) => (
+            {items.map((it) => (
               <li
                 key={it.word}
                 style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}

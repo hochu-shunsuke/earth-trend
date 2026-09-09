@@ -1,18 +1,16 @@
 // 注意の時系列スナップショッター(本体)。Vercelの /api/cron/snapshot から Upstash QStash の
-// 定期トリガ(無料・高信頼)で呼ばれる。9〜24カ国のトレンドを並列取得しUpstashに保存し、
+// 定期トリガ(無料・高信頼)で呼ばれる。24カ国のトレンドを並列取得しUpstashに保存し、
 // 新規語の翻訳をUIロケール(ja/en/es)へ温める(=ユーザーは原語ではなく訳を見られる)。
-// GitHub Actionsは分単位課金で warming を載せられなかったが、QStash+Vercel(実行時間課金)に
-// 移行したので warming を復活。route側は snapshot を即応答し warming は after() で背景実行する
-// (QStashのタイムアウト/リトライを避けるため)。
+// 国ごとのRedis往復は避け、読み取り・保存・翻訳保存をそれぞれ一括pipelineにする。
 import { GEO_LABELS, GEO_LANG } from "@/lib/trends";
 import { LOCALES } from "@/lib/i18n";
 
 const GEOS = Object.keys(GEO_LABELS);
-// 直近の保持数。unionで使うのは直近3件のみ。残りは将来のvelocity可視化用の余白(=~6日@15分)
+// 直近の保持数。unionで使うのは直近3件のみ。残りは将来のvelocity可視化用の余白(=~6日@30分)
 const KEEP_PER_GEO = 300;
 // 1回の warming で温める翻訳の上限と時間予算(route maxDuration 60s 内で打ち切る)。
-// gtx(非公式EP)に優しく: 1回60件・各120ms間隔=warming中は約1.3/s・最大~5,760件/日に抑える。
-const WARM_CAP = 80; // 1回に温める翻訳の上限(新規語のみ=普段は遥かに下)
+// gtx(非公式EP)に優しく: 1回30件・各120ms間隔、30分間隔で最大1,440件/日に抑える。
+const WARM_CAP = 30; // 1回に温める翻訳の上限(新規語のみ=普段は遥かに下)
 const WARM_BUDGET_MS = 33_000; // route内で同期実行(snapshot~3s込みで~36s。QStash 60s以内)
 // trim(古いスナップ間引き)は毎回やらず ~10回に1回だけ(Upstashコマンド節約)。間の数件超過は無害
 const TRIM_EVERY = 10;
@@ -33,6 +31,11 @@ interface SnapItem {
 interface WarmJob {
   text: string;
   src: string;
+}
+
+interface RedisResult {
+  result: unknown;
+  error?: string;
 }
 
 function decode(s: string): string {
@@ -91,7 +94,7 @@ async function fetchTrendsRaw(geo: string): Promise<SnapItem[]> {
   return parseRss(await res.text());
 }
 
-async function redis(commands: unknown[][]): Promise<{ result: unknown }[] | null> {
+async function redis(commands: unknown[][]): Promise<RedisResult[]> {
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) throw new Error("Redis REST env vars missing");
@@ -102,7 +105,7 @@ async function redis(commands: unknown[][]): Promise<{ result: unknown }[] | nul
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`upstash ${res.status}`);
-  return res.json();
+  return res.json() as Promise<RedisResult[]>;
 }
 
 // Googleの無料翻訳EP(キー不要)。lib/translate.ts と同じキー(tr2:from:to:text)に貯める
@@ -130,82 +133,100 @@ async function translateGoogle(text: string, to: string): Promise<string | null>
   }
 }
 
-// 1国: RSS取得→直前latestと比較し新規語を出す→保存→新規語+見出しを温め候補として返す。
-// 既存(=前回もあった)語は温め対象外(コスト節約)。既存バックログは別途ローカルbackfillで一括。
-async function snapshotGeo(geo: string, ts: number, doTrim: boolean): Promise<WarmJob[]> {
-  let items: SnapItem[];
-  try {
-    items = await fetchTrendsRaw(geo);
-  } catch (e) {
-    console.error(`skip ${geo}:`, (e as Error).message);
-    return [];
-  }
-  if (items.length === 0) return [];
-
-  // 直前latestを読み新規語を判定(=warming対象)
-  const prevWords = new Set<string>();
-  try {
-    const p = await redis([["GET", `latest:${geo}`]]);
-    const raw = p?.[0]?.result;
-    if (typeof raw === "string") {
-      const prev = JSON.parse(raw) as { items?: SnapItem[] };
-      for (const it of prev.items ?? []) prevWords.add(it.word);
-    }
-  } catch {}
-
-  const snapshot = JSON.stringify({ ts, items });
-  const cmds: unknown[][] = [
-    ["ZADD", `snapshot:${geo}`, String(ts), snapshot],
-    ["SET", `latest:${geo}`, snapshot],
-  ];
-  if (doTrim) cmds.push(["ZREMRANGEBYRANK", `snapshot:${geo}`, "0", String(-KEEP_PER_GEO - 1)]);
-  try {
-    await redis(cmds);
-  } catch (e) {
-    console.error(`store ${geo} failed:`, (e as Error).message);
-    return [];
-  }
-
-  // 新規語 + その見出し(client/api/translateと同じ200字キー)を温め候補に
-  const src = GEO_LANG[geo] ?? "auto";
-  const jobs: WarmJob[] = [];
-  for (const it of items) {
-    if (prevWords.has(it.word)) continue; // 既出はskip(新規語の初出時だけ温める=差分)
-    if (it.word) jobs.push({ text: it.word, src });
-    for (const n of it.news) {
-      const t = n.title.slice(0, 200).trim();
-      if (t) jobs.push({ text: t, src });
-    }
-  }
-  return jobs;
-}
-
 // 新規語の翻訳をUIロケールへ温める(逐次+sleepでgtxに優しく、WARM_CAP/時間予算で打ち切り)。
 // 新規語=未訳前提なので cache-first はしない(読み節約)。再出現語の再訳は無害(同値SET)。
 export async function warmTranslations(jobs: WarmJob[]): Promise<number> {
   const deadline = Date.now() + WARM_BUDGET_MS;
-  let warmed = 0;
-  for (const { text, src } of jobs) {
-    if (warmed >= WARM_CAP || Date.now() > deadline) break;
+  const uniqueJobs = [...new Map(jobs.map((job) => [`${job.src}\0${job.text}`, job])).values()];
+  const commands: unknown[][] = [];
+  for (const { text, src } of uniqueJobs) {
+    if (commands.length >= WARM_CAP || Date.now() > deadline) break;
     for (const to of LOCALES) {
-      if (to === src || warmed >= WARM_CAP || Date.now() > deadline) continue;
+      if (to === src || commands.length >= WARM_CAP || Date.now() > deadline) continue;
       const tr = await translateGoogle(text, to);
       if (tr) {
-        try {
-          await redis([["SET", `tr2:${src}:${to}:${text}`, tr, "EX", "2592000"]]);
-        } catch {}
-        warmed++;
-        await sleep(120);
+        commands.push(["SET", `tr2:${src}:${to}:${text}`, tr, "EX", "2592000"]);
       }
+      await sleep(120);
     }
   }
-  return warmed;
+  if (commands.length === 0) return 0;
+  try {
+    const result = await redis(commands);
+    const failed = result.filter((entry) => entry.error).length;
+    if (failed > 0) console.error(`translation cache: ${failed} pipeline commands failed`);
+    return commands.length - failed;
+  } catch (e) {
+    console.error("translation cache store failed:", (e as Error).message);
+    return 0;
+  }
 }
 
-// 24国を並列にスナップショット。trimは ~TRIM_EVERY 回に1回だけ(コマンド節約)。
+// 24国のRSSを並列取得し、直前値の取得と全保存は各1回のRedis pipelineにまとめる。
+// trimは ~TRIM_EVERY 回に1回だけ(コマンド節約)。
 export async function runSnapshot(): Promise<{ ts: number; geos: number; warmJobs: WarmJob[] }> {
   const ts = Math.floor(Date.now() / 1000);
-  const doTrim = Math.floor(Date.now() / 900_000) % TRIM_EVERY === 0;
-  const perGeo = await Promise.all(GEOS.map((g) => snapshotGeo(g, ts, doTrim)));
-  return { ts, geos: GEOS.length, warmJobs: perGeo.flat() };
+  const doTrim = Math.floor(Date.now() / 1_800_000) % TRIM_EVERY === 0;
+  const fetched = await Promise.all(
+    GEOS.map(async (geo) => {
+      try {
+        const items = await fetchTrendsRaw(geo);
+        return items.length > 0 ? { geo, items } : null;
+      } catch (e) {
+        console.error(`skip ${geo}:`, (e as Error).message);
+        return null;
+      }
+    }),
+  );
+  const snapshots = fetched.filter((entry): entry is { geo: string; items: SnapItem[] } => Boolean(entry));
+  if (snapshots.length === 0) return { ts, geos: 0, warmJobs: [] };
+
+  let previous: RedisResult[] = [];
+  try {
+    previous = await redis(snapshots.map(({ geo }) => ["GET", `latest:${geo}`]));
+  } catch (e) {
+    // 保存は続ける。直前値が読めない場合は全件を新規候補として扱うが、後段の上限で抑制される。
+    console.error("latest snapshot read failed:", (e as Error).message);
+  }
+
+  const storeCommands: unknown[][] = [];
+  const warmJobs: WarmJob[] = [];
+  snapshots.forEach(({ geo, items }, index) => {
+    const prevWords = new Set<string>();
+    const raw = previous[index]?.result;
+    if (typeof raw === "string") {
+      try {
+        const prev = JSON.parse(raw) as { items?: SnapItem[] };
+        for (const item of prev.items ?? []) prevWords.add(item.word);
+      } catch {}
+    }
+
+    const snapshot = JSON.stringify({ ts, items });
+    storeCommands.push(
+      ["ZADD", `snapshot:${geo}`, String(ts), snapshot],
+      ["SET", `latest:${geo}`, snapshot],
+    );
+    if (doTrim) {
+      storeCommands.push(["ZREMRANGEBYRANK", `snapshot:${geo}`, "0", String(-KEEP_PER_GEO - 1)]);
+    }
+
+    const src = GEO_LANG[geo] ?? "auto";
+    for (const item of items) {
+      if (prevWords.has(item.word)) continue;
+      if (item.word) warmJobs.push({ text: item.word, src });
+      for (const news of item.news) {
+        const text = news.title.slice(0, 200).trim();
+        if (text) warmJobs.push({ text, src });
+      }
+    }
+  });
+
+  const stored = await redis(storeCommands);
+  const failed = stored.filter((entry) => entry.error).length;
+  if (failed > 0) throw new Error(`${failed} snapshot pipeline commands failed`);
+
+  const uniqueWarmJobs = [
+    ...new Map(warmJobs.map((job) => [`${job.src}\0${job.text}`, job])).values(),
+  ];
+  return { ts, geos: snapshots.length, warmJobs: uniqueWarmJobs };
 }

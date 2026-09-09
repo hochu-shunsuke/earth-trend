@@ -28,7 +28,7 @@ const CONTENT = {
     whyTitle: "なぜ作ったか",
     why: "このプロジェクトは、機能よりも先に「思想」から始まりました。いまのSNSや検索はパーソナライズされすぎて、自分の鏡しか映してくれない。かといって Google トレンドは無機質な表でしかない。世界の人々の関心の流れを、もっと楽しく、違う角度から眺めたかった——そして、データの見せ方そのものに挑戦したかった。これはその試みです。これからも「何のためのサイトか」を問い直しながら、更新を続けていきます。",
     dataTitle: "データについて",
-    data: `表示しているのは Google トレンド(急上昇検索)と Google の検索オートコンプリート(サジェスト)から取得した公開データで、一定時間ごとにキャッシュして取得しています(各国を10分ごと)。語の翻訳は機械翻訳、円の大きさ=検索ボリューム、色=登場からの新しさ、という独自の表現で並べています。本サイトは Google LLC・各社とは一切関係のない、個人による非公式なプロジェクトです。`,
+    data: `表示しているのは Google トレンド(急上昇検索)と Google の検索オートコンプリート(サジェスト)から取得した公開データで、一定時間ごとにキャッシュして取得しています(各国を30分ごと)。語の翻訳は機械翻訳、円の大きさ=検索ボリューム、色=登場からの新しさ、という独自の表現で並べています。本サイトは Google LLC・各社とは一切関係のない、個人による非公式なプロジェクトです。`,
     operatorTitle: "運営",
     operator: `個人プロジェクトとして ${SITE_OPERATOR} が運営しています。ご意見・ご指摘・不具合報告は歓迎です。`,
     privacyTitle: "プライバシー",
@@ -38,7 +38,7 @@ const CONTENT = {
     faq: [
       [
         "データはリアルタイムですか?",
-        "完全なリアルタイムではありません。各国のデータを10分ごとにキャッシュして取得・表示しています。提供元(Google)へ礼儀正しくアクセスするための設計です。",
+        "完全なリアルタイムではありません。各国のデータを30分ごとにキャッシュして取得・表示しています。提供元(Google)へ礼儀正しくアクセスするための設計です。",
       ],
       [
         "何カ国に対応していますか?",
@@ -72,7 +72,7 @@ const CONTENT = {
     whyTitle: "Why I made this",
     why: "This project began with a philosophy, not a feature. Today's social feeds and search are so personalized they mostly reflect ourselves; Google Trends, meanwhile, is just a sterile table. I wanted to watch the flow of the world's collective attention from a different, more playful angle — and to experiment with how data itself can be expressed. This is that attempt. I'll keep updating it while continually rethinking what it's for.",
     dataTitle: "About the data",
-    data: `We show public data from Google Trends (trending searches) and Google search autocomplete (suggestions), fetched and cached at regular intervals (every 10 minutes per country). Words are machine-translated, and we arrange them with our own encoding: circle size = search volume, color = how recently it appeared. This is an unofficial personal project, not affiliated with Google LLC or any company.`,
+    data: `We show public data from Google Trends (trending searches) and Google search autocomplete (suggestions), fetched and cached at regular intervals (every 30 minutes per country). Words are machine-translated, and we arrange them with our own encoding: circle size = search volume, color = how recently it appeared. This is an unofficial personal project, not affiliated with Google LLC or any company.`,
     operatorTitle: "Who runs this",
     operator: `An independent personal project run by ${SITE_OPERATOR}. Feedback, corrections and bug reports are welcome.`,
     privacyTitle: "Privacy",
@@ -82,7 +82,7 @@ const CONTENT = {
     faq: [
       [
         "Is the data real-time?",
-        "Not strictly real-time. Each country's data is fetched and cached every 10 minutes — a design choice to stay polite to the source (Google).",
+        "Not strictly real-time. Each country's data is fetched and cached every 30 minutes — a design choice to stay polite to the source (Google).",
       ],
       [
         "How many countries are covered?",
@@ -116,7 +116,7 @@ const CONTENT = {
     whyTitle: "Por qué lo creé",
     why: "Este proyecto nació de una idea, no de una función. Hoy las redes sociales y los buscadores están tan personalizados que casi solo nos reflejan a nosotros mismos; Google Trends, por su parte, no es más que una tabla fría. Quería observar el flujo de la atención colectiva del mundo desde un ángulo distinto y más lúdico — y experimentar con cómo se pueden expresar los datos. Este es ese intento. Lo seguiré actualizando mientras me replanteo continuamente para qué sirve.",
     dataTitle: "Sobre los datos",
-    data: `Mostramos datos públicos de Google Trends (búsquedas en tendencia) y del autocompletado de Google (sugerencias), obtenidos y almacenados en caché a intervalos regulares (cada 10 minutos por país). Las palabras se traducen automáticamente y las disponemos con nuestra propia codificación: tamaño del círculo = volumen de búsqueda, color = qué tan reciente apareció. Este es un proyecto personal no oficial, sin relación alguna con Google LLC ni ninguna empresa.`,
+    data: `Mostramos datos públicos de Google Trends (búsquedas en tendencia) y del autocompletado de Google (sugerencias), obtenidos y almacenados en caché a intervalos regulares (cada 30 minutos por país). Las palabras se traducen automáticamente y las disponemos con nuestra propia codificación: tamaño del círculo = volumen de búsqueda, color = qué tan reciente apareció. Este es un proyecto personal no oficial, sin relación alguna con Google LLC ni ninguna empresa.`,
     operatorTitle: "Quién lo gestiona",
     operator: `Un proyecto personal e independiente gestionado por ${SITE_OPERATOR}. Se agradecen comentarios, correcciones e informes de errores.`,
     privacyTitle: "Privacidad",
@@ -126,7 +126,7 @@ const CONTENT = {
     faq: [
       [
         "¿Los datos son en tiempo real?",
-        "No exactamente en tiempo real. Los datos de cada país se obtienen y se almacenan en caché cada 10 minutos, una decisión de diseño para acceder con cortesía a la fuente (Google).",
+        "No exactamente en tiempo real. Los datos de cada país se obtienen y se almacenan en caché cada 30 minutos, una decisión de diseño para acceder con cortesía a la fuente (Google).",
       ],
       [
         "¿Cuántos países cubre?",

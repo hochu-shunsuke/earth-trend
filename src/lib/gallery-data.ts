@@ -3,7 +3,7 @@ import { GEO_LABELS } from "@/lib/trends";
 import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
 import { TRENDS_DATA_CACHE_TAG } from "@/lib/cache-tags";
 
-// 9国分のデータを10分キャッシュ(訪問あたりのUpstashコストをほぼゼロに)。
+// 24国分のデータをsnapshotタグ失効までキャッシュ(1時間はcron停止時の安全網)。
 // 一覧(Gallery)とトップ(LandingPageのマーキー)で同一キャッシュを共有する。
 export const getGalleryData = unstable_cache(
   async (): Promise<[string, RecentTrendItem[]][]> =>
@@ -14,5 +14,5 @@ export const getGalleryData = unstable_cache(
     ),
   // v3で旧キャッシュを切り離す。以後はsnapshot完了時のタグ失効で先回りして更新する。
   ["gallery-data-v3"],
-  { revalidate: 600, tags: [TRENDS_DATA_CACHE_TAG] },
+  { revalidate: 3600, tags: [TRENDS_DATA_CACHE_TAG] },
 );
