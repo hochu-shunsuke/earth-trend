@@ -1,6 +1,6 @@
-import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import GalleryGrid from "@/components/GalleryGrid";
+import SiteFooter from "@/components/SiteFooter";
 import { getGalleryTiles } from "@/lib/gallery-data";
 import { COPY } from "@/lib/copy";
 
@@ -24,12 +24,10 @@ export default async function Gallery() {
         <GalleryGrid initial={data} nowSec={nowSec} />
 
         <p className="muted" style={{ marginTop: 24, fontSize: 12 }}>
-          {COPY.home.legendFooter}{" "}
-          <Link href="/about" className="muted">
-            {COPY.home.about}
-          </Link>
+          {COPY.home.legendFooter}
         </p>
       </main>
+      <SiteFooter />
     </>
   );
 }

@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import CountryRail, { type CountryRailItem } from "@/components/CountryRail";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
+import SiteFooter from "@/components/SiteFooter";
 import { jsonLd } from "@/lib/site";
 import { GEO_LABELS } from "@/lib/trends";
 import { getCountryItems } from "@/lib/country-data";
@@ -78,19 +79,8 @@ export default async function CountryExperience({ code }: { code: string }) {
           <p className="muted">{COPY.country.loadFail}</p>
         )}
 
-        <nav className="country-link-list">
-          <p className="muted">{COPY.country.compare(country)}</p>
-          <div>
-            {railItems
-              .filter((item) => item.code !== code)
-              .map((item) => (
-                <Link key={item.code} href={item.href}>
-                  {item.label}
-                </Link>
-              ))}
-          </div>
-        </nav>
       </main>
+      <SiteFooter />
     </>
   );
 }

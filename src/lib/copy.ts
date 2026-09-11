@@ -11,9 +11,7 @@ export const COPY = {
   home: {
     title: "World Trends",
     desc: "What each country is searching right now. Tap a country to explore where its curiosity leads.",
-    legendFooter:
-      "Size = search volume / color = freshness. Data: Google Trends (updated every 30 min) · ",
-    about: "About",
+    legendFooter: "Size = search volume / color = freshness.",
   },
   country: {
     title: (c: string) => `${c} Trends`,
@@ -21,9 +19,6 @@ export const COPY = {
     seoHeading: (c: string) => `What ${c} is searching right now`,
     loadFail: "Failed to load data. Please wait a moment and reload.",
     updated: "Updated",
-    others: "Trends in other countries",
-    compare: (c: string) =>
-      `Compare ${c}'s rising searches side by side with other countries.`,
     switchCountry: "Switch country",
     previousCountry: "Previous country",
     nextCountry: "Next country",

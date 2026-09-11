@@ -490,21 +490,6 @@ select.btn {
     transform: translateX(0);
   }
 }
-.country-link-list {
-  margin-top: 36px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-}
-.country-link-list p {
-  margin: 0 0 8px;
-  font-size: 12px;
-}
-.country-link-list div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 12px;
-  font-size: 12px;
-}
 @media (max-width: 560px) {
   .country-page-main {
     padding: 70px 12px 40px;
@@ -1086,5 +1071,112 @@ select.btn {
   /* 2カラムでは図の隣に読む面があるので、リストの縦の詰まりを少し緩める */
   .country-list-col {
     min-width: 0;
+  }
+}
+
+/* ── フッター ──────────────────────────────────────────────────────
+   読む面(ホーム/国ページ/about)にだけ置く。analysis と globe は全画面の
+   キャンバス体験なので付けない。
+   リンクは既定のアクセント色(青)を使わず、フッター内だけのトーンで統一する。 */
+.site-footer {
+  --f-bg: #232323;
+  --f-fg: #f2f2f2;
+  --f-muted: rgba(242, 242, 242, 0.55);
+  --f-border: rgba(242, 242, 242, 0.13);
+
+  margin-top: 72px;
+  padding: 56px 24px 20px;
+  background: var(--f-bg);
+  color: var(--f-fg);
+}
+[data-theme="dark"] .site-footer {
+  /* ダークでも「別の面」として沈んで見えるよう、bg(#0a0a0a)より少しだけ持ち上げる */
+  --f-bg: #161616;
+}
+
+.site-footer-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 40px;
+}
+
+.footer-col h2 {
+  margin: 0 0 18px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--f-fg);
+}
+.footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.footer-col li {
+  margin-bottom: 12px;
+}
+
+/* 青リンクをやめる: フッター内はすべて同じトーン。hoverでだけ明度と下線が出る */
+.site-footer a {
+  color: var(--f-muted);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.12s ease;
+}
+.site-footer a:hover {
+  color: var(--f-fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 24カ国は1列だと縦に伸びすぎるので、見出しの下で多段に畳む */
+.footer-countries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0 24px;
+}
+
+.site-footer-bar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 48px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--f-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 20px;
+}
+.footer-brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.footer-note {
+  color: var(--f-muted);
+  font-size: 12px;
+}
+/* 最後の一項目(データ出典)は右へ寄せる */
+.site-footer-bar .footer-note:last-child {
+  margin-left: auto;
+}
+
+@media (max-width: 860px) {
+  .site-footer {
+    margin-top: 48px;
+    padding: 40px 16px 20px;
+  }
+  .site-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .site-footer-bar {
+    margin-top: 32px;
+  }
+  .site-footer-bar .footer-note:last-child {
+    margin-left: 0;
   }
 }

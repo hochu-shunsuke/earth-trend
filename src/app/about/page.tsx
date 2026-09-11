@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 import {
   SITE_NAME,
   SITE_URL,
@@ -98,7 +99,7 @@ export default function AboutPage() {
           <p>{c.why}</p>
         </section>
 
-        <section style={{ marginTop: 24 }}>
+        <section id="data" style={{ marginTop: 24 }}>
           <h2 style={{ fontSize: 17, fontWeight: 600 }}>{c.dataTitle}</h2>
           <p>{c.data}</p>
         </section>
@@ -164,6 +165,7 @@ export default function AboutPage() {
           <Link href="/">← {SITE_NAME}</Link>
         </p>
       </main>
+      <SiteFooter />
     </>
   );
 }
