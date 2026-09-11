@@ -236,12 +236,8 @@ function ScaleBubbles({
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerCancel}
         style={{
-          position: "relative",
-          width: "100vw",
-          left: "50%",
-          marginLeft: "-50vw",
+          // 全幅突き抜け(モバイル)とカラム内配置(PC)の切替は .bubble-box 側のCSSで行う
           height: box?.h ?? 420,
-          overflow: "hidden",
           // 縦1本指はページスクロール、横1本指は国切替。地図の移動は2本指/マウスドラッグ。
           touchAction: "pan-y",
           userSelect: "none",
@@ -395,12 +391,66 @@ export default function TrendsView({
 
   return (
     <>
-      <ScaleBubbles
-        items={items}
-        geo={geo}
-        onSelect={setSelected}
-        onSwipe={switchCountry}
-      />
+      {/* PCは左に図/右にリストの2カラム。モバイルは従来どおり縦積み(CSS側で切替) */}
+      <div className="country-split">
+        <div className="country-map-col">
+          <ScaleBubbles items={items} geo={geo} onSelect={setSelected} onSwipe={switchCountry} />
+        </div>
+
+        {/* サーバー描画のテキスト一覧(SEO土台)。図と同じitemsを参照する */}
+        <div className="country-list-col">
+          {items.length > 0 && (
+          <section className="country-list-section">
+            <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
+            <p style={{ margin: "4px 0 0" }}>
+              <LiveStamp
+                iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
+                label={d.country.updated}
+              />
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
+              {items.map((it) => (
+                <li
+                  key={it.word}
+                  style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
+                >
+                  <Link
+                    href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
+                    translate="no"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {it.word}
+                  </Link>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    {" "}
+                    · {d.detail.searches} {it.traffic}
+                    {it.firstSeen &&
+                      ` · ${d.detail.appeared(durationStr(it.firstSeen, nowSec) ?? "")}`}
+                  </span>
+                  {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
+                  {it.news.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
+                      {it.news.slice(0, 2).map((n, i) => (
+                        <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
+                          {n.url ? (
+                            <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
+                              {n.title}
+                            </a>
+                          ) : (
+                            <>{n.title}</>
+                          )}
+                          {n.source && <span> ({n.source})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+          )}
+        </div>
+      </div>
 
       {selected && (
         <div className="detail-panel">
@@ -458,58 +508,6 @@ export default function TrendsView({
             {d.detail.explore}
           </Link>
         </div>
-      )}
-
-      {/* サーバー描画のテキスト一覧(SEO土台)。図と同じitemsを参照する */}
-      {items.length > 0 && (
-        <section style={{ marginTop: 28 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
-          <p style={{ margin: "4px 0 0" }}>
-            <LiveStamp
-              iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
-              label={d.country.updated}
-            />
-          </p>
-          <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
-            {items.map((it) => (
-              <li
-                key={it.word}
-                style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
-              >
-                <Link
-                  href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
-                  translate="no"
-                  style={{ fontWeight: 600 }}
-                >
-                  {it.word}
-                </Link>
-                <span className="muted" style={{ fontSize: 12 }}>
-                  {" "}
-                  · {d.detail.searches} {it.traffic}
-                  {it.firstSeen &&
-                    ` · ${d.detail.appeared(durationStr(it.firstSeen, nowSec) ?? "")}`}
-                </span>
-                {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
-                {it.news.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
-                    {it.news.slice(0, 2).map((n, i) => (
-                      <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
-                        {n.url ? (
-                          <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                            {n.title}
-                          </a>
-                        ) : (
-                          <>{n.title}</>
-                        )}
-                        {n.source && <span> ({n.source})</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
     </>
   );
