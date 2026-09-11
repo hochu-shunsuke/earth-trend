@@ -71,7 +71,12 @@ function ScaleBubbles({
     // 全幅突き抜けをやめ「枠(=ページ幅)」の実寸に合わせる。枠の追従はResizeObserverで
     const calc = () => {
       const w = wrapRef.current?.clientWidth ?? window.innerWidth;
-      const h = Math.min(Math.round(window.innerHeight * 0.68), 680);
+      // PCの2カラムでは「見出し+図+凡例」がまとめて sticky になる。図が高すぎると
+      // 塊が画面高を超えて sticky が効かなくなるので、その分だけ低くする。
+      const twoCol = window.matchMedia("(min-width: 1024px)").matches;
+      const h = twoCol
+        ? Math.min(Math.round(window.innerHeight * 0.56), 560)
+        : Math.min(Math.round(window.innerHeight * 0.68), 680);
       setBox({ w: Math.max(1, w), h });
     };
     calc();
@@ -223,9 +228,6 @@ function ScaleBubbles({
 
   return (
     <>
-      <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
-        {COPY.bubbles.legend(items.length)}
-      </p>
       {/* 中央寄せmainを突き抜けて画面いっぱいに広げる(最大幅)。操作は方式で分離 */}
       <div
         ref={wrapRef}
@@ -346,6 +348,8 @@ function ScaleBubbles({
         {/* 操作ヒント(一瞬): PCの素のホイール時 */}
         {hint && <div className="map-hint">{hint}</div>}
       </div>
+      {/* 凡例は図の下。図より先に説明を読ませない */}
+      <p className="bubble-legend muted">{COPY.bubbles.legend(items.length)}</p>
     </>
   );
 }
@@ -355,12 +359,15 @@ function ScaleBubbles({
 export default function TrendsView({
   items,
   geo,
+  header,
   nowSec: nowSecInit,
   previousCountry,
   nextCountry,
 }: {
   items: TrendItem[];
   geo: string;
+  /** 見出し(サーバー描画)。PCでは図と同じstickyな左カラムに入れ、記事を読む間も見出しを残す */
+  header: React.ReactNode;
   nowSec: number; // サーバー時刻(秒)。リストの「経過」表示をSSRから正しく出すための基準
   previousCountry: CountryRailItem;
   nextCountry: CountryRailItem;
@@ -393,6 +400,7 @@ export default function TrendsView({
       {/* PCは左に図/右にリストの2カラム。モバイルは従来どおり縦積み(CSS側で切替) */}
       <div className="country-split">
         <div className="country-map-col">
+          {header}
           <ScaleBubbles items={items} geo={geo} onSelect={setSelected} onSwipe={switchCountry} />
         </div>
 

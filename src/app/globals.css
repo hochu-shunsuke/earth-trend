@@ -240,6 +240,7 @@ select.btn {
   gap: 4px;
   align-items: center;
   flex-shrink: 0;
+  margin-left: auto; /* 面が1つになりナビが消えたので、明示的に右端へ寄せる */
 }
 
 /* モバイル: ヘッダーを詰めて折り返しを防ぐ・パネルをコントロールの下へ */
@@ -327,19 +328,12 @@ select.btn {
 }
 .country-rail {
   display: flex;
-  gap: 0;
   min-width: 0;
   padding: 2px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
-}
-.country-rail-set {
-  display: flex;
-  flex: 0 0 auto;
   gap: 6px;
-  padding-right: 6px;
 }
 .country-rail::-webkit-scrollbar {
   display: none;
@@ -355,7 +349,7 @@ select.btn {
   background: var(--panel);
   color: var(--muted);
   line-height: 1.4;
-  scroll-snap-align: center;
+  white-space: nowrap;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .country-chip:hover {
@@ -367,12 +361,6 @@ select.btn {
   color: var(--bg);
   border-color: var(--fg);
   background: var(--fg);
-}
-.country-chip small {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.62;
 }
 .country-swipe-hint {
   display: none;
@@ -566,6 +554,10 @@ select.btn {
 .country-list-section {
   margin-top: 28px;
 }
+.bubble-legend {
+  font-size: 12px;
+  margin: 8px 0 0;
+}
 
 @media (min-width: 1024px) {
   .country-page-main {
@@ -578,9 +570,14 @@ select.btn {
     gap: 30px;
     align-items: start;
   }
+  /* 見出し(h1/共有/国レール)と図をまとめて sticky に。
+     記事を下までスクロールしても「Turkey Trends」が視界から消えない。 */
   .country-map-col {
     position: sticky;
-    top: 72px;
+    top: 68px;
+  }
+  .country-map-col .country-page-header {
+    margin-bottom: 10px;
   }
   /* カラム内に収める(全幅突き抜けを打ち消す) */
   .bubble-box {
