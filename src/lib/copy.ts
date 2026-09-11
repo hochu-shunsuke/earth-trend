@@ -6,7 +6,6 @@
 // 「原語の生の文字は常に残す」と同じ結論に、維持コストゼロで到達する。
 
 export const COPY = {
-  nav: { trends: "Trends", analysis: "Analysis", globe: "Globe" },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   home: {
     title: "World Trends",
@@ -32,20 +31,8 @@ export const COPY = {
     searches: "Searches",
     trendingNow: "Trending now.",
     googleSearch: "Search on Google",
-    explore: "Analysis",
     appeared: (s: string) => `appeared ~${s} ago`,
     close: "Close",
-  },
-  graph: {
-    selectCountry: "Select country",
-    saveImage: "Save image",
-    seedTrends: "Trending right now.",
-    leafTrends: "What searchers look up next.",
-  },
-  globe: {
-    loading: "loading…",
-    loadFail: "Failed to load data",
-    countries: (n: number) => `${n} countries`,
   },
   share: { button: "Share", copied: "Copied", image: "Save image" },
 } as const;

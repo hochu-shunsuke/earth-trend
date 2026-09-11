@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
@@ -414,13 +413,18 @@ export default function TrendsView({
                   key={it.word}
                   style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
                 >
-                  <Link
-                    href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
+                  {/* 押すと図と同じ詳細(記事/検索)を開く。原語は translate="no" で保護 */}
+                  <button
+                    type="button"
+                    className="trend-word"
                     translate="no"
-                    style={{ fontWeight: 600 }}
+                    onClick={() => {
+                      setSelected(it);
+                      gaEvent("bubble_select", { geo, word: it.word, source: "list" });
+                    }}
                   >
                     {it.word}
-                  </Link>
+                  </button>
                   <span className="muted" style={{ fontSize: 12 }}>
                     {" "}
                     · {d.detail.searches} {it.traffic}
@@ -500,13 +504,6 @@ export default function TrendsView({
           >
             {d.detail.googleSearch}
           </a>
-          <Link
-            className="btn"
-            href={`/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
-            onClick={() => gaEvent("explore_click", { geo, word: selected.word, source: "trends" })}
-          >
-            {d.detail.explore}
-          </Link>
         </div>
       )}
     </>

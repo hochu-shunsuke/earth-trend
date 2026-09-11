@@ -2,8 +2,7 @@ import CountryTile from "@/components/CountryTile";
 import { COUNTRY_LABELS } from "@/lib/copy";
 import { type TileItem } from "@/lib/gallery-data";
 
-// 一覧の図グリッド。snapshot完了時の明示的なタグ失効で静的HTMLごと更新されるため、
-// 着地時の /api/trends-all 二重取得は行わない。
+// 一覧の図グリッド。snapshot完了時の明示的なタグ失効で静的HTMLごと更新される。
 export default function GalleryGrid({
   initial,
   nowSec,
