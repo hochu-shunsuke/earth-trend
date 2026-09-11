@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { hierarchy, pack } from "d3-hierarchy";
 import { GEO_LABELS } from "@/lib/trends";
-import { getTrendsUnionedCached } from "@/lib/history";
+import { getWorld } from "@/lib/world";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { SITE_DOMAIN } from "@/lib/site";
 
@@ -22,7 +22,7 @@ export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
   const geo =
     opts.geo?.toUpperCase() ??
     [...Object.keys(GEO_LABELS)].sort(() => Math.random() - 0.5)[0];
-  const items = GEO_LABELS[geo] ? await getTrendsUnionedCached(geo) : [];
+  const items = GEO_LABELS[geo] ? ((await getWorld()).geos[geo] ?? []) : [];
   const nowSec = Math.floor(Date.now() / 1000);
 
   type Item = (typeof items)[number];
