@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
-import { GEO_LABELS, GEO_HL, GEO_LANG } from "@/lib/trends";
+import { GEO_LABELS, GEO_HL } from "@/lib/trends";
 import { freshnessColor } from "@/lib/trendsVisual";
-import { DEFAULT_LOCALE, isLocale, t, COUNTRY_LABELS } from "@/lib/i18n";
+import { COPY, COUNTRY_LABELS } from "@/lib/copy";
 import { gaEvent } from "@/lib/gtag";
 import {
   forceSimulation,
@@ -74,9 +73,7 @@ function depthAlpha(depth: number, k: number): number {
 // --- 本体: 分析(トレンド語→サジェストの連想グラフ) ---
 
 export default function GraphExplorer() {
-  const pathSeg = usePathname().split("/")[1];
-  const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
-  const tx = t(locale);
+  const tx = COPY;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const nodesRef = useRef<GNode[]>([]);
@@ -182,11 +179,6 @@ export default function GraphExplorer() {
     news: NewsItem[];
     isSeed: boolean;
   } | null>(null);
-  // 選択語のニュース見出しの訳(海外記事の日本語/英語訳が欲しい需要)。analysisはクライアント
-  // 描画=非SEO面なので翻訳公開のスパムリスクは無い。原語は保持しhoverで原文を出す。
-  const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
-  // 選択語そのものの訳(ノードは/api/trends由来で訳を持たないので開いた時に取りこぼし回収)
-  const [wordTr, setWordTr] = useState<string | null>(null);
   // パネルを開いた直後は非インタラクティブに(タップの合成クリックがリンクに当たって飛ぶのを防ぐ)
   const [panelArmed, setPanelArmed] = useState(true);
 
@@ -197,50 +189,6 @@ export default function GraphExplorer() {
     (sim.force("link") as ForceLink<GNode, GLink>).links(linksRef.current);
     sim.alpha(alpha).restart();
   };
-
-  // 選択語が変わるたび、その国の言語→UIロケールへニュース見出しを翻訳(訳は全段キャッシュ済)。
-  // 同言語なら何もしない。原語は保持され、訳が来るまでは原文を表示。
-  useEffect(() => {
-    // 選択が変わったら前の訳を即クリア(古い訳が一瞬残らない)。意図的な同期リセット
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNewsTr(null);
-    if (!selected || selected.news.length === 0) return;
-    const src = GEO_LANG[selected.geo] ?? "auto";
-    if (src === locale) return;
-    let alive = true;
-    Promise.all(
-      selected.news.slice(0, 3).map((n) =>
-        fetch(`/api/translate?q=${encodeURIComponent(n.title)}&from=${src}&to=${locale}`)
-          .then((r) => (r.ok ? r.json() : { translated: null }))
-          .then((d) => (d.translated as string | null) ?? null)
-          .catch(() => null),
-      ),
-    ).then((res) => {
-      if (alive) setNewsTr(res);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [selected, locale]);
-
-  // 選択語の訳(記事と同じrate-limited経路・自己キャッシュ)。同言語ならしない
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWordTr(null);
-    if (!selected) return;
-    const src = GEO_LANG[selected.geo] ?? "auto";
-    if (src === locale) return;
-    let alive = true;
-    fetch(`/api/translate?q=${encodeURIComponent(selected.word)}&from=${src}&to=${locale}`)
-      .then((r) => (r.ok ? r.json() : { translated: null }))
-      .then((d) => {
-        if (alive) setWordTr((d.translated as string | null) ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [selected, locale]);
 
   // trends: 指定国のトレンドを読む。seedで自動ダイブ
   const loadTrends = async (geo: string, seed?: string) => {
@@ -621,7 +569,7 @@ export default function GraphExplorer() {
 
     // 初期化(URLパラメータ反映の一度きりのsetState)。geo未指定の既定: en=米国 / es=メキシコ / ja=日本
     const params = new URLSearchParams(window.location.search);
-    const fallbackGeo = locale === "en" ? "US" : locale === "es" ? "MX" : "JP";
+    const fallbackGeo = "US";
     const raw = (params.get("geo") || fallbackGeo).toUpperCase();
     const geoParam = GEO_LABELS[raw] ? raw : fallbackGeo;
     const seedParam = params.get("seed") || undefined;
@@ -683,7 +631,7 @@ export default function GraphExplorer() {
     }, "image/png");
   };
 
-  const options = Object.entries(COUNTRY_LABELS[locale] ?? GEO_LABELS);
+  const options = Object.entries(COUNTRY_LABELS);
 
   return (
     <div
@@ -728,14 +676,8 @@ export default function GraphExplorer() {
                 ✕
               </button>
             </div>
-            {wordTr && (
-              <div style={{ marginTop: 2, fontSize: 13, color: "var(--fg)", fontWeight: 500 }}>
-                {wordTr}
-              </div>
-            )}
-
             {selected.news.length > 0 ? (
-              <NewsCarousel news={selected.news} translated={newsTr} />
+              <NewsCarousel news={selected.news} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {selected.isSeed ? tx.graph.seedTrends : tx.graph.leafTrends}

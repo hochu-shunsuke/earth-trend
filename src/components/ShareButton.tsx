@@ -2,21 +2,12 @@
 
 import { useState } from "react";
 import { geoSlug } from "@/lib/trends";
-import { t, localePath, type Locale } from "@/lib/i18n";
+import { COPY } from "@/lib/copy";
 import { gaEvent } from "@/lib/gtag";
 
 // 共有ボタン: ネイティブ共有(モバイル)→ダメならリンクコピー。画像保存はOG画像へのDLリンク。
-// 共有リンクは現在の(=利用者の言語の)URLなので、受け手もその言語で着地する。
-export default function ShareButton({
-  locale,
-  geo,
-  title,
-}: {
-  locale: Locale;
-  geo: string;
-  title: string;
-}) {
-  const d = t(locale);
+export default function ShareButton({ geo, title }: { geo: string; title: string }) {
+  const d = COPY;
   const [copied, setCopied] = useState(false);
 
   const onShare = async () => {
@@ -67,7 +58,7 @@ export default function ShareButton({
       </button>
       <a
         className="btn"
-        href={localePath(locale, `/${geoSlug(geo)}/opengraph-image`)}
+        href={`/${geoSlug(geo)}/opengraph-image`}
         download={`earth-trend-${geoSlug(geo)}.png`}
         onClick={() => gaEvent("share_image_download", { geo })}
       >

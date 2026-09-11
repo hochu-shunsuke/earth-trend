@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gaEvent } from "@/lib/gtag";
-import { type Locale } from "@/lib/i18n";
+import { COPY } from "@/lib/copy";
 
 export interface CountryRailItem {
   code: string;
@@ -12,20 +12,12 @@ export interface CountryRailItem {
   href: string;
 }
 
-const COPY = {
-  ja: { label: "国を切り替える", previous: "前の国", next: "次の国", hint: "左右にスワイプして国を切り替え" },
-  en: { label: "Switch country", previous: "Previous country", next: "Next country", hint: "Swipe left or right to switch country" },
-  es: { label: "Cambiar país", previous: "País anterior", next: "País siguiente", hint: "Desliza a izquierda o derecha para cambiar de país" },
-} satisfies Record<Locale, { label: string; previous: string; next: string; hint: string }>;
-
 export default function CountryRail({
-  locale,
   currentGeo,
   countries,
   previous,
   next,
 }: {
-  locale: Locale;
   currentGeo: string;
   countries: CountryRailItem[];
   previous: CountryRailItem;
@@ -36,7 +28,12 @@ export default function CountryRail({
   const middleSetRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLAnchorElement>(null);
   const initialized = useRef(false);
-  const copy = COPY[locale];
+  const copy = {
+    label: COPY.country.switchCountry,
+    previous: COPY.country.previousCountry,
+    next: COPY.country.nextCountry,
+    hint: COPY.country.swipeHint,
+  };
 
   useEffect(() => {
     initialized.current = false;

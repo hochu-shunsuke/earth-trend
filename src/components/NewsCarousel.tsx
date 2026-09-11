@@ -8,10 +8,8 @@ interface NewsItem {
 
 export default function NewsCarousel({
   news,
-  translated,
 }: {
   news: NewsItem[];
-  translated?: (string | null)[] | null;
 }) {
   const items = news.slice(0, 3);
   if (items.length === 0) return null;
@@ -30,7 +28,7 @@ export default function NewsCarousel({
       }}
     >
       {items.map((n, i) => {
-        const title = translated?.[i] ?? n.title;
+        const title = n.title;
         const href = n.url ?? `https://www.google.com/search?q=${encodeURIComponent(n.title)}`;
         return (
           <a

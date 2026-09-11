@@ -1,63 +1,25 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
-import { GEO_LABELS } from "@/lib/trends";
-import {
-  LOCALES,
-  localePath,
-  countryPath,
-  countryAltLanguages,
-  type Locale,
-} from "@/lib/i18n";
+import { GEO_LABELS, geoSlug } from "@/lib/trends";
 
-type ChangeFreq = MetadataRoute.Sitemap[number]["changeFrequency"];
-
-// prefix-except-default: ja(デフォルト)=接頭辞なし / 他=/en /es 接頭辞。
-// 各ページを全ロケール分出力し、hreflang(言語別alternates)とlastModifiedを付ける。
-const fullUrl = (suffix: string, locale: Locale) => {
-  const p = localePath(locale, suffix); // ja: "/" or "/trends" / en: "/en/trends" …
-  return `${SITE_URL}${p}`;
-};
-
+// 英語1本なので hreflang は無い。lastModified は「本文が実際に変わる頻度」に合わせる。
+// Googleは lastmod を有意な変更時刻と一致する場合のみ使い、priority/changefreq は無視する。
 export default function sitemap(): MetadataRoute.Sitemap {
-  const geos = Object.keys(GEO_LABELS);
-  const now = new Date();
+  const url = (path: string) => `${SITE_URL}${path}`;
 
-  // x-default は英語(海外の非マッチユーザーへのフォールバック)
-  const languages = (suffix: string): Record<string, string> => {
-    const out: Record<string, string> = {};
-    for (const l of LOCALES) out[l] = fullUrl(suffix, l);
-    out["x-default"] = fullUrl(suffix, "en");
-    return out;
-  };
-
-  const pages = (suffix: string, changeFrequency: ChangeFreq, priority: number) =>
-    LOCALES.map((l) => ({
-      url: fullUrl(suffix, l),
-      lastModified: now,
-      changeFrequency,
-      priority,
-      alternates: { languages: languages(suffix) },
-    }));
-
-  const countryPages = (geo: string) => {
-    const relativeAlternates = countryAltLanguages(geo);
-    const absoluteAlternates = Object.fromEntries(
-      Object.entries(relativeAlternates).map(([language, path]) => [language, `${SITE_URL}${path}`]),
-    );
-    return LOCALES.map((locale) => ({
-      url: `${SITE_URL}${countryPath(locale, geo)}`,
-      lastModified: now,
-      changeFrequency: "hourly" as const,
-      priority: 0.8,
-      alternates: { languages: absoluteAlternates },
-    }));
-  };
+  // トレンド系はスナップショット境界(30分)で中身が変わる。その直近の境界を申告する。
+  const half = 30 * 60 * 1000;
+  const lastTrendUpdate = new Date(Math.floor(Date.now() / half) * half);
+  // 静的ページは中身が変わらないので、申告しない(誤ったlastmodを出すより省く)
+  const staticPages = ["/about", "/analysis", "/globe"];
 
   return [
-    ...pages("", "hourly", 1), // 世界のトレンド一覧。ja=bare domain
-    ...geos.flatMap(countryPages),
-    ...pages("/analysis", "hourly", 0.6),
-    ...pages("/globe", "hourly", 0.6),
-    ...pages("/about", "monthly", 0.3),
+    { url: url("/"), lastModified: lastTrendUpdate, changeFrequency: "hourly" },
+    ...Object.keys(GEO_LABELS).map((geo) => ({
+      url: url(`/${geoSlug(geo)}`),
+      lastModified: lastTrendUpdate,
+      changeFrequency: "hourly" as const,
+    })),
+    ...staticPages.map((path) => ({ url: url(path) })),
   ];
 }

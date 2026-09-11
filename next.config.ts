@@ -1,66 +1,32 @@
 import type { NextConfig } from "next";
 
-const countryPaths = [
-  "jp",
-  "us",
-  "gb",
-  "in",
-  "kr",
-  "tw",
-  "de",
-  "fr",
-  "br",
-  "ca",
-  "au",
-  "ph",
-  "ng",
-  "za",
-  "mx",
-  "spain",
-  "ar",
-  "co",
-  "id",
-  "ru",
-  "tr",
-  "vn",
-  "th",
-  "it",
-];
-const defaultLocalePaths = ["trends", "analysis", "globe", "about", ...countryPaths];
-const jaRedirectPaths = defaultLocalePaths.filter((path) => path !== "trends");
+// 英語1本(2026-09-11)。ロケール接頭辞を廃止し、旧URL(/ja /en /es)は正準URLへ301で寄せる。
+// middleware は使わない(全リクエストでVercel Middlewareを起動しないため)。
+const LOCALE_PREFIXES = ["ja", "en", "es"];
 
 const nextConfig: NextConfig = {
-  // jaだけ接頭辞なしを正準URLにする。既知の静的経路に限定したconfig routingなら、
-  // 全リクエストでVercel Middlewareを起動せずに同じURL体系を維持できる。
   async redirects() {
     return [
-      { source: "/ja", destination: "/", statusCode: 301 },
-      { source: "/trends", destination: "/", statusCode: 301 },
-      { source: "/ja/trends", destination: "/", statusCode: 301 },
-      { source: "/en/trends", destination: "/en", statusCode: 301 },
-      { source: "/es/trends", destination: "/es", statusCode: 301 },
-      ...jaRedirectPaths.map((path) => ({
-        source: `/ja/${path}`,
-        destination: `/${path}`,
+      // /en/trends のような二重の旧URLを1ホップで畳む
+      ...LOCALE_PREFIXES.map((l) => ({
+        source: `/${l}/trends`,
+        destination: "/",
+        statusCode: 301 as const,
+      })),
+      { source: "/trends", destination: "/", statusCode: 301 as const },
+      // ロケール接頭辞そのもの(旧ホーム)
+      ...LOCALE_PREFIXES.map((l) => ({
+        source: `/${l}`,
+        destination: "/",
+        statusCode: 301 as const,
+      })),
+      // ロケール接頭辞つきの下位ページ(/en/jp → /jp など)
+      ...LOCALE_PREFIXES.map((l) => ({
+        source: `/${l}/:path*`,
+        destination: "/:path*",
         statusCode: 301 as const,
       })),
     ];
-  },
-  async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/", destination: "/ja" },
-        ...defaultLocalePaths.map((path) => ({
-          source: `/${path}`,
-          destination: `/ja/${path}`,
-        })),
-        { source: "/trends/opengraph-image", destination: "/ja/trends/opengraph-image" },
-        ...countryPaths.map((path) => ({
-          source: `/${path}/opengraph-image`,
-          destination: `/ja/${path}/opengraph-image`,
-        })),
-      ],
-    };
   },
 };
 

@@ -14,6 +14,6 @@ export function jsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 export const GA_ID = "G-05T0DS9LM8"; // GA4測定ID(公開情報)
-export const SITE_TAGLINE = "世界のトレンドを、ひとつの生きた地図に。";
+export const SITE_TAGLINE = "A living map of what the world is searching.";
 export const SITE_DESCRIPTION =
-  "いま世界が何を検索しているかを、国別のバブル・連想の枝・地球儀という3つの視点で。検索という人類の正直な記録を、生きたグラフとして探索する。";
+  "See what the world is searching right now, across 24 countries — as bubbles by country, as branches of association, and on a globe. Search is the most honest record humanity keeps of its curiosity; this is a place to watch it move.";

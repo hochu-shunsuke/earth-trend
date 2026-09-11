@@ -3,12 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import NewsCarousel from "@/components/NewsCarousel";
 import { freshnessColor } from "@/lib/trendsVisual";
-import { GEO_LANG } from "@/lib/trends";
-import { DEFAULT_LOCALE, isLocale, t, localePath, COUNTRY_LABELS } from "@/lib/i18n";
+
+import { COPY, COUNTRY_LABELS } from "@/lib/copy";
 
 interface NewsItem {
   title: string;
@@ -64,54 +63,17 @@ function scatter(center: { lat: number; lng: number }, i: number) {
 }
 
 export default function GlobePage() {
-  const pathSeg = usePathname().split("/")[1];
-  const locale = isLocale(pathSeg) ? pathSeg : DEFAULT_LOCALE;
-  const tx = t(locale);
+  const tx = COPY;
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(null);
   const prevWordsRef = useRef<Set<string>>(new Set());
   const labelsRef = useRef<LabelDatum[]>([]);
   const [selected, setSelected] = useState<LabelDatum | null>(null);
-  const [status, setStatus] = useState(tx.globe.loading);
+  const [status, setStatus] = useState<string>(tx.globe.loading);
   const [mounted, setMounted] = useState(false);
   const [panelArmed, setPanelArmed] = useState(true); // 開いた直後の合成クリック対策
-  // 選択語/記事の訳(ラベルは/api/trends-all由来で訳を持たない=開いた時に取りこぼし回収)
-  const [wordTr, setWordTr] = useState<string | null>(null);
-  const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
   const countriesRef = useRef<object[] | null>(null);
-
-  // 選択語と記事を国の言語→UIロケールへ翻訳(記事と同じrate-limited経路・自己キャッシュ)
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWordTr(null);
-    setNewsTr(null);
-    if (!selected) return;
-    const src = GEO_LANG[selected.geo] ?? "auto";
-    if (src === locale) return;
-    let alive = true;
-    fetch(`/api/translate?q=${encodeURIComponent(selected.word)}&from=${src}&to=${locale}`)
-      .then((r) => (r.ok ? r.json() : { translated: null }))
-      .then((d) => {
-        if (alive) setWordTr((d.translated as string | null) ?? null);
-      })
-      .catch(() => {});
-    if (selected.news.length > 0) {
-      Promise.all(
-        selected.news.slice(0, 3).map((n) =>
-          fetch(`/api/translate?q=${encodeURIComponent(n.title)}&from=${src}&to=${locale}`)
-            .then((r) => (r.ok ? r.json() : { translated: null }))
-            .then((d) => (d.translated as string | null) ?? null)
-            .catch(() => null),
-        ),
-      ).then((res) => {
-        if (alive) setNewsTr(res);
-      });
-    }
-    return () => {
-      alive = false;
-    };
-  }, [selected, locale]);
 
   // globe.glのラベル層(CSS3D)はz-indexを無視して上に描画する。UIをbodyへポータルして確実に前面へ
   useEffect(() => {
@@ -410,7 +372,7 @@ export default function GlobePage() {
                     <span>
                       <strong translate="no">{selected.word}</strong>
                       <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
-                        {COUNTRY_LABELS[locale][selected.geo] ?? selected.geo}
+                        {COUNTRY_LABELS[selected.geo] ?? selected.geo}
                       </span>
                     </span>
                     <button
@@ -422,13 +384,8 @@ export default function GlobePage() {
                       ✕
                     </button>
                   </div>
-                  {wordTr && (
-                    <div style={{ marginTop: 2, fontSize: 13, color: "var(--fg)", fontWeight: 500 }}>
-                      {wordTr}
-                    </div>
-                  )}
                   {selected.news.length > 0 && (
-                    <NewsCarousel news={selected.news} translated={newsTr} />
+                    <NewsCarousel news={selected.news} />
                   )}
                 </div>
               </div>
@@ -449,7 +406,7 @@ export default function GlobePage() {
                 </a>
                 <Link
                   className="btn"
-                  href={`${localePath(locale, "/analysis")}?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
+                  href={`/analysis?geo=${selected.geo}&seed=${encodeURIComponent(selected.word)}`}
                 >
                   {tx.detail.explore}
                 </Link>

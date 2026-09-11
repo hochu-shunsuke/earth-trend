@@ -6,12 +6,11 @@ import ShareButton from "@/components/ShareButton";
 import { jsonLd } from "@/lib/site";
 import { GEO_LABELS } from "@/lib/trends";
 import { getCountryItems } from "@/lib/country-data";
-import { t, localePath, countryPath, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { COPY, COUNTRY_LABELS, countryPath } from "@/lib/copy";
 
-export default async function CountryExperience({ locale, code }: { locale: Locale; code: string }) {
-  const d = t(locale);
-  const country = COUNTRY_LABELS[locale][code];
-  const items = await getCountryItems(code, locale);
+export default async function CountryExperience({ code }: { code: string }) {
+  const country = COUNTRY_LABELS[code];
+  const items = await getCountryItems(code);
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
 
@@ -19,30 +18,29 @@ export default async function CountryExperience({ locale, code }: { locale: Loca
   const currentIndex = Math.max(0, codes.indexOf(code));
   const railItems: CountryRailItem[] = codes.map((geo) => ({
     code: geo,
-    label: COUNTRY_LABELS[locale][geo] ?? geo,
-    href: countryPath(locale, geo),
+    label: COUNTRY_LABELS[geo] ?? geo,
+    href: countryPath(geo),
   }));
   const previous = railItems[(currentIndex - 1 + railItems.length) % railItems.length];
   const next = railItems[(currentIndex + 1) % railItems.length];
 
   return (
     <>
-      <SiteHeader locale={locale} />
+      <SiteHeader />
       <main className="country-page-main">
         <header className="country-page-header">
           <div className="country-title-row">
             <div>
-              <h1>{d.country.title(country)}</h1>
+              <h1>{COPY.country.title(country)}</h1>
             </div>
             <div className="country-actions">
-              <Link href={localePath(locale)} className="muted">
-                {d.country.all}
+              <Link href="/" className="muted">
+                {COPY.country.all}
               </Link>
-              <ShareButton locale={locale} geo={code} title={d.country.title(country)} />
+              <ShareButton geo={code} title={COPY.country.title(country)} />
             </div>
           </div>
           <CountryRail
-            locale={locale}
             currentGeo={code}
             countries={railItems}
             previous={previous}
@@ -58,7 +56,7 @@ export default async function CountryExperience({ locale, code }: { locale: Loca
                 __html: jsonLd({
                   "@context": "https://schema.org",
                   "@type": "ItemList",
-                  name: d.country.seoHeading(country),
+                  name: COPY.country.seoHeading(country),
                   numberOfItems: items.length,
                   itemListElement: items.slice(0, 20).map((item, index) => ({
                     "@type": "ListItem",
@@ -71,18 +69,17 @@ export default async function CountryExperience({ locale, code }: { locale: Loca
             <TrendsView
               items={items}
               geo={code}
-              locale={locale}
               nowSec={nowSec}
               previousCountry={previous}
               nextCountry={next}
             />
           </div>
         ) : (
-          <p className="muted">{d.country.loadFail}</p>
+          <p className="muted">{COPY.country.loadFail}</p>
         )}
 
         <nav className="country-link-list">
-          <p className="muted">{d.country.compare(country)}</p>
+          <p className="muted">{COPY.country.compare(country)}</p>
           <div>
             {railItems
               .filter((item) => item.code !== code)

@@ -7,13 +7,11 @@
 //   - 書き込み: 1サイクル SET 1回(+細い履歴のRPUSH)
 //   - 読み取り: unstable_cache の再計算時に GET 1回。国別/ロケール別の追加読みは発生しない
 //
-// 翻訳をblobに同居させる副作用として、取りこぼしが自然に回収される。
-// 訳が欠けたままのスロットは次サイクルのblobにも残るので、予算内で再挑戦され続ける
-// (旧実装は「前回に無かった新規語」だけを対象にしていたため、溢れた語は二度と温まらなかった)。
+// 2026-09-11: 英語1本化に伴い、自前の翻訳(tr)はblobごと廃止した。読者の母国語への変換は
+// ブラウザのGoogle翻訳に任せる。トレンド語は translate="no" で保護してあるので原語は残る。
 
 import { unstable_cache } from "next/cache";
-import { GEO_LABELS, GEO_LANG, fetchTrends, type NewsItem, type TrendItem } from "@/lib/trends";
-import { LOCALES, type Locale } from "@/lib/i18n";
+import { GEO_LABELS, fetchTrends, type NewsItem, type TrendItem } from "@/lib/trends";
 import { redisPipeline } from "@/lib/redis";
 import { TRENDS_DATA_CACHE_TAG } from "@/lib/cache-tags";
 
@@ -28,17 +26,7 @@ const HALF_LIFE_SEC = 1800;
 /** これ以上見かけない語はrunning unionから落とす(古い語が居座らないように) */
 const STALE_SEC = 6 * 3600;
 
-/**
- * 訳の解決状態。
- * - 文字列(非空): 訳
- * - "" : 「訳不要」と確定(原語と同じ=固有名詞等)。**再試行しない**
- * - undefined: 未試行。次サイクルの温め対象
- */
-export type Translations = Partial<Record<Locale, string>>;
-
-export interface WorldNews extends NewsItem {
-  tr?: Translations;
-}
+export type WorldNews = NewsItem;
 export interface WorldItem {
   word: string;
   traffic: string;
@@ -47,7 +35,6 @@ export interface WorldItem {
   firstSeen?: number;
   /** 直近で急上昇セットに居た時刻(unix秒)。減衰スコアの起点 */
   lastSeen?: number;
-  tr?: Translations;
 }
 export interface World {
   ts: number;
@@ -59,46 +46,37 @@ export function trafficNum(t: string): number {
   return /万/.test(t) ? n * 10000 : n;
 }
 
-/** 表示用に訳を取り出す。"" (訳不要と確定済み) は原語のみ表示なので undefined に潰す */
-export function pickTr(tr: Translations | undefined, locale: Locale): string | undefined {
-  const v = tr?.[locale];
-  return v ? v : undefined;
-}
-
 /**
  * 前回の状態と今回のRSSを running union する。
  * 旧実装の「直近3ティックをunion」と狙いは同じだが、前回blobを土台にするので
  * 追加の読み取りが要らない。減衰スコアで上位MAX_ITEMSに絞るため、3ティック窓と
  * ほぼ同じ振る舞いになる(30分で半減=90分後には事実上落ちる)。
- * 訳は同一文字列から引き継ぐ=再翻訳しない。
  */
 export function mergeGeo(prev: WorldItem[], fresh: TrendItem[], ts: number): WorldItem[] {
-  const trByWord = new Map<string, Translations>();
-  const trByNews = new Map<string, Translations>();
+  const byWord = new Map<string, WorldItem>();
+  // 前回分を土台に置く(lastSeenは据え置き=ここから減衰する)。
+  // フィールドは明示的に選ぶ: spreadだと旧スキーマの残骸(英語1本化で廃止した tr など)が
+  // blobに載り続け、クライアントへも送られてしまう。ここで落とせば1サイクルで形が揃う。
   for (const it of prev) {
-    if (it.tr) trByWord.set(it.word, it.tr);
-    for (const n of it.news) if (n.tr) trByNews.set(n.title, n.tr);
+    byWord.set(it.word, {
+      word: it.word,
+      traffic: it.traffic,
+      news: it.news.map((n) => ({ title: n.title, url: n.url, source: n.source })),
+      firstSeen: it.firstSeen,
+      lastSeen: it.lastSeen,
+    });
   }
 
-  const byWord = new Map<string, WorldItem>();
-  // 前回分を土台に置く(lastSeenは据え置き=ここから減衰する)
-  for (const it of prev) byWord.set(it.word, { ...it, news: [...it.news] });
-
   for (const f of fresh) {
-    const news: WorldNews[] = f.news.map((n) => {
-      const tr = trByNews.get(n.title);
-      return tr ? { ...n, tr } : { ...n };
-    });
+    const news: WorldNews[] = f.news.map((n) => ({ title: n.title, url: n.url, source: n.source }));
     const ex = byWord.get(f.word);
     if (!ex) {
-      const tr = trByWord.get(f.word);
       byWord.set(f.word, {
         word: f.word,
         traffic: f.traffic,
         news,
         firstSeen: f.firstSeen ?? ts,
         lastSeen: ts,
-        ...(tr ? { tr } : {}),
       });
       continue;
     }
@@ -106,7 +84,7 @@ export function mergeGeo(prev: WorldItem[], fresh: TrendItem[], ts: number): Wor
     const fs = f.firstSeen ?? ts;
     if (fs < (ex.firstSeen ?? Infinity)) ex.firstSeen = fs;
     ex.lastSeen = ts;
-    ex.news = news; // 見出しは常に最新を採用(訳は上で引き継ぎ済み)
+    ex.news = news; // 見出しは常に最新を採用
   }
 
   return [...byWord.values()]
@@ -120,52 +98,6 @@ export function mergeGeo(prev: WorldItem[], fresh: TrendItem[], ts: number): Wor
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_ITEMS)
     .map(({ it }) => it);
-}
-
-/** 未解決の訳スロット。同じ文字列が複数国/記事に出るので apply は配列で持つ */
-export interface WarmJob {
-  text: string;
-  src: string;
-  to: Locale;
-  apply: ((value: string) => void)[];
-}
-
-/**
- * world 全体から「まだ試していない訳」を集める。語を先、ニュース見出しを後に置く
- * (語の方が可視性が高いので予算を先に使う)。解決済み("")は二度と対象にならない。
- */
-export function collectWarmJobs(world: World): WarmJob[] {
-  const words = new Map<string, WarmJob>();
-  const news = new Map<string, WarmJob>();
-
-  const push = (bucket: Map<string, WarmJob>, text: string, src: string, to: Locale, apply: (v: string) => void) => {
-    if (!text) return;
-    const key = `${src}\0${to}\0${text}`;
-    const job = bucket.get(key);
-    if (job) job.apply.push(apply);
-    else bucket.set(key, { text, src, to, apply: [apply] });
-  };
-
-  for (const [geo, items] of Object.entries(world.geos)) {
-    const src = GEO_LANG[geo] ?? "auto";
-    for (const it of items) {
-      for (const to of LOCALES) {
-        if (to === src) continue;
-        if (it.tr?.[to] === undefined) {
-          push(words, it.word, src, to, (v) => {
-            (it.tr ??= {})[to] = v;
-          });
-        }
-        for (const n of it.news) {
-          if (n.tr?.[to] !== undefined) continue;
-          push(news, n.title, src, to, (v) => {
-            (n.tr ??= {})[to] = v;
-          });
-        }
-      }
-    }
-  }
-  return [...words.values(), ...news.values()];
 }
 
 /** 履歴に落とす細い形。newsを捨てるので容量は本体の約1/5。velocity可視化にはこれで足りる */
