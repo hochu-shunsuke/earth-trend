@@ -1,11 +1,5 @@
 import { GEO_LABELS } from "@/lib/trends";
-import { getWorld, type WorldItem } from "@/lib/world";
-
-// 24国分のデータ。実体は world:v1 の単一キャッシュ(lib/world.ts)なので、ここでの追加I/Oは無い。
-export async function getGalleryData(): Promise<[string, WorldItem[]][]> {
-  const world = await getWorld();
-  return Object.keys(GEO_LABELS).map((geo) => [geo, world.geos[geo] ?? []]);
-}
+import { getWorld } from "@/lib/world";
 
 /** 一覧タイル(CountryTile)が実際に描くのは 面積=traffic / 色=firstSeen だけ */
 export interface TileItem {

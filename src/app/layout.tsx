@@ -37,6 +37,13 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // 図が主役のサイトなので、検索結果/Discoverで大きな画像を出せるようにする
+  robots: {
+    index: true,
+    follow: true,
+    "max-image-preview": "large",
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
 };
 
 export default function RootLayout({

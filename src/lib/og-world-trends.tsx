@@ -19,9 +19,9 @@ interface OgOpts {
 }
 
 export async function trendsOgImage(opts: OgOpts): Promise<ImageResponse> {
-  const geo =
-    opts.geo?.toUpperCase() ??
-    [...Object.keys(GEO_LABELS)].sort(() => Math.random() - 0.5)[0];
+  const codes = Object.keys(GEO_LABELS);
+  // sort(() => Math.random() - 0.5) は比較が非一貫で分布が偏る。素直に1つ引く。
+  const geo = opts.geo?.toUpperCase() ?? codes[Math.floor(Math.random() * codes.length)];
   const items = GEO_LABELS[geo] ? ((await getWorld()).geos[geo] ?? []) : [];
   const nowSec = Math.floor(Date.now() / 1000);
 

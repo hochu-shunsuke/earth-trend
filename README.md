@@ -44,7 +44,7 @@ middleware は使わない(全リクエストでVercel Middlewareを起動しな
 Google Trends RSS (24カ国)
    │  Upstash QStash が15分ごとに叩く
    ▼
-POST /api/cron/snapshot   … UTC :00/:30 のみ実処理(それ以外は skip して即返す)
+POST /api/cron/snapshot   … 前回保存から25分未満なら skip して即返す(実効30分間隔)
    │
    ├─ GET world:v1            前回の状態                              … 1 コマンド
    ├─ 24カ国のRSSを並列取得
@@ -95,8 +95,11 @@ cron を手で叩く場合:
 curl -X POST "http://localhost:3000/api/cron/snapshot?key=$CRON_SECRET&force=1"
 ```
 
-`force=1` で :00/:30 ゲートを飛ばす。QStash からは `Authorization: Bearer <CRON_SECRET>` が
+`force=1` で間隔の番人を飛ばす。QStash からは `Authorization: Bearer <CRON_SECRET>` が
 `Upstash-Forward-Authorization` 経由で届く。
+
+間引きの判定は**壁時計の剰余ではなく「前回の保存からの経過」**で行う。剰余で間引くと、配信が
+15分以上遅れて次のバケットに落ちた回がまるごと欠落し、しかも200を返すので再試行もされない。
 
 ## API
 

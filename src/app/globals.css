@@ -389,7 +389,8 @@ select.btn {
   .country-title-row {
     gap: 9px;
   }
-  .country-title-row h1 {
+  .country-title-row h1,
+  .home-header h1 {
     font-size: 26px;
   }
   .country-actions {
@@ -716,4 +717,20 @@ select.btn {
 .trend-word:hover {
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* トップの見出し。国ページ(.country-title-row h1)と同じ寸法に揃える */
+.home-header {
+  margin-bottom: 20px;
+}
+.home-header h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.home-header p {
+  margin: 6px 0 0;
+  font-size: 13px;
 }

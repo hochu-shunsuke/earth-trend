@@ -71,62 +71,6 @@ export const GEO_LABELS: Record<string, string> = {
   IT: "イタリア",
 };
 
-/** 翻訳の原文言語(その国の主要言語)。翻訳EPの sl(源言語)に使う */
-export const GEO_LANG: Record<string, string> = {
-  JP: "ja",
-  US: "en",
-  GB: "en",
-  IN: "en",
-  KR: "ko",
-  TW: "zh-TW",
-  DE: "de",
-  FR: "fr",
-  BR: "pt-BR",
-  CA: "en",
-  AU: "en",
-  PH: "en",
-  NG: "en",
-  ZA: "en",
-  MX: "es",
-  ES: "es",
-  AR: "es",
-  CO: "es",
-  ID: "id",
-  RU: "ru",
-  TR: "tr",
-  VN: "vi",
-  TH: "th",
-  IT: "it",
-};
-
-/** サジェストAPIに渡す言語(国の主要言語) */
-export const GEO_HL: Record<string, string> = {
-  JP: "ja",
-  US: "en",
-  GB: "en",
-  IN: "en",
-  KR: "ko",
-  TW: "zh-TW",
-  DE: "de",
-  FR: "fr",
-  BR: "pt-BR",
-  CA: "en",
-  AU: "en",
-  PH: "en",
-  NG: "en",
-  ZA: "en",
-  MX: "es",
-  ES: "es",
-  AR: "es",
-  CO: "es",
-  ID: "id",
-  RU: "ru",
-  TR: "tr",
-  VN: "vi",
-  TH: "th",
-  IT: "it",
-};
-
 // 国コード ↔ URLスラグ。スペイン(ES)はロケール接頭辞 /es と衝突するためURLスラグは "spain"。
 // 他の国はコードの小文字がそのままスラグ(jp, us, …)。
 const GEO_SLUG: Record<string, string> = { ES: "spain" };
