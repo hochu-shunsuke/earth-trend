@@ -1,7 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
-import { GEO_LABELS, geoSlug } from "@/lib/trends";
-import { LOCALES, localePath, type Locale } from "@/lib/i18n";
+import { GEO_LABELS } from "@/lib/trends";
+import {
+  LOCALES,
+  localePath,
+  countryPath,
+  countryAltLanguages,
+  type Locale,
+} from "@/lib/i18n";
 
 type ChangeFreq = MetadataRoute.Sitemap[number]["changeFrequency"];
 
@@ -13,7 +19,7 @@ const fullUrl = (suffix: string, locale: Locale) => {
 };
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const geos = Object.keys(GEO_LABELS).map((g) => geoSlug(g));
+  const geos = Object.keys(GEO_LABELS);
   const now = new Date();
 
   // x-default は英語(海外の非マッチユーザーへのフォールバック)
@@ -33,10 +39,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: languages(suffix) },
     }));
 
+  const countryPages = (geo: string) => {
+    const relativeAlternates = countryAltLanguages(geo);
+    const absoluteAlternates = Object.fromEntries(
+      Object.entries(relativeAlternates).map(([language, path]) => [language, `${SITE_URL}${path}`]),
+    );
+    return LOCALES.map((locale) => ({
+      url: `${SITE_URL}${countryPath(locale, geo)}`,
+      lastModified: now,
+      changeFrequency: "hourly" as const,
+      priority: 0.8,
+      alternates: { languages: absoluteAlternates },
+    }));
+  };
+
   return [
-    ...pages("", "hourly", 1), // ホーム(ランディング)。ja=bare domain
-    ...pages("/trends", "hourly", 0.9),
-    ...geos.flatMap((g) => pages(`/${g}`, "hourly", 0.8)),
+    ...pages("", "hourly", 1), // 世界のトレンド一覧。ja=bare domain
+    ...geos.flatMap(countryPages),
     ...pages("/analysis", "hourly", 0.6),
     ...pages("/globe", "hourly", 0.6),
     ...pages("/about", "monthly", 0.3),

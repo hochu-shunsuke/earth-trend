@@ -365,6 +365,179 @@ select.btn {
   }
 }
 
+/* 国別トレンド: トップと各国URLで同じ、連続して切り替えられる閲覧面 */
+.country-page-main {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 78px 16px 48px;
+}
+.country-page-header {
+  margin-bottom: 14px;
+}
+.country-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.country-title-row h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.country-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.country-nav {
+  margin-top: 16px;
+}
+.country-rail-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 7px;
+}
+.country-step {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 17px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.country-step:hover {
+  border-color: var(--muted);
+  background: color-mix(in srgb, var(--fg) 5%, var(--panel));
+  text-decoration: none;
+}
+.country-rail {
+  display: flex;
+  gap: 0;
+  min-width: 0;
+  padding: 2px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.country-rail-set {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding-right: 6px;
+}
+.country-rail::-webkit-scrollbar {
+  display: none;
+}
+.country-chip {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  line-height: 1.4;
+  scroll-snap-align: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.country-chip:hover {
+  color: var(--fg);
+  border-color: var(--muted);
+  text-decoration: none;
+}
+.country-chip[aria-current="page"] {
+  color: var(--bg);
+  border-color: var(--fg);
+  background: var(--fg);
+}
+.country-chip small {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.62;
+}
+.country-swipe-hint {
+  display: none;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.country-stage {
+  animation: country-enter 0.24s ease-out both;
+}
+@keyframes country-enter {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.country-link-list {
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.country-link-list p {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+.country-link-list div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  font-size: 12px;
+}
+@media (max-width: 560px) {
+  .country-page-main {
+    padding: 70px 12px 40px;
+  }
+  .country-title-row {
+    gap: 9px;
+  }
+  .country-title-row h1 {
+    font-size: 26px;
+  }
+  .country-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .country-nav {
+    margin-top: 12px;
+  }
+  .country-rail-row {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 5px;
+  }
+  .country-step {
+    width: 34px;
+    height: 34px;
+  }
+  .country-chip {
+    padding: 5px 10px;
+  }
+  .country-swipe-hint {
+    display: block;
+  }
+}
+
 /* トレンド(国別)のバブルマップ: 最大幅(フルブリード)。操作は方式で分離(2本指/⌘ホイール) */
 .bubble-zoom {
   position: absolute;
@@ -435,7 +608,8 @@ select.btn {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .live-dot {
+  .live-dot,
+  .country-stage {
     animation: none;
   }
 }

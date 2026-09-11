@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LandingPage from "@/components/LandingPage";
+import Gallery from "@/components/Gallery";
 import { toLocale, t, localePath, altLanguages } from "@/lib/i18n";
 
 // snapshot完了時のタグ失効が主経路。1時間はcron停止時の安全網。
@@ -22,12 +22,12 @@ export async function generateMetadata({
   };
 }
 
-// 言語別ホーム = ランディング(各ビューを説明する入口)。ルート(/) と同一内容の言語版。
+// 言語別ホーム = 各国のトレンドを見渡す世界一覧。国を選ぶと固有URLへ潜る。
 export default async function LangHome({
   params,
 }: {
   params: Promise<{ lang: string }>;
 }) {
   const locale = toLocale((await params).lang);
-  return <LandingPage locale={locale} />;
+  return <Gallery locale={locale} />;
 }

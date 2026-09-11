@@ -19,6 +19,20 @@ export function localePath(locale: Locale, section = ""): string {
   return `/${locale}${section}`;
 }
 
+// 国別URL。トップは世界一覧、国を選んだ後は /jp・/en/jp のような固有URLを持つ。
+export function countryPath(locale: Locale, geo: string): string {
+  const code = geo.toUpperCase();
+  const slug = code === "ES" ? "spain" : code.toLowerCase();
+  return localePath(locale, `/${slug}`);
+}
+
+export function countryAltLanguages(geo: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const locale of LOCALES) out[locale] = countryPath(locale, geo);
+  out["x-default"] = countryPath("en", geo);
+  return out;
+}
+
 // メタデータの hreflang alternates。全ロケール + x-default=en(海外フォールバックは英語)
 export function altLanguages(section = ""): Record<string, string> {
   const out: Record<string, string> = {};
@@ -165,7 +179,7 @@ const DICT: Record<Locale, Dict> = {
     },
     bubbles: {
       legend: (n) =>
-        `大きさ＝検索ボリューム／色＝新しさ（暖色＝最近登場）。直近の急上昇${n}件（全検索の割合ではありません）。ドラッグで移動・ホイール/ピンチで拡大。`,
+        `大きさ＝検索ボリューム／色＝新しさ（暖色＝最近登場）。直近の急上昇${n}件（全検索の割合ではありません）。左右スワイプで国を切替・2本指/ドラッグで移動。`,
     },
     detail: {
       searches: "検索数",
@@ -209,7 +223,7 @@ const DICT: Record<Locale, Dict> = {
     },
     bubbles: {
       legend: (n) =>
-        `Size = search volume / color = freshness (warm = newly appeared). ${n} recent risings (not a share of all searches). Drag to pan, wheel/pinch to zoom.`,
+        `Size = search volume / color = freshness (warm = newly appeared). ${n} recent risings (not a share of all searches). Swipe to switch country · two fingers/drag to move.`,
     },
     detail: {
       searches: "Searches",
@@ -254,7 +268,7 @@ const DICT: Record<Locale, Dict> = {
     },
     bubbles: {
       legend: (n) =>
-        `Tamaño = volumen de búsqueda / color = novedad (cálido = recién aparecido). ${n} tendencias recientes (no es una proporción de todas las búsquedas). Arrastra para mover, rueda/pellizca para acercar.`,
+        `Tamaño = volumen de búsqueda / color = novedad (cálido = recién aparecido). ${n} tendencias recientes (no es una proporción de todas las búsquedas). Desliza para cambiar de país · dos dedos/arrastre para mover.`,
     },
     detail: {
       searches: "Búsquedas",
