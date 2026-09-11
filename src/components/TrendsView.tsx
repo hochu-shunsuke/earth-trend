@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { GEO_LANG } from "@/lib/trends";
@@ -11,6 +12,7 @@ import NewsCarousel from "@/components/NewsCarousel";
 import LiveStamp from "@/components/LiveStamp";
 import NewsTitle from "@/components/NewsTitle";
 import WordGloss from "@/components/WordGloss";
+import { type CountryRailItem } from "@/components/CountryRail";
 
 interface NewsItem {
   title: string;
@@ -34,11 +36,13 @@ function ScaleBubbles({
   locale,
   geo,
   onSelect,
+  onSwipe,
 }: {
   items: TrendItem[];
   locale: Locale;
   geo: string;
   onSelect: (it: TrendItem) => void;
+  onSwipe: (direction: "previous" | "next") => void;
 }) {
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const [nowSec, setNowSec] = useState(0);
@@ -54,12 +58,6 @@ function ScaleBubbles({
   const midPrev = useRef<{ x: number; y: number } | null>(null); // 2本指の中点(パン用)
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const twoFingerHint =
-    locale === "ja"
-      ? "2本指で地図を動かせます"
-      : locale === "es"
-        ? "Usa dos dedos para mover el mapa"
-        : "Use two fingers to move the map";
   const wheelHint =
     locale === "ja"
       ? "⌘ / Ctrl + スクロールでズーム"
@@ -199,12 +197,8 @@ function ScaleBubbles({
     const dy = e.clientY - drag.current.sy;
     const movedEnough = Math.abs(dx) + Math.abs(dy) > 4;
     if (drag.current.touch) {
-      // スマホは1本指でパンしない=縦はページスクロールに通す。
-      // 横に動かそうとした時だけ「2本指で」ヒント(縦スクロールでは出さない)
-      if (movedEnough && !moved.current) {
-        moved.current = true; // 以後タップ扱いにしない
-        if (Math.abs(dx) > Math.abs(dy)) showHint(twoFingerHint);
-      }
+      // 1本指の縦移動はページスクロールへ、横移動はpointerup時に国切替として判定する。
+      if (movedEnough) moved.current = true;
       return;
     }
     // PCはマウスの1ボタンドラッグでパン(スクロールジェスチャではないので奪ってよい)
@@ -215,6 +209,23 @@ function ScaleBubbles({
     if (moved.current) setView((v) => ({ ...v, x: v.x + e.movementX, y: v.y + e.movementY }));
   };
   const onPointerEnd = (e: React.PointerEvent) => {
+    const activeDrag = drag.current;
+    if (activeDrag?.touch && pointers.current.size === 1) {
+      const dx = e.clientX - activeDrag.sx;
+      const dy = e.clientY - activeDrag.sy;
+      if (Math.abs(dx) >= 64 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+        moved.current = true;
+        onSwipe(dx < 0 ? "next" : "previous");
+      }
+    }
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) {
+      pinchPrev.current = null;
+      midPrev.current = null;
+    }
+    if (pointers.current.size === 0) drag.current = null;
+  };
+  const onPointerCancel = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) {
       pinchPrev.current = null;
@@ -235,7 +246,7 @@ function ScaleBubbles({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerEnd}
+        onPointerCancel={onPointerCancel}
         style={{
           position: "relative",
           width: "100vw",
@@ -243,7 +254,7 @@ function ScaleBubbles({
           marginLeft: "-50vw",
           height: box?.h ?? 420,
           overflow: "hidden",
-          // 縦1本指はページスクロールに通す。地図の移動は2本指/マウスドラッグ、ズームは⌘ホイール
+          // 縦1本指はページスクロール、横1本指は国切替。地図の移動は2本指/マウスドラッグ。
           touchAction: "pan-y",
           userSelect: "none",
           cursor: "grab",
@@ -349,7 +360,7 @@ function ScaleBubbles({
           </button>
         </div>
 
-        {/* 操作ヒント(一瞬): スマホ横1本指ドラッグ / PCの素のホイール時 */}
+        {/* 操作ヒント(一瞬): PCの素のホイール時 */}
         {hint && <div className="map-hint">{hint}</div>}
       </div>
     </>
@@ -363,12 +374,17 @@ export default function TrendsView({
   geo,
   locale,
   nowSec: nowSecInit,
+  previousCountry,
+  nextCountry,
 }: {
   items: TrendItem[];
   geo: string;
   locale: Locale;
   nowSec: number; // サーバー時刻(秒)。リストの「経過」表示をSSRから正しく出すための基準
+  previousCountry: CountryRailItem;
+  nextCountry: CountryRailItem;
 }) {
+  const router = useRouter();
   const d = t(locale);
   const [selected, setSelected] = useState<TrendItem | null>(null);
   // サーバー時刻で初期化=SSRと一致(ハイドレーション差異なし)。effectでクライアント時刻に更新
@@ -434,10 +450,21 @@ export default function TrendsView({
   const country = COUNTRY_LABELS[locale][geo];
   // 「最終更新」は最新スナップのlastSeen=鮮度に正直(描画時刻ではない)
   const updatedSec = items.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
+  const switchCountry = (direction: "previous" | "next") => {
+    const destination = direction === "previous" ? previousCountry : nextCountry;
+    gaEvent("country_change", { from: geo, to: destination.code, method: "swipe" });
+    router.push(destination.href, { scroll: false });
+  };
 
   return (
     <>
-      <ScaleBubbles items={items} locale={locale} geo={geo} onSelect={setSelected} />
+      <ScaleBubbles
+        items={items}
+        locale={locale}
+        geo={geo}
+        onSelect={setSelected}
+        onSwipe={switchCountry}
+      />
 
       {selected && (
         <div className="detail-panel">

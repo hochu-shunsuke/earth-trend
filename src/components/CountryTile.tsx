@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
-import { geoSlug } from "@/lib/trends";
 import { useInView } from "@/lib/useInView";
-import { localePath, type Locale } from "@/lib/i18n";
+import { countryPath, type Locale } from "@/lib/i18n";
 
 interface TrendItem {
   word: string;
@@ -48,7 +47,7 @@ export default function CountryTile({
 
   return (
     <Link
-      href={localePath(locale, `/${geoSlug(geo)}`)}
+      href={countryPath(locale, geo)}
       className="card-link trend-tile"
       onMouseEnter={() => setRunId((n) => n + 1)}
     >
