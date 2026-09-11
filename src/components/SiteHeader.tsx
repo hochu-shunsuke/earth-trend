@@ -26,8 +26,9 @@ export default function SiteHeader({
   const section = hasLocalePrefix ? (parts[1] ?? "") : (parts[0] ?? "");
   const d = t(locale);
 
-  // トレンド = /trends と 各国ページ /[geo](2文字)。ホーム(section==="")は非アクティブ
-  const isTrends = section === "trends" || section.length === 2;
+  // ホームは日本のトレンド。/trends と各国ページも同じトレンド領域として扱う。
+  const isTrends =
+    section === "" || section === "trends" || section === "spain" || section.length === 2;
   const tabs: { href: string; label: string; active: boolean }[] = [
     { href: localePath(locale, "/trends"), label: d.nav.trends, active: isTrends },
     { href: localePath(locale, "/analysis"), label: d.nav.analysis, active: section === "analysis" },
