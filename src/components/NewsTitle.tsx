@@ -11,13 +11,16 @@ export default function NewsTitle({
   title,
   from,
   to,
+  initial,
 }: {
   title: string;
   from: string;
   to: string;
+  /** SSRで温済の訳。あればクライアントからの /api/translate は走らない */
+  initial?: string;
 }) {
   const { ref, inView } = useInView<HTMLSpanElement>();
-  const [tr, setTr] = useState<string | null>(null);
+  const [tr, setTr] = useState<string | null>(initial ?? null);
   useEffect(() => {
     if (!inView || tr || !from || from === to || from === "auto") return; // 範囲外/既訳/不要はしない
     let alive = true;

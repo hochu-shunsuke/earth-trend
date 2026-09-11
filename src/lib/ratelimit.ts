@@ -3,11 +3,7 @@
 // 共有egress IPごとブロックされるのを防ぐ。超過時はライブ翻訳を諦めてキャッシュ/原語に劣化する。
 // 可用性優先: env未設定/Upstash失敗時は「許可」にフォールバック(保護はベストエフォート)。
 
-function redisEnv() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url, token } : null;
-}
+import { redisEnv } from "@/lib/redis";
 
 /**
  * key を windowSec 窓でインクリメントし、limit 以内なら true(=許可)。

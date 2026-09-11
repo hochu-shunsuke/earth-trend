@@ -1,18 +1,28 @@
-import { unstable_cache } from "next/cache";
 import { GEO_LABELS } from "@/lib/trends";
-import { fetchTrendsUnioned, type RecentTrendItem } from "@/lib/history";
-import { TRENDS_DATA_CACHE_TAG } from "@/lib/cache-tags";
+import { getWorld, type WorldItem } from "@/lib/world";
 
-// 24国分のデータをsnapshotタグ失効までキャッシュ(1時間はcron停止時の安全網)。
-// 一覧(Gallery)とトップ(LandingPageのマーキー)で同一キャッシュを共有する。
-export const getGalleryData = unstable_cache(
-  async (): Promise<[string, RecentTrendItem[]][]> =>
-    Promise.all(
-      Object.keys(GEO_LABELS).map(
-        async (g) => [g, await fetchTrendsUnioned(g)] as [string, RecentTrendItem[]],
-      ),
-    ),
-  // v3で旧キャッシュを切り離す。以後はsnapshot完了時のタグ失効で先回りして更新する。
-  ["gallery-data-v3"],
-  { revalidate: 3600, tags: [TRENDS_DATA_CACHE_TAG] },
-);
+// 24国分のデータ。実体は world:v1 の単一キャッシュ(lib/world.ts)なので、ここでの追加I/Oは無い。
+export async function getGalleryData(): Promise<[string, WorldItem[]][]> {
+  const world = await getWorld();
+  return Object.keys(GEO_LABELS).map((geo) => [geo, world.geos[geo] ?? []]);
+}
+
+/** 一覧タイル(CountryTile)が実際に描くのは 面積=traffic / 色=firstSeen だけ */
+export interface TileItem {
+  word: string;
+  traffic: string;
+  firstSeen?: number;
+}
+
+/**
+ * トップの一覧用に必要な3項目だけへ射影する。CountryTile はクライアント境界なので、
+ * 射影しないと表示されないニュース(見出し・URL・媒体名)まで全24国分がRSCペイロードへ
+ * 直列化される(実測 345KB / gzip 109KB。可視テキストは453文字しかない)。
+ */
+export async function getGalleryTiles(): Promise<[string, TileItem[]][]> {
+  const world = await getWorld();
+  return Object.keys(GEO_LABELS).map((geo) => [
+    geo,
+    (world.geos[geo] ?? []).map(({ word, traffic, firstSeen }) => ({ word, traffic, firstSeen })),
+  ]);
+}

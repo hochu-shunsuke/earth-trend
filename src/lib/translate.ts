@@ -2,28 +2,7 @@
 // ここは「訳の文字列」だけを返す。エンジンはGoogleの無料翻訳エンドポイント(キー不要・
 // 高品質)。非公式だがトレンドRSSと同じ半公式・無料の枠。叩く量はキャッシュで極小。
 
-function redisEnv() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url, token } : null;
-}
-
-async function redis(commands: unknown[][]): Promise<{ result: unknown }[] | null> {
-  const env = redisEnv();
-  if (!env) return null;
-  try {
-    const res = await fetch(`${env.url}/pipeline`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(commands),
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as { result: unknown }[];
-  } catch {
-    return null;
-  }
-}
+import { redisPipeline as redis } from "@/lib/redis";
 
 // 言語コードを翻訳EPが受ける形へ寄せる(zh-TW/pt-BR はそのまま通る)
 function norm(lang: string): string {

@@ -1,29 +1,45 @@
-import { unstable_cache } from "next/cache";
-import { GEO_LANG } from "@/lib/trends";
-import { type RecentTrendItem } from "@/lib/history";
-import { getGalleryData } from "@/lib/gallery-data";
-import { translate } from "@/lib/translate";
-import { TRENDS_TRANSLATED_CACHE_TAG } from "@/lib/cache-tags";
+import { GEO_LANG, type NewsItem } from "@/lib/trends";
+import { getWorld, pickTr, type WorldItem } from "@/lib/world";
 import { type Locale } from "@/lib/i18n";
 
-export type TranslatedItem = RecentTrendItem & { translation?: string };
+export interface TranslatedNews extends NewsItem {
+  translation?: string;
+}
+export interface TranslatedItem {
+  word: string;
+  traffic: string;
+  news: TranslatedNews[];
+  firstSeen?: number;
+  lastSeen?: number;
+  translation?: string;
+}
 
-// 国別ページとホームで共有する単一キャッシュ。snapshot完了時のタグ失効が主経路で、
-// 1時間のrevalidateはcron停止時の安全網。
-export const getCountryItems = unstable_cache(
-  async (code: string, locale: Locale): Promise<TranslatedItem[]> => {
-    const all = await getGalleryData();
-    const raw = all.find(([geo]) => geo === code)?.[1] ?? [];
-    const src = GEO_LANG[code] ?? "auto";
-    if (src === locale) return raw;
-    return Promise.all(
-      raw.map(async (item) => ({
-        ...item,
-        // 温め済みの訳だけを使い、同時アクセスで翻訳元へ負荷を掛けない。
-        translation: (await translate(item.word, src, locale, true)) ?? undefined,
-      })),
-    );
-  },
-  ["country-items-v5"],
-  { revalidate: 3600, tags: [TRENDS_TRANSLATED_CACHE_TAG] },
-);
+// world:v1 の tr は全ロケール分を持つので、表示するロケールの訳だけを取り出して渡す
+// (そのまま渡すとクライアントへ送るペイロードが3倍になる)。
+function forLocale(it: WorldItem, locale: Locale, translate: boolean): TranslatedItem {
+  return {
+    word: it.word,
+    traffic: it.traffic,
+    firstSeen: it.firstSeen,
+    lastSeen: it.lastSeen,
+    translation: translate ? pickTr(it.tr, locale) : undefined,
+    news: it.news.map((n) => ({
+      title: n.title,
+      url: n.url,
+      source: n.source,
+      translation: translate ? pickTr(n.tr, locale) : undefined,
+    })),
+  };
+}
+
+/**
+ * 国別ページ用。訳は cron が world:v1 に焼き込み済みなので、ここでは取り出すだけ
+ * (以前は語ごとにUpstashへ個別GETしていた=24国×3ロケールで1周期あたり約930往復)。
+ * 見出しの訳も渡すので、クライアントからの /api/translate はほぼ不要になる。
+ */
+export async function getCountryItems(code: string, locale: Locale): Promise<TranslatedItem[]> {
+  const world = await getWorld();
+  const items = world.geos[code] ?? [];
+  const translate = (GEO_LANG[code] ?? "auto") !== locale;
+  return items.map((it) => forLocale(it, locale, translate));
+}

@@ -18,6 +18,7 @@ interface NewsItem {
   title: string;
   url?: string;
   source?: string;
+  translation?: string; // 見出しの訳(サーバー描画で付与。原文は title 属性に残る)
 }
 interface TrendItem {
   word: string;
@@ -565,10 +566,10 @@ export default function TrendsView({
                       <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
                         {n.url ? (
                           <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                            <NewsTitle title={n.title} from={srcLang} to={locale} />
+                            <NewsTitle title={n.title} from={srcLang} to={locale} initial={n.translation} />
                           </a>
                         ) : (
-                          <NewsTitle title={n.title} from={srcLang} to={locale} />
+                          <NewsTitle title={n.title} from={srcLang} to={locale} initial={n.translation} />
                         )}
                         {n.source && <span> ({n.source})</span>}
                       </li>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import GalleryGrid from "@/components/GalleryGrid";
-import { getGalleryData } from "@/lib/gallery-data";
+import { getGalleryTiles } from "@/lib/gallery-data";
 import { t, localePath, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
 
 // 各国の「注意の地図」一覧。ルート(/) と /ja /en で共有(ロケールだけ差し替え)。
@@ -11,7 +11,7 @@ export default async function Gallery({ locale }: { locale: Locale }) {
   const labels = COUNTRY_LABELS[locale];
   // eslint-disable-next-line react-hooks/purity
   const nowSec = Math.floor(Date.now() / 1000);
-  const data = await getGalleryData();
+  const data = await getGalleryTiles(); // 表示に使う3項目だけ(ニュースをクライアントへ送らない)
 
   return (
     <>
