@@ -36,7 +36,7 @@ export default async function CountryExperience({ locale, code }: { locale: Loca
               <h1>{d.country.title(country)}</h1>
             </div>
             <div className="country-actions">
-              <Link href={localePath(locale, "/trends")} className="muted">
+              <Link href={localePath(locale)} className="muted">
                 {d.country.all}
               </Link>
               <ShareButton locale={locale} geo={code} title={d.country.title(country)} />

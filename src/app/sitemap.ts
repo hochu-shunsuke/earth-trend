@@ -3,7 +3,6 @@ import { SITE_URL } from "@/lib/site";
 import { GEO_LABELS } from "@/lib/trends";
 import {
   LOCALES,
-  DEFAULT_GEO,
   localePath,
   countryPath,
   countryAltLanguages,
@@ -20,7 +19,7 @@ const fullUrl = (suffix: string, locale: Locale) => {
 };
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const geos = Object.keys(GEO_LABELS).filter((geo) => geo !== DEFAULT_GEO);
+  const geos = Object.keys(GEO_LABELS);
   const now = new Date();
 
   // x-default は英語(海外の非マッチユーザーへのフォールバック)
@@ -55,8 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   };
 
   return [
-    ...pages("", "hourly", 1), // 日本のトレンド。ja=bare domain
-    ...pages("/trends", "hourly", 0.9),
+    ...pages("", "hourly", 1), // 世界のトレンド一覧。ja=bare domain
     ...geos.flatMap(countryPages),
     ...pages("/analysis", "hourly", 0.6),
     ...pages("/globe", "hourly", 0.6),

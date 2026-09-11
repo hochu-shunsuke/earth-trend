@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import CountryExperience from "@/components/CountryExperience";
-import { toLocale, t, localePath, altLanguages, DEFAULT_GEO, COUNTRY_LABELS } from "@/lib/i18n";
+import Gallery from "@/components/Gallery";
+import { toLocale, t, localePath, altLanguages } from "@/lib/i18n";
 
 // snapshot完了時のタグ失効が主経路。1時間はcron停止時の安全網。
 export const revalidate = 3600;
@@ -12,10 +12,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = toLocale((await params).lang);
   const d = t(locale);
-  const country = COUNTRY_LABELS[locale][DEFAULT_GEO];
   return {
-    title: d.country.title(country),
-    description: d.country.seoHeading(country),
+    title: d.home.title,
+    description: d.home.desc,
     alternates: {
       canonical: localePath(locale), // ja="/" / en="/en"
       languages: altLanguages(),
@@ -23,12 +22,12 @@ export async function generateMetadata({
   };
 }
 
-// 言語別ホーム = 日本のライブトレンド。説明を挟まずサイトの主機能から始める。
+// 言語別ホーム = 各国のトレンドを見渡す世界一覧。国を選ぶと固有URLへ潜る。
 export default async function LangHome({
   params,
 }: {
   params: Promise<{ lang: string }>;
 }) {
   const locale = toLocale((await params).lang);
-  return <CountryExperience locale={locale} code={DEFAULT_GEO} />;
+  return <Gallery locale={locale} />;
 }

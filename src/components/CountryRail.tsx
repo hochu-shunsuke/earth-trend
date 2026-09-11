@@ -32,14 +32,43 @@ export default function CountryRail({
   next: CountryRailItem;
 }) {
   const router = useRouter();
+  const railRef = useRef<HTMLElement>(null);
+  const middleSetRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLAnchorElement>(null);
+  const initialized = useRef(false);
   const copy = COPY[locale];
 
   useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: "nearest", inline: "center" });
+    initialized.current = false;
+    const frame = requestAnimationFrame(() => {
+      const rail = railRef.current;
+      const current = currentRef.current;
+      if (rail && current) {
+        const railRect = rail.getBoundingClientRect();
+        const currentRect = current.getBoundingClientRect();
+        rail.scrollLeft +=
+          currentRect.left - railRect.left - (rail.clientWidth - current.offsetWidth) / 2;
+      }
+      initialized.current = true;
+    });
     router.prefetch(previous.href);
     router.prefetch(next.href);
+    return () => cancelAnimationFrame(frame);
   }, [currentGeo, next.href, previous.href, router]);
+
+  const normalizeScroll = () => {
+    const rail = railRef.current;
+    const setWidth = middleSetRef.current?.offsetWidth ?? 0;
+    if (!initialized.current || !rail || setWidth === 0) return;
+
+    // 同じ並びを3周置き、外側へ入ったら同じ見た目の中央周へ瞬時に戻す。
+    // スクロール量だけを1周分ずらすので、ドラッグ中も継ぎ目は見えない。
+    if (rail.scrollLeft < setWidth * 0.5) {
+      rail.scrollLeft += setWidth;
+    } else if (rail.scrollLeft > setWidth * 1.5) {
+      rail.scrollLeft -= setWidth;
+    }
+  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -67,28 +96,48 @@ export default function CountryRail({
         >
           ←
         </Link>
-        <nav className="country-rail" aria-label={copy.label}>
-          {countries.map((country) => {
-            const current = country.code === currentGeo;
-            return (
-              <Link
-                key={country.code}
-                ref={current ? currentRef : undefined}
-                className="country-chip"
-                href={country.href}
-                scroll={false}
-                aria-current={current ? "page" : undefined}
-                onClick={() => {
-                  if (!current) {
-                    gaEvent("country_change", { from: currentGeo, to: country.code, method: "rail" });
-                  }
-                }}
-              >
-                <span>{country.label}</span>
-                <small>{country.code}</small>
-              </Link>
-            );
-          })}
+        <nav
+          ref={railRef}
+          className="country-rail"
+          aria-label={copy.label}
+          onScroll={normalizeScroll}
+        >
+          {[0, 1, 2].map((copyIndex) => (
+            <div
+              key={copyIndex}
+              ref={copyIndex === 1 ? middleSetRef : undefined}
+              className="country-rail-set"
+              aria-hidden={copyIndex === 1 ? undefined : true}
+            >
+              {countries.map((country) => {
+                const current = country.code === currentGeo;
+                const semanticCopy = copyIndex === 1;
+                return (
+                  <Link
+                    key={`${copyIndex}-${country.code}`}
+                    ref={semanticCopy && current ? currentRef : undefined}
+                    className="country-chip"
+                    href={country.href}
+                    scroll={false}
+                    tabIndex={semanticCopy ? undefined : -1}
+                    aria-current={semanticCopy && current ? "page" : undefined}
+                    onClick={() => {
+                      if (!current) {
+                        gaEvent("country_change", {
+                          from: currentGeo,
+                          to: country.code,
+                          method: "rail",
+                        });
+                      }
+                    }}
+                  >
+                    <span>{country.label}</span>
+                    <small>{country.code}</small>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <Link
           className="country-step"

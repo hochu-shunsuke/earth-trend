@@ -27,7 +27,7 @@ const countryPaths = [
   "it",
 ];
 const defaultLocalePaths = ["trends", "analysis", "globe", "about", ...countryPaths];
-const jaRedirectPaths = defaultLocalePaths.filter((path) => path !== "jp");
+const jaRedirectPaths = defaultLocalePaths.filter((path) => path !== "trends");
 
 const nextConfig: NextConfig = {
   // jaだけ接頭辞なしを正準URLにする。既知の静的経路に限定したconfig routingなら、
@@ -35,10 +35,10 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/ja", destination: "/", statusCode: 301 },
-      { source: "/jp", destination: "/", statusCode: 301 },
-      { source: "/ja/jp", destination: "/", statusCode: 301 },
-      { source: "/en/jp", destination: "/en", statusCode: 301 },
-      { source: "/es/jp", destination: "/es", statusCode: 301 },
+      { source: "/trends", destination: "/", statusCode: 301 },
+      { source: "/ja/trends", destination: "/", statusCode: 301 },
+      { source: "/en/trends", destination: "/en", statusCode: 301 },
+      { source: "/es/trends", destination: "/es", statusCode: 301 },
       ...jaRedirectPaths.map((path) => ({
         source: `/ja/${path}`,
         destination: `/${path}`,
