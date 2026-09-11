@@ -71,7 +71,7 @@ export const GEO_LABELS: Record<string, string> = {
   IT: "イタリア",
 };
 
-/** 翻訳の原文言語(その国の主要言語)。MyMemory等のlangpairに使う */
+/** 翻訳の原文言語(その国の主要言語)。翻訳EPの sl(源言語)に使う */
 export const GEO_LANG: Record<string, string> = {
   JP: "ja",
   US: "en",
