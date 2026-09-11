@@ -25,7 +25,7 @@ async function redis(commands: unknown[][]): Promise<{ result: unknown }[] | nul
   }
 }
 
-// langpairの片側を MyMemory が受ける形へ寄せる(zh-TW/pt-BR はそのまま通る)
+// 言語コードを翻訳EPが受ける形へ寄せる(zh-TW/pt-BR はそのまま通る)
 function norm(lang: string): string {
   return lang.trim();
 }
