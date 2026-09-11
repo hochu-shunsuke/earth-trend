@@ -32,7 +32,6 @@ export default async function CountryExperience({ locale, code }: { locale: Loca
         <header className="country-page-header">
           <div className="country-title-row">
             <div>
-              <p className="country-kicker">earth-trend · {code}</p>
               <h1>{d.country.title(country)}</h1>
             </div>
             <div className="country-actions">

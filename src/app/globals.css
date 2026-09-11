@@ -383,18 +383,11 @@ select.btn {
   flex-wrap: wrap;
 }
 .country-title-row h1 {
-  margin: 1px 0 0;
+  margin: 0;
   font-size: clamp(24px, 4vw, 34px);
+  font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.035em;
-}
-.country-kicker {
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .country-actions {
   display: flex;
