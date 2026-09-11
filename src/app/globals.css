@@ -430,13 +430,19 @@ select.btn {
 }
 .country-rail {
   display: flex;
-  gap: 6px;
+  gap: 0;
   min-width: 0;
   padding: 2px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
+}
+.country-rail-set {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding-right: 6px;
 }
 .country-rail::-webkit-scrollbar {
   display: none;

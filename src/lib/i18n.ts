@@ -4,7 +4,6 @@
 export const LOCALES = ["ja", "en", "es"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "ja";
-export const DEFAULT_GEO = "JP";
 
 export function isLocale(x: string | undefined): x is Locale {
   return !!x && (LOCALES as readonly string[]).includes(x);
@@ -20,11 +19,9 @@ export function localePath(locale: Locale, section = ""): string {
   return `/${locale}${section}`;
 }
 
-// 国別URL。日本は各言語のホーム(/, /en, /es)、それ以外は従来どおり国スラグを持つ。
-// 画面は連続的に切り替えても、共有・履歴・SEOの単位はこのURLで維持する。
+// 国別URL。トップは世界一覧、国を選んだ後は /jp・/en/jp のような固有URLを持つ。
 export function countryPath(locale: Locale, geo: string): string {
   const code = geo.toUpperCase();
-  if (code === DEFAULT_GEO) return localePath(locale);
   const slug = code === "ES" ? "spain" : code.toLowerCase();
   return localePath(locale, `/${slug}`);
 }
