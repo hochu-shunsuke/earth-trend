@@ -5,7 +5,7 @@ import Link from "next/link";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
 import { useInView } from "@/lib/useInView";
-import { countryPath, type Locale } from "@/lib/i18n";
+import { countryPath } from "@/lib/copy";
 
 interface TrendItem {
   word: string;
@@ -18,13 +18,11 @@ interface TrendItem {
 // (再生中に解除されても最後まで完走/再ホバーで頭から)。<g key> を差し替えて再マウントで実現。
 export default function CountryTile({
   geo,
-  locale,
   label,
   items,
   nowSec,
 }: {
   geo: string;
-  locale: Locale;
   label: string;
   items: TrendItem[];
   nowSec: number;
@@ -47,7 +45,7 @@ export default function CountryTile({
 
   return (
     <Link
-      href={countryPath(locale, geo)}
+      href={countryPath(geo)}
       className="card-link trend-tile"
       onMouseEnter={() => setRunId((n) => n + 1)}
     >
@@ -89,7 +87,7 @@ export default function CountryTile({
       >
         <strong style={{ fontSize: 15 }}>{label}</strong>
         <span className="muted" style={{ fontSize: 12 }}>
-          {items.length > 0 ? `${items.length}${locale === "ja" ? "件" : ""}` : "—"}
+          {items.length > 0 ? items.length : "—"}
         </span>
       </div>
     </Link>

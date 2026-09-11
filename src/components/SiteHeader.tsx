@@ -2,67 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { LOCALES, DEFAULT_LOCALE, isLocale, t, localePath, type Locale } from "@/lib/i18n";
-import { gaEvent } from "@/lib/gtag";
+import { COPY } from "@/lib/copy";
 
-export default function SiteHeader({
-  overlay = false,
-  locale: localeProp,
-}: {
-  overlay?: boolean;
-  locale?: Locale; // ルート(/)はURLにロケールが無いので、サーバーで決めた言語を渡す
-}) {
+export default function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  // prefix-except-default: ja は接頭辞なし(/trends)、en/es は /en /es 接頭辞(/en/trends)。
-  // config rewrite後のSSRでも安全なよう、先頭がja/en/esならロケール接頭辞として剥がす。
-  const parts = pathname.split("/").filter(Boolean);
-  const prefix = parts[0];
-  const hasLocalePrefix = isLocale(prefix);
-  const locale = localeProp ?? (isLocale(prefix) ? prefix : DEFAULT_LOCALE);
-  const section = hasLocalePrefix ? (parts[1] ?? "") : (parts[0] ?? "");
-  const d = t(locale);
+  const section = pathname.split("/").filter(Boolean)[0] ?? "";
 
-  // ホームは世界トレンド一覧。各国ページも同じトレンド領域として扱う。
-  const isTrends =
-    section === "" || section === "trends" || section === "spain" || section.length === 2;
-  const tabs: { href: string; label: string; active: boolean }[] = [
-    { href: localePath(locale), label: d.nav.trends, active: isTrends },
-    { href: localePath(locale, "/analysis"), label: d.nav.analysis, active: section === "analysis" },
-    { href: localePath(locale, "/globe"), label: d.nav.globe, active: section === "globe" },
+  // ホーム(世界一覧)と各国ページは同じ「トレンド」領域として扱う。
+  // 国スラグは2文字コード(jp/us…)か "spain"。
+  const isTrends = section === "" || section === "spain" || section.length === 2;
+  const tabs = [
+    { href: "/", label: COPY.nav.trends, active: isTrends },
+    { href: "/analysis", label: COPY.nav.analysis, active: section === "analysis" },
+    { href: "/globe", label: COPY.nav.globe, active: section === "globe" },
   ];
-
-  // 言語切替: 現在のセクションを保ったまま言語だけ差し替える(ja=接頭辞なし / en,es=/xx)
-  // en/es は接頭辞3文字(/en, /es)を剥がす。ja(接頭辞なし)はそのまま
-  const rest = prefix === "en" || prefix === "es" ? pathname.slice(3) : pathname;
-  const switchLang = (l: Locale) => {
-    gaEvent("language_switch", { from: locale, to: l });
-    router.push(localePath(l, rest === "/" ? "" : rest));
-  };
-
-  const langSelect = (
-    <select
-      className="btn"
-      value={locale}
-      onChange={(e) => switchLang(e.target.value as Locale)}
-      aria-label="Language"
-      style={{ flexShrink: 0 }}
-    >
-      {LOCALES.map((l) => (
-        <option key={l} value={l}>
-          {t(l).langName}
-        </option>
-      ))}
-    </select>
-  );
 
   return (
     <>
       <header className={`site-header${overlay ? " overlay" : ""}`}>
-        <Link href={localePath(locale)} className="brand">
+        <Link href="/" className="brand">
           earth-trend
         </Link>
         <nav className="nav-inline">
@@ -73,15 +34,9 @@ export default function SiteHeader({
           ))}
         </nav>
         <div className="header-right">
-          {langSelect}
           <ThemeToggle />
         </div>
-        <button
-          className="hamburger"
-          onClick={() => setOpen(true)}
-          aria-label="Menu"
-          type="button"
-        >
+        <button className="hamburger" onClick={() => setOpen(true)} aria-label="Menu" type="button">
           ☰
         </button>
       </header>
@@ -97,7 +52,7 @@ export default function SiteHeader({
           className="btn"
           style={{ alignSelf: "flex-end", padding: "2px 10px" }}
           onClick={() => setOpen(false)}
-          aria-label={d.detail.close}
+          aria-label={COPY.detail.close}
           type="button"
         >
           ✕
@@ -115,7 +70,6 @@ export default function SiteHeader({
           ))}
         </nav>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          {langSelect}
           <ThemeToggle />
         </div>
       </aside>

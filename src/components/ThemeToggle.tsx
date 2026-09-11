@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { DEFAULT_LOCALE, isLocale, t } from "@/lib/i18n";
+import { COPY } from "@/lib/copy";
 
 type Pref = "system" | "light" | "dark";
 
@@ -12,9 +11,7 @@ function resolve(p: Pref): "light" | "dark" {
 }
 
 export default function ThemeToggle() {
-  const pathname = usePathname();
-  const seg = pathname.split("/")[1];
-  const d = t(isLocale(seg) ? seg : DEFAULT_LOCALE);
+  const d = COPY;
   // 既定はシステム(OS設定に追従)
   const [pref, setPref] = useState<Pref>("system");
 

@@ -5,20 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
-import { GEO_LANG } from "@/lib/trends";
-import { t, localePath, durationStr, COUNTRY_LABELS, type Locale } from "@/lib/i18n";
+import { COPY, COUNTRY_LABELS, durationStr } from "@/lib/copy";
 import { gaEvent } from "@/lib/gtag";
 import NewsCarousel from "@/components/NewsCarousel";
 import LiveStamp from "@/components/LiveStamp";
-import NewsTitle from "@/components/NewsTitle";
-import WordGloss from "@/components/WordGloss";
 import { type CountryRailItem } from "@/components/CountryRail";
 
 interface NewsItem {
   title: string;
   url?: string;
   source?: string;
-  translation?: string; // 見出しの訳(サーバー描画で付与。原文は title 属性に残る)
 }
 interface TrendItem {
   word: string;
@@ -26,7 +22,6 @@ interface TrendItem {
   news: NewsItem[];
   firstSeen?: number; // 最初に観測した時刻(unix秒)。「燃え始め」の近似
   lastSeen?: number;
-  translation?: string; // 語の訳(サーバー描画で付与。原語は常に残す)
 }
 
 // 規模ビュー(パック円): 円の面積=検索ボリューム。隙間が残る=「これが全部ではない」
@@ -34,13 +29,11 @@ interface TrendItem {
 // 偽の全体性を主張するため不採用(検索データに part-to-whole は無い)。
 function ScaleBubbles({
   items,
-  locale,
   geo,
   onSelect,
   onSwipe,
 }: {
   items: TrendItem[];
-  locale: Locale;
   geo: string;
   onSelect: (it: TrendItem) => void;
   onSwipe: (direction: "previous" | "next") => void;
@@ -59,12 +52,7 @@ function ScaleBubbles({
   const midPrev = useRef<{ x: number; y: number } | null>(null); // 2本指の中点(パン用)
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const wheelHint =
-    locale === "ja"
-      ? "⌘ / Ctrl + スクロールでズーム"
-      : locale === "es"
-        ? "⌘ / Ctrl + scroll para acercar"
-        : "Use ⌘ / Ctrl + scroll to zoom";
+  const wheelHint = "Use ⌘ / Ctrl + scroll to zoom";
   const showHint = (msg: string) => {
     setHint(msg);
     if (hintTimer.current) clearTimeout(hintTimer.current);
@@ -126,7 +114,6 @@ function ScaleBubbles({
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [box]);
 
   // 枠の実寸を測るため、box未確定でも枠自体は描く(=ここでreturnしない)
@@ -238,7 +225,7 @@ function ScaleBubbles({
   return (
     <>
       <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
-        {t(locale).bubbles.legend(items.length)}
+        {COPY.bubbles.legend(items.length)}
       </p>
       {/* 中央寄せmainを突き抜けて画面いっぱいに広げる(最大幅)。操作は方式で分離 */}
       <div
@@ -373,82 +360,31 @@ function ScaleBubbles({
 export default function TrendsView({
   items,
   geo,
-  locale,
   nowSec: nowSecInit,
   previousCountry,
   nextCountry,
 }: {
   items: TrendItem[];
   geo: string;
-  locale: Locale;
   nowSec: number; // サーバー時刻(秒)。リストの「経過」表示をSSRから正しく出すための基準
   previousCountry: CountryRailItem;
   nextCountry: CountryRailItem;
 }) {
   const router = useRouter();
-  const d = t(locale);
+  const d = COPY;
   const [selected, setSelected] = useState<TrendItem | null>(null);
   // サーバー時刻で初期化=SSRと一致(ハイドレーション差異なし)。effectでクライアント時刻に更新
   const [nowSec, setNowSec] = useState(nowSecInit);
-  // ニュースの翻訳(語はサーバー描画で it.translation 済み。ニュースだけ開いた時に取る)
-  const [newsTr, setNewsTr] = useState<(string | null)[] | null>(null);
-  // 選択語の訳。SSR(it.translation)が温済なら即出す。未温なら開いた時に取りこぼし回収(self-cache)
-  const [selWordTr, setSelWordTr] = useState<string | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNowSec(Date.now() / 1000);
   }, []);
 
-  const srcLang = GEO_LANG[geo] ?? "auto";
-  const canTranslate = srcLang !== locale; // 自国語なら翻訳不要
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNewsTr(null);
-    if (!selected || !canTranslate || selected.news.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const news = await Promise.all(
-        selected.news.slice(0, 3).map(async (n) => {
-          try {
-            const r = await fetch(
-              `/api/translate?q=${encodeURIComponent(n.title)}&from=${encodeURIComponent(srcLang)}&to=${locale}`,
-            );
-            return ((await r.json()) as { translated: string | null }).translated;
-          } catch {
-            return null;
-          }
-        }),
-      );
-      if (!cancelled) setNewsTr(news);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selected, srcLang, canTranslate, locale]);
-
-  // 選択語の訳: SSRに無ければライブで回収(記事と同じrate-limited経路・自己キャッシュ)
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSelWordTr(null);
-    if (!selected || selected.translation || !canTranslate) return;
-    let alive = true;
-    fetch(`/api/translate?q=${encodeURIComponent(selected.word)}&from=${encodeURIComponent(srcLang)}&to=${locale}`)
-      .then((r) => (r.ok ? r.json() : { translated: null }))
-      .then((d) => {
-        if (alive) setSelWordTr((d.translated as string | null) ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [selected, srcLang, canTranslate, locale]);
-
-  const appeared = selected ? durationStr(selected.firstSeen, nowSec, locale) : null;
-  const selGloss = selected?.translation ?? selWordTr;
+  const appeared = selected ? durationStr(selected.firstSeen, nowSec) : null;
 
   // snapshot完了時のタグ失効で静的HTMLごと更新されるため、図とリストは常に同じitemsを使う。
-  const country = COUNTRY_LABELS[locale][geo];
+  const country = COUNTRY_LABELS[geo];
   // 「最終更新」は最新スナップのlastSeen=鮮度に正直(描画時刻ではない)
   const updatedSec = items.reduce((mx, it) => Math.max(mx, it.lastSeen ?? 0), 0);
   const switchCountry = (direction: "previous" | "next") => {
@@ -461,7 +397,6 @@ export default function TrendsView({
     <>
       <ScaleBubbles
         items={items}
-        locale={locale}
         geo={geo}
         onSelect={setSelected}
         onSwipe={switchCountry}
@@ -472,11 +407,8 @@ export default function TrendsView({
           <div className="panel" style={{ pointerEvents: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span>
-                {/* 原語は常に残す(translate=noでブラウザ翻訳でも保護) */}
+                {/* 原語は常に残す(translate=noでブラウザ翻訳でも保護される) */}
                 <strong translate="no">{selected.word}</strong>
-                {selGloss && (
-                  <span style={{ marginLeft: 6, fontSize: 13 }}>→ {selGloss}</span>
-                )}
                 <span className="muted" style={{ marginLeft: 6, fontSize: 12 }}>
                   {d.detail.searches} {selected.traffic}
                 </span>
@@ -496,7 +428,7 @@ export default function TrendsView({
               </p>
             )}
             {selected.news.length > 0 ? (
-              <NewsCarousel news={selected.news} translated={newsTr} />
+              <NewsCarousel news={selected.news} />
             ) : (
               <p className="muted" style={{ margin: "8px 0 0" }}>
                 {d.detail.trendingNow}
@@ -520,7 +452,7 @@ export default function TrendsView({
           </a>
           <Link
             className="btn"
-            href={`${localePath(locale, "/analysis")}?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
+            href={`/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
             onClick={() => gaEvent("explore_click", { geo, word: selected.word, source: "trends" })}
           >
             {d.detail.explore}
@@ -535,7 +467,6 @@ export default function TrendsView({
           <p style={{ margin: "4px 0 0" }}>
             <LiveStamp
               iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
-              locale={locale}
               label={d.country.updated}
             />
           </p>
@@ -546,18 +477,17 @@ export default function TrendsView({
                 style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
               >
                 <Link
-                  href={`${localePath(locale, "/analysis")}?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
+                  href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
                   translate="no"
                   style={{ fontWeight: 600 }}
                 >
                   {it.word}
                 </Link>
-                <WordGloss word={it.word} from={srcLang} to={locale} initial={it.translation} />
                 <span className="muted" style={{ fontSize: 12 }}>
                   {" "}
-                  ・ {d.detail.searches} {it.traffic}
+                  · {d.detail.searches} {it.traffic}
                   {it.firstSeen &&
-                    ` ・ ${d.detail.appeared(durationStr(it.firstSeen, nowSec, locale) ?? "")}`}
+                    ` · ${d.detail.appeared(durationStr(it.firstSeen, nowSec) ?? "")}`}
                 </span>
                 {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
                 {it.news.length > 0 && (
@@ -566,10 +496,10 @@ export default function TrendsView({
                       <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
                         {n.url ? (
                           <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                            <NewsTitle title={n.title} from={srcLang} to={locale} initial={n.translation} />
+                            {n.title}
                           </a>
                         ) : (
-                          <NewsTitle title={n.title} from={srcLang} to={locale} initial={n.translation} />
+                          <>{n.title}</>
                         )}
                         {n.source && <span> ({n.source})</span>}
                       </li>
