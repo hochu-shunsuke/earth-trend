@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import CountryRail, { type CountryRailItem } from "@/components/CountryRail";
 import TrendsView from "@/components/TrendsView";
 import ShareButton from "@/components/ShareButton";
+import SiteFooter from "@/components/SiteFooter";
 import { jsonLd } from "@/lib/site";
 import { GEO_LABELS } from "@/lib/trends";
 import { getCountryItems } from "@/lib/country-data";
@@ -24,30 +25,29 @@ export default async function CountryExperience({ code }: { code: string }) {
   const previous = railItems[(currentIndex - 1 + railItems.length) % railItems.length];
   const next = railItems[(currentIndex + 1) % railItems.length];
 
+  // 見出し(タイトル/共有/国レール)。PCでは図と同じstickyな左カラムに入るので、
+  // 記事を下までスクロールしても「Turkey Trends」が視界から消えない。
+  const header = (
+    <header className="country-page-header">
+      <div className="country-title-row">
+        <div>
+          <h1>{COPY.country.title(country)}</h1>
+        </div>
+        <div className="country-actions">
+          <Link href="/" className="muted">
+            {COPY.country.all}
+          </Link>
+          <ShareButton geo={code} title={COPY.country.title(country)} />
+        </div>
+      </div>
+      <CountryRail currentGeo={code} countries={railItems} previous={previous} next={next} />
+    </header>
+  );
+
   return (
     <>
       <SiteHeader />
       <main className="country-page-main">
-        <header className="country-page-header">
-          <div className="country-title-row">
-            <div>
-              <h1>{COPY.country.title(country)}</h1>
-            </div>
-            <div className="country-actions">
-              <Link href="/" className="muted">
-                {COPY.country.all}
-              </Link>
-              <ShareButton geo={code} title={COPY.country.title(country)} />
-            </div>
-          </div>
-          <CountryRail
-            currentGeo={code}
-            countries={railItems}
-            previous={previous}
-            next={next}
-          />
-        </header>
-
         {items.length > 0 ? (
           <div className="country-stage" key={code}>
             <script
@@ -69,28 +69,21 @@ export default async function CountryExperience({ code }: { code: string }) {
             <TrendsView
               items={items}
               geo={code}
+              header={header}
               nowSec={nowSec}
               previousCountry={previous}
               nextCountry={next}
             />
           </div>
         ) : (
-          <p className="muted">{COPY.country.loadFail}</p>
+          <>
+            {header}
+            <p className="muted">{COPY.country.loadFail}</p>
+          </>
         )}
 
-        <nav className="country-link-list">
-          <p className="muted">{COPY.country.compare(country)}</p>
-          <div>
-            {railItems
-              .filter((item) => item.code !== code)
-              .map((item) => (
-                <Link key={item.code} href={item.href}>
-                  {item.label}
-                </Link>
-              ))}
-          </div>
-        </nav>
       </main>
+      <SiteFooter />
     </>
   );
 }

@@ -65,9 +65,27 @@ async function fetchTrendsRaw(geo: string): Promise<TrendItem[]> {
   return parseRss(await res.text());
 }
 
-export async function runSnapshot(): Promise<{ ts: number; geos: number; items: number }> {
+/**
+ * 1サイクル実行する。
+ * minIntervalSec を渡すと「前回の保存から十分経っていなければ何もしない」= 実行間隔の番人になる。
+ * 壁時計の剰余で間引くと、配信が遅れて次のバケットに落ちた回がまるごと欠落する
+ * (しかも200を返すので再試行もされない)。前回の保存時刻を基準にすれば、
+ * 遅延しても次の配信で復帰する。
+ */
+export async function runSnapshot(opts: { minIntervalSec?: number } = {}): Promise<{
+  ts: number;
+  geos: number;
+  items: number;
+  skipped?: true;
+  sinceLastSec?: number;
+}> {
   const ts = Math.floor(Date.now() / 1000);
   const prev = await readWorldForSnapshot(); // 1 GET
+
+  const minInterval = opts.minIntervalSec ?? 0;
+  if (minInterval > 0 && prev?.ts && ts - prev.ts < minInterval) {
+    return { ts, geos: 0, items: 0, skipped: true, sinceLastSec: ts - prev.ts };
+  }
 
   const fetched = await Promise.all(
     GEOS.map(async (geo) => {

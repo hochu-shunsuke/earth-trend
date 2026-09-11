@@ -9,17 +9,19 @@
 トレンド語には `translate="no"` を付けてあるので、ブラウザ翻訳をかけても原語(「파운드리」等)の生の文字は必ず残る。
 これは PHILOSOPHY の「原語の生の文字は常に残す」と同じ結論に、維持コストゼロで到達する。
 
-Next.js 16 (App Router) / React 19 / TypeScript / pnpm。テストはまだ無い(`src/lib/world.ts` の純粋関数だけ手動で検証)。
+Next.js 16 (App Router) / React 19 / TypeScript / pnpm。依存は `d3-hierarchy` と `fast-xml-parser` のみ。
+テストはまだ無い(`src/lib/world.ts` の純粋関数だけ手動で検証)。
 
 ## 画面
 
 | URL | 中身 |
 |---|---|
 | `/` | 世界一覧。24カ国のミニマップを俯瞰し、国を選んで潜る(ホーム) |
-| `/jp` `/us` … | 国ページ。バブル図＋語ごとのニュース・登場時刻。左右スワイプで隣国へ |
-| `/analysis` | 連想グラフ。急上昇語から「次に検索される語」を辿る(Canvas描画・`noindex`) |
-| `/globe` | 地球儀。世界の急上昇を俯瞰する(※`GEO_CENTER` に座標がある9カ国のみ表示) |
+| `/jp` `/us` … | 国ページ。バブル図＋語ごとのニュース・登場時刻。左右スワイプで隣国へ。PCは左に図/右にリストの2カラム |
 | `/about` | 運営者・データ源・FAQ |
+
+面はこれだけ。かつてあった `/analysis`(連想グラフ)と `/globe`(地球儀)は
+2026-09-11に削除した(経緯は docs/PHILOSOPHY.md「ひとつの面」)。
 
 ## ルーティング
 
@@ -42,7 +44,7 @@ middleware は使わない(全リクエストでVercel Middlewareを起動しな
 Google Trends RSS (24カ国)
    │  Upstash QStash が15分ごとに叩く
    ▼
-POST /api/cron/snapshot   … UTC :00/:30 のみ実処理(それ以外は skip して即返す)
+POST /api/cron/snapshot   … 前回保存から25分未満なら skip して即返す(実効30分間隔)
    │
    ├─ GET world:v1            前回の状態                              … 1 コマンド
    ├─ 24カ国のRSSを並列取得
@@ -93,18 +95,19 @@ cron を手で叩く場合:
 curl -X POST "http://localhost:3000/api/cron/snapshot?key=$CRON_SECRET&force=1"
 ```
 
-`force=1` で :00/:30 ゲートを飛ばす。QStash からは `Authorization: Bearer <CRON_SECRET>` が
+`force=1` で間隔の番人を飛ばす。QStash からは `Authorization: Bearer <CRON_SECRET>` が
 `Upstash-Forward-Authorization` 経由で届く。
+
+間引きの判定は**壁時計の剰余ではなく「前回の保存からの経過」**で行う。剰余で間引くと、配信が
+15分以上遅れて次のバケットに落ちた回がまるごと欠落し、しかも200を返すので再試行もされない。
 
 ## API
 
 `robots.txt` で `/api/` は全面 Disallow(JSONなのでインデックス価値なし)。
+閲覧系のAPIは全て不要になったので、残っているのは cron だけ。
 
 | ルート | 用途 |
 |---|---|
-| `GET /api/trends?geo=US` | 1国の急上昇 |
-| `GET /api/trends-all` | 全24カ国。地球儀・一覧の図用 |
-| `GET /api/suggest?q=...&hl=ja` | Googleサジェスト中継。1時間キャッシュ |
 | `POST/GET /api/cron/snapshot` | スナップショット実行(要 `CRON_SECRET`) |
 
 ## 無料枠の制約(踏みやすい罠)

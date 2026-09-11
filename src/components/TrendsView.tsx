@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { hierarchy, pack } from "d3-hierarchy";
 import { parseTraffic, freshnessColor } from "@/lib/trendsVisual";
@@ -72,7 +71,12 @@ function ScaleBubbles({
     // 全幅突き抜けをやめ「枠(=ページ幅)」の実寸に合わせる。枠の追従はResizeObserverで
     const calc = () => {
       const w = wrapRef.current?.clientWidth ?? window.innerWidth;
-      const h = Math.min(Math.round(window.innerHeight * 0.68), 680);
+      // PCの2カラムでは「見出し+図+凡例」がまとめて sticky になる。図が高すぎると
+      // 塊が画面高を超えて sticky が効かなくなるので、その分だけ低くする。
+      const twoCol = window.matchMedia("(min-width: 1024px)").matches;
+      const h = twoCol
+        ? Math.min(Math.round(window.innerHeight * 0.56), 560)
+        : Math.min(Math.round(window.innerHeight * 0.68), 680);
       setBox({ w: Math.max(1, w), h });
     };
     calc();
@@ -224,9 +228,6 @@ function ScaleBubbles({
 
   return (
     <>
-      <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
-        {COPY.bubbles.legend(items.length)}
-      </p>
       {/* 中央寄せmainを突き抜けて画面いっぱいに広げる(最大幅)。操作は方式で分離 */}
       <div
         ref={wrapRef}
@@ -236,12 +237,8 @@ function ScaleBubbles({
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerCancel}
         style={{
-          position: "relative",
-          width: "100vw",
-          left: "50%",
-          marginLeft: "-50vw",
+          // 全幅突き抜け(モバイル)とカラム内配置(PC)の切替は .bubble-box 側のCSSで行う
           height: box?.h ?? 420,
-          overflow: "hidden",
           // 縦1本指はページスクロール、横1本指は国切替。地図の移動は2本指/マウスドラッグ。
           touchAction: "pan-y",
           userSelect: "none",
@@ -351,6 +348,8 @@ function ScaleBubbles({
         {/* 操作ヒント(一瞬): PCの素のホイール時 */}
         {hint && <div className="map-hint">{hint}</div>}
       </div>
+      {/* 凡例は図の下。図より先に説明を読ませない */}
+      <p className="bubble-legend muted">{COPY.bubbles.legend(items.length)}</p>
     </>
   );
 }
@@ -360,12 +359,15 @@ function ScaleBubbles({
 export default function TrendsView({
   items,
   geo,
+  header,
   nowSec: nowSecInit,
   previousCountry,
   nextCountry,
 }: {
   items: TrendItem[];
   geo: string;
+  /** 見出し(サーバー描画)。PCでは図と同じstickyな左カラムに入れ、記事を読む間も見出しを残す */
+  header: React.ReactNode;
   nowSec: number; // サーバー時刻(秒)。リストの「経過」表示をSSRから正しく出すための基準
   previousCountry: CountryRailItem;
   nextCountry: CountryRailItem;
@@ -395,12 +397,72 @@ export default function TrendsView({
 
   return (
     <>
-      <ScaleBubbles
-        items={items}
-        geo={geo}
-        onSelect={setSelected}
-        onSwipe={switchCountry}
-      />
+      {/* PCは左に図/右にリストの2カラム。モバイルは従来どおり縦積み(CSS側で切替) */}
+      <div className="country-split">
+        <div className="country-map-col">
+          {header}
+          <ScaleBubbles items={items} geo={geo} onSelect={setSelected} onSwipe={switchCountry} />
+        </div>
+
+        {/* サーバー描画のテキスト一覧(SEO土台)。図と同じitemsを参照する */}
+        <div className="country-list-col">
+          {items.length > 0 && (
+          <section className="country-list-section">
+            <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
+            <p style={{ margin: "4px 0 0" }}>
+              <LiveStamp
+                iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
+                label={d.country.updated}
+              />
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
+              {items.map((it) => (
+                <li
+                  key={it.word}
+                  style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
+                >
+                  {/* 押すと図と同じ詳細(記事/検索)を開く。原語は translate="no" で保護 */}
+                  <button
+                    type="button"
+                    className="trend-word"
+                    translate="no"
+                    onClick={() => {
+                      setSelected(it);
+                      gaEvent("bubble_select", { geo, word: it.word, source: "list" });
+                    }}
+                  >
+                    {it.word}
+                  </button>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    {" "}
+                    · {d.detail.searches} {it.traffic}
+                    {it.firstSeen &&
+                      ` · ${d.detail.appeared(durationStr(it.firstSeen, nowSec) ?? "")}`}
+                  </span>
+                  {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
+                  {it.news.length > 0 && (
+                    <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
+                      {it.news.slice(0, 2).map((n, i) => (
+                        <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
+                          {n.url ? (
+                            <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
+                              {n.title}
+                            </a>
+                          ) : (
+                            <>{n.title}</>
+                          )}
+                          {n.source && <span> ({n.source})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+          )}
+        </div>
+      </div>
 
       {selected && (
         <div className="detail-panel">
@@ -450,66 +512,7 @@ export default function TrendsView({
           >
             {d.detail.googleSearch}
           </a>
-          <Link
-            className="btn"
-            href={`/analysis?geo=${geo}&seed=${encodeURIComponent(selected.word)}`}
-            onClick={() => gaEvent("explore_click", { geo, word: selected.word, source: "trends" })}
-          >
-            {d.detail.explore}
-          </Link>
         </div>
-      )}
-
-      {/* サーバー描画のテキスト一覧(SEO土台)。図と同じitemsを参照する */}
-      {items.length > 0 && (
-        <section style={{ marginTop: 28 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600 }}>{d.country.seoHeading(country)}</h2>
-          <p style={{ margin: "4px 0 0" }}>
-            <LiveStamp
-              iso={new Date((updatedSec || nowSec) * 1000).toISOString()}
-              label={d.country.updated}
-            />
-          </p>
-          <ul style={{ listStyle: "none", padding: 0, margin: "12px 0 0" }}>
-            {items.map((it) => (
-              <li
-                key={it.word}
-                style={{ padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}
-              >
-                <Link
-                  href={`/analysis?geo=${geo}&seed=${encodeURIComponent(it.word)}`}
-                  translate="no"
-                  style={{ fontWeight: 600 }}
-                >
-                  {it.word}
-                </Link>
-                <span className="muted" style={{ fontSize: 12 }}>
-                  {" "}
-                  · {d.detail.searches} {it.traffic}
-                  {it.firstSeen &&
-                    ` · ${d.detail.appeared(durationStr(it.firstSeen, nowSec) ?? "")}`}
-                </span>
-                {/* なぜ流行ってるか=ニュース見出しをHTMLテキストで(SEO=語彙/文脈/独自性) */}
-                {it.news.length > 0 && (
-                  <ul style={{ listStyle: "none", padding: 0, margin: "4px 0 0" }}>
-                    {it.news.slice(0, 2).map((n, i) => (
-                      <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--muted)" }}>
-                        {n.url ? (
-                          <a href={n.url} target="_blank" rel="noopener nofollow" className="muted">
-                            {n.title}
-                          </a>
-                        ) : (
-                          <>{n.title}</>
-                        )}
-                        {n.source && <span> ({n.source})</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
       )}
     </>
   );

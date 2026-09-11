@@ -11,7 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const half = 30 * 60 * 1000;
   const lastTrendUpdate = new Date(Math.floor(Date.now() / half) * half);
   // 静的ページは中身が変わらないので、申告しない(誤ったlastmodを出すより省く)
-  const staticPages = ["/about", "/analysis", "/globe"];
+  const staticPages = ["/about"];
 
   return [
     { url: url("/"), lastModified: lastTrendUpdate, changeFrequency: "hourly" },

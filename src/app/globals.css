@@ -98,10 +98,6 @@ a.card-link:hover {
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
 }
-/* 地球儀のラベルは深さ順に z-index 0〜ラベル数(~180)が振られる。それより上に出して被りを防ぐ */
-.site-header.overlay {
-  z-index: 500;
-}
 .site-header .brand {
   font-weight: 700;
   font-size: 15px;
@@ -226,30 +222,7 @@ select.btn {
   padding-left: 6px;
   font-weight: 600;
 }
-
-/* キャンバスページの左上コントロール / 右上の詳細パネル */
-.canvas-controls {
-  position: absolute;
-  top: 64px;
-  left: 14px;
-  z-index: 12;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  max-width: calc(100vw - 24px);
-  flex-wrap: wrap;
-}
 /* 左上コントロールはグラスボタンで浮遊させる(ナビと同じ言語) */
-.canvas-controls .btn {
-  background: color-mix(in srgb, var(--panel) 72%, transparent);
-  backdrop-filter: saturate(180%) blur(12px);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
-  border-color: color-mix(in srgb, var(--border) 60%, transparent);
-  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.45);
-}
-.canvas-controls .btn:hover {
-  border-color: var(--muted);
-}
 .detail-panel {
   position: fixed;
   top: 60px;
@@ -267,66 +240,7 @@ select.btn {
   gap: 4px;
   align-items: center;
   flex-shrink: 0;
-}
-/* ハンバーガー(モバイルのみ表示)とドロワー */
-.hamburger {
-  display: none;
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: var(--fg);
-  font-size: 22px;
-  line-height: 1;
-  padding: 4px 6px;
-  cursor: pointer;
-}
-.nav-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 509;
-  background: rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-.nav-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
-}
-.nav-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 510;
-  width: 240px;
-  max-width: 78vw;
-  background: var(--bg);
-  border-left: 1px solid var(--border);
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
-}
-.nav-drawer.open {
-  transform: translateX(0);
-}
-.nav-drawer nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 4px;
-}
-.nav-drawer nav a {
-  color: var(--fg);
-  font-size: 16px;
-  padding: 10px 8px;
-  border-radius: 8px;
-}
-.nav-drawer nav a[data-active="true"] {
-  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  margin-left: auto; /* 面が1つになりナビが消えたので、明示的に右端へ寄せる */
 }
 
 /* モバイル: ヘッダーを詰めて折り返しを防ぐ・パネルをコントロールの下へ */
@@ -338,14 +252,6 @@ select.btn {
   .site-header .brand {
     margin-right: 4px;
     font-size: 14px;
-  }
-  /* インラインのナビ/コントロールは隠してハンバーガーに */
-  .site-header .nav-inline,
-  .site-header .header-right {
-    display: none;
-  }
-  .hamburger {
-    display: block;
   }
   /* モバイル: 詳細はグラフを覆わない下部シートにする(上半分が隠れる問題の解消) */
   .detail-panel {
@@ -362,8 +268,7 @@ select.btn {
   }
   .dock {
     bottom: 16px;
-  }
-}
+  }}
 
 /* 国別トレンド: トップと各国URLで同じ、連続して切り替えられる閲覧面 */
 .country-page-main {
@@ -423,19 +328,12 @@ select.btn {
 }
 .country-rail {
   display: flex;
-  gap: 0;
   min-width: 0;
   padding: 2px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
-}
-.country-rail-set {
-  display: flex;
-  flex: 0 0 auto;
   gap: 6px;
-  padding-right: 6px;
 }
 .country-rail::-webkit-scrollbar {
   display: none;
@@ -451,7 +349,7 @@ select.btn {
   background: var(--panel);
   color: var(--muted);
   line-height: 1.4;
-  scroll-snap-align: center;
+  white-space: nowrap;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .country-chip:hover {
@@ -463,12 +361,6 @@ select.btn {
   color: var(--bg);
   border-color: var(--fg);
   background: var(--fg);
-}
-.country-chip small {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.62;
 }
 .country-swipe-hint {
   display: none;
@@ -490,21 +382,6 @@ select.btn {
     transform: translateX(0);
   }
 }
-.country-link-list {
-  margin-top: 36px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-}
-.country-link-list p {
-  margin: 0 0 8px;
-  font-size: 12px;
-}
-.country-link-list div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 12px;
-  font-size: 12px;
-}
 @media (max-width: 560px) {
   .country-page-main {
     padding: 70px 12px 40px;
@@ -512,7 +389,8 @@ select.btn {
   .country-title-row {
     gap: 9px;
   }
-  .country-title-row h1 {
+  .country-title-row h1,
+  .home-header h1 {
     font-size: 26px;
   }
   .country-actions {
@@ -535,8 +413,7 @@ select.btn {
   }
   .country-swipe-hint {
     display: block;
-  }
-}
+  }}
 
 /* トレンド(国別)のバブルマップ: 最大幅(フルブリード)。操作は方式で分離(2本指/⌘ホイール) */
 .bubble-zoom {
@@ -611,8 +488,7 @@ select.btn {
   .live-dot,
   .country-stage {
     animation: none;
-  }
-}
+  }}
 
 /* ニュースの横スワイプ: スクロールバーは隠す(チラ見えで操作は伝わる) */
 .news-carousel::-webkit-scrollbar {
@@ -627,239 +503,6 @@ select.btn {
 .panel a:not(.btn) {
   line-height: 1.45;
 }
-
-/* ===== ランディング(トップ/HP): Vercel調。モノクロ基調・余白・細い境界線。装飾なし ===== */
-.lp-container {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-.lp-eyebrow {
-  font-size: 13px;
-  letter-spacing: 0;
-  color: var(--muted);
-  font-weight: 500;
-  margin: 0;
-}
-.lp-h1 {
-  font-size: clamp(36px, 6vw, 64px);
-  line-height: 1.05;
-  letter-spacing: -0.035em;
-  font-weight: 600;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.lp-lead {
-  color: var(--muted);
-  font-size: clamp(16px, 2.2vw, 20px);
-  line-height: 1.6;
-  margin: 0;
-  max-width: 36ch;
-}
-
-/* ヒーロー: 全面ビューポート。背景に急上昇ワードが流れ、下に巨大タイトル(Lunaria調) */
-.lp-hero-full {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-/* 背景: 流れるワードのマーキー */
-.lp-marquee {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(6px, 1.4vh, 18px);
-  overflow: hidden;
-}
-.lp-marquee-row {
-  display: flex;
-  width: 100%;
-}
-.lp-marquee-track {
-  display: flex;
-  flex-shrink: 0;
-  will-change: transform;
-  animation-name: lp-marquee-l;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-.lp-marquee-row[data-dir="r"] .lp-marquee-track {
-  animation-name: lp-marquee-r;
-}
-@keyframes lp-marquee-l {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-@keyframes lp-marquee-r {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-.lp-marquee-word {
-  flex-shrink: 0;
-  font-size: clamp(26px, 5.2vw, 60px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--fg);
-  opacity: 0.16;
-  white-space: nowrap;
-}
-.lp-marquee-word::after {
-  content: "·";
-  margin: 0 0.42em;
-  color: var(--muted);
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-marquee-track {
-    animation: none;
-  }
-}
-
-/* 可読性スクリム: 下にいくほど背景色へフェード(巨大タイトル/リードを読ませる) */
-.lp-hero-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--bg) 30%, transparent) 0%,
-    transparent 34%,
-    color-mix(in srgb, var(--bg) 82%, transparent) 100%
-  );
-}
-
-/* オーバーレイ: 左下にリード+リンク、最下部に巨大タイトル */
-.lp-hero-overlay {
-  position: relative;
-  z-index: 2;
-  padding-bottom: 4vh;
-}
-.lp-hero-lead {
-  color: var(--fg);
-  font-size: clamp(15px, 2vw, 19px);
-  font-weight: 500;
-  margin: 0;
-  max-width: 30ch;
-}
-.lp-hero-link {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: clamp(16px, 2.2vw, 22px);
-  font-weight: 600;
-  color: var(--fg);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.lp-hero-giant {
-  margin: 3vh 0 0;
-  /* 言語で文字数が違う(en「EARTH TRENDS」/ es「TENDENCIAS DEL PLANETA」)ので可変+折返し許容。
-     短い言語は1行、長い言語は2行に折り返して画面内に収める(はみ出さない) */
-  font-size: clamp(40px, 10vw, 150px);
-  line-height: 0.9;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--fg);
-  overflow-wrap: break-word;
-  max-width: 100%;
-}
-/* 英語「EARTH TRENDS」は語間スペースで折り返さず1行に(esは従来どおり折返し)。
-   clampでフォントがvw連動して縮むので狭い画面でもはみ出さない */
-.lp-hero-giant-nowrap {
-  white-space: nowrap;
-}
-
-.lp-cta-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.lp-btn {
-  display: inline-flex;
-  align-items: center;
-  height: 46px;
-  padding: 0 26px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--fg);
-  font-size: 15px;
-  font-weight: 700;
-  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
-}
-.lp-btn:hover {
-  border-color: var(--muted);
-  text-decoration: none;
-}
-.lp-btn-primary {
-  background: var(--fg);
-  color: var(--bg);
-  border-color: var(--fg);
-}
-.lp-btn-primary:hover {
-  opacity: 0.85;
-  border-color: var(--fg);
-}
-
-/* セクション見出し */
-.lp-section-head {
-  text-align: center;
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 96px 24px 8px;
-}
-.lp-h2 {
-  font-size: clamp(26px, 4vw, 38px);
-  letter-spacing: -0.03em;
-  font-weight: 600;
-  line-height: 1.1;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.lp-section-head .lp-lead {
-  margin: 14px auto 0;
-  max-width: 48ch;
-}
-
-/* 機能カード(デスクトップは3列・境界線で区切る) */
-.lp-cards {
-  width: 100%;
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 40px 24px 24px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-.lp-card {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--panel);
-  color: var(--fg);
-  transition: border-color 0.15s;
-}
-.lp-card:hover {
-  border-color: var(--muted);
-  text-decoration: none;
-}
 /* /trends の国タイル(トップのカードと同じ要領: hoverで枠が白く=前景色に) */
 .trend-tile {
   display: block;
@@ -873,16 +516,16 @@ select.btn {
 .trend-tile:hover {
   border-color: var(--fg);
 }
-/* タイルの円: 読み込み時に一度だけ出現(lp-pop-in)。常時アニメは集合体感が出るので無し。
-   ホバー中のタイルだけループ。lp-pop-inを同位置で残し再生成を防ぐ=hover解除で再出現しない */
+/* タイルの円: 読み込み時に一度だけ出現(pop-in)。常時アニメは集合体感が出るので無し。
+   ホバー中のタイルだけループ。pop-inを同位置で残し再生成を防ぐ=hover解除で再出現しない */
 /* タイルの円: 出現アニメ(瞬間消滅→0.5sで出現)。読み込み時 + ホバーのたびに再マウントで再生。
    1ショットなので、再生中にホバーが外れても最後まで完走する */
 .tile-pop {
   transform-box: fill-box;
   transform-origin: center;
-  animation: lp-pop-in 0.7s ease-out both;
+  animation: pop-in 0.7s ease-out both;
 }
-@keyframes lp-pop-in {
+@keyframes pop-in {
   from {
     transform: scale(0);
   }
@@ -893,149 +536,201 @@ select.btn {
 /* 国別ページ(/jp等)のバブル: ロード時に一度だけ出現(DOM要素なのでCSSでOK) */
 .bubble-pop {
   transform-origin: center;
-  animation: lp-pop-in 0.7s ease-out both;
+  animation: pop-in 0.7s ease-out both;
 }
-.lp-card-visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  padding: 20px;
-  background: var(--canvas);
-  border-bottom: 1px solid var(--border);
+
+/* ── 国ページのレイアウト ──────────────────────────────────────────
+   モバイル: 図は中央寄せmainを突き抜けて画面いっぱい → 縦にリストが続く(従来どおり)。
+   PC(>=1024px): 左に図・右にリストの2カラム。図は左を少し広めに取り、
+   スクロールしてもリストの横に残るよう sticky にする。
+   図の実寸は wrapRef の clientWidth を ResizeObserver で見ているので、
+   カラム幅が変わればバブルの配置も自動で追従する。 */
+.bubble-box {
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  margin-left: -50vw;
+  overflow: hidden;
 }
-.lp-card-visual svg {
+.country-list-section {
+  margin-top: 28px;
+}
+.bubble-legend {
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+@media (min-width: 1024px) {
+  .country-page-main {
+    max-width: 1200px;
+  }
+  .country-split {
+    display: grid;
+    /* 左半分より少し大きめ */
+    grid-template-columns: 1.15fr 1fr;
+    gap: 30px;
+    align-items: start;
+  }
+  /* 見出し(h1/共有/国レール)と図をまとめて sticky に。
+     記事を下までスクロールしても「Turkey Trends」が視界から消えない。 */
+  .country-map-col {
+    position: sticky;
+    top: 68px;
+  }
+  .country-map-col .country-page-header {
+    margin-bottom: 10px;
+  }
+  /* カラム内に収める(全幅突き抜けを打ち消す) */
+  .bubble-box {
+    width: 100%;
+    left: auto;
+    margin-left: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .country-list-section {
+    margin-top: 0;
+  }
+  /* 2カラムでは図の隣に読む面があるので、リストの縦の詰まりを少し緩める */
+  .country-list-col {
+    min-width: 0;
+  }}
+
+/* ── フッター ──────────────────────────────────────────────────────
+   読む面(ホーム/国ページ/about)にだけ置く。analysis と globe は全画面の
+   キャンバス体験なので付けない。
+   リンクは既定のアクセント色(青)を使わず、フッター内だけのトーンで統一する。 */
+.site-footer {
+  --f-bg: #232323;
+  --f-fg: #f2f2f2;
+  --f-muted: rgba(242, 242, 242, 0.55);
+  --f-border: rgba(242, 242, 242, 0.13);
+
+  margin-top: 72px;
+  padding: 56px 24px 20px;
+  background: var(--f-bg);
+  color: var(--f-fg);
+}
+[data-theme="dark"] .site-footer {
+  /* ダークでも「別の面」として沈んで見えるよう、bg(#0a0a0a)より少しだけ持ち上げる */
+  --f-bg: #161616;
+}
+
+.site-footer-inner {
   width: 100%;
-  max-width: 320px;
-  height: 100%;
-}
-.lp-card-text {
-  padding: 22px 24px 26px;
-}
-.lp-card-text .lp-h3 {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin: 6px 0 0;
-}
-.lp-card-text .lp-body {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.65;
-  margin: 10px 0 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 40px;
 }
 
-/* カードビジュアルのアニメ(常時ループ・シンプル)。要素ごとに負の遅延で位相を分散し、
-   全部が同時に消える瞬間を作らない。消えてる時間は短く(可視82%/周期)。 */
-.lp-pop {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lp-pop 5s ease-in-out infinite both;
+.footer-col h2 {
+  margin: 0 0 18px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--f-fg);
 }
-@keyframes lp-pop {
-  0% {
-    transform: scale(0);
-  }
-  9%,
-  91% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(0);
-  }
+.footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-.lp-draw {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: lp-draw 5s ease-in-out infinite both;
-}
-@keyframes lp-draw {
-  0% {
-    stroke-dashoffset: 1;
-  }
-  12%,
-  90% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: 1;
-  }
-}
-/* 地球儀の#タグ: 左から表示→保持→バックスペースで消去(タイプライタ風)をループ */
-.lp-type {
-  animation: lp-type 5s steps(12, end) infinite both;
-}
-@keyframes lp-type {
-  0%,
-  5% {
-    clip-path: inset(0 100% 0 0);
-  }
-  22%,
-  72% {
-    clip-path: inset(0 0 0 0);
-  }
-  92%,
-  100% {
-    clip-path: inset(0 100% 0 0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-pop,
-  .lp-draw,
-  .lp-type {
-    animation: none;
-  }
-  .lp-pop {
-    transform: none;
-  }
-  .lp-draw {
-    stroke-dashoffset: 0;
-  }
-  .lp-type {
-    clip-path: none;
-  }
+.footer-col li {
+  margin-bottom: 12px;
 }
 
-
-/* 下部CTA + フッター */
-.lp-cta {
-  text-align: center;
-  padding: 112px 24px;
-}
-.lp-cta .lp-h2 {
-  margin: 0 auto 24px;
-  max-width: 18ch;
-}
-.lp-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid var(--border);
-  padding: 28px 24px;
+/* 青リンクをやめる: フッター内はすべて同じトーン。hoverでだけ明度と下線が出る */
+.site-footer a {
+  color: var(--f-muted);
+  text-decoration: none;
   font-size: 13px;
+  transition: color 0.12s ease;
 }
-.lp-foot-links {
-  display: flex;
-  gap: 18px;
+.site-footer a:hover {
+  color: var(--f-fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-@media (max-width: 760px) {
-  .lp-hero-full {
-    min-height: 88vh;
+/* 24カ国は1列だと縦に伸びすぎるので、見出しの下で多段に畳む */
+.footer-countries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0 24px;
+}
+
+.site-footer-bar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 48px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--f-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 20px;
+}
+.footer-brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.footer-note {
+  color: var(--f-muted);
+  font-size: 12px;
+}
+/* 最後の一項目(データ出典)は右へ寄せる */
+.site-footer-bar .footer-note:last-child {
+  margin-left: auto;
+}
+
+@media (max-width: 860px) {
+  .site-footer {
+    margin-top: 48px;
+    padding: 40px 16px 20px;
   }
-  .lp-hero-giant {
-    font-size: clamp(34px, 13vw, 92px);
-  }
-  .lp-marquee-word {
-    opacity: 0.2;
-  }
-  .lp-cards {
+  .site-footer-inner {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
-  .lp-section-head {
-    padding-top: 72px;
+  .site-footer-bar {
+    margin-top: 32px;
   }
-  .lp-cta {
-    padding: 80px 24px;
-  }
+  .site-footer-bar .footer-note:last-child {
+    margin-left: 0;
+  }}
+
+/* リストの語: 見た目は見出しのまま、押すと図と同じ詳細が開く(ボタンの既定装飾を消す) */
+.trend-word {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+}
+.trend-word:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* トップの見出し。国ページ(.country-title-row h1)と同じ寸法に揃える */
+.home-header {
+  margin-bottom: 20px;
+}
+.home-header h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.home-header p {
+  margin: 6px 0 0;
+  font-size: 13px;
 }

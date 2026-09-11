@@ -6,14 +6,11 @@
 // 「原語の生の文字は常に残す」と同じ結論に、維持コストゼロで到達する。
 
 export const COPY = {
-  nav: { trends: "Trends", analysis: "Analysis", globe: "Globe" },
   theme: { label: "Theme", system: "System", light: "Light", dark: "Dark" },
   home: {
     title: "World Trends",
     desc: "What each country is searching right now. Tap a country to explore where its curiosity leads.",
-    legendFooter:
-      "Size = search volume / color = freshness. Data: Google Trends (updated every 30 min) · ",
-    about: "About",
+    legendFooter: "Size = search volume / color = freshness.",
   },
   country: {
     title: (c: string) => `${c} Trends`,
@@ -21,9 +18,6 @@ export const COPY = {
     seoHeading: (c: string) => `What ${c} is searching right now`,
     loadFail: "Failed to load data. Please wait a moment and reload.",
     updated: "Updated",
-    others: "Trends in other countries",
-    compare: (c: string) =>
-      `Compare ${c}'s rising searches side by side with other countries.`,
     switchCountry: "Switch country",
     previousCountry: "Previous country",
     nextCountry: "Next country",
@@ -37,20 +31,8 @@ export const COPY = {
     searches: "Searches",
     trendingNow: "Trending now.",
     googleSearch: "Search on Google",
-    explore: "Analysis",
     appeared: (s: string) => `appeared ~${s} ago`,
     close: "Close",
-  },
-  graph: {
-    selectCountry: "Select country",
-    saveImage: "Save image",
-    seedTrends: "Trending right now.",
-    leafTrends: "What searchers look up next.",
-  },
-  globe: {
-    loading: "loading…",
-    loadFail: "Failed to load data",
-    countries: (n: number) => `${n} countries`,
   },
   share: { button: "Share", copied: "Copied", image: "Save image" },
 } as const;

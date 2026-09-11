@@ -15,12 +15,12 @@ import { GEO_LABELS, fetchTrends, type NewsItem, type TrendItem } from "@/lib/tr
 import { redisPipeline } from "@/lib/redis";
 import { TRENDS_DATA_CACHE_TAG } from "@/lib/cache-tags";
 
-export const WORLD_KEY = "world:v1";
+const WORLD_KEY = "world:v1";
 /** 細い履歴(velocity可視化用の余白)の保持期間。newsを落としているので容量は本体の約1/5 */
 const HIST_TTL_SEC = 30 * 24 * 3600;
 
 /** 1国あたりの表示件数。RSSの急上昇は各国20件程度なので同数 */
-export const MAX_ITEMS = 20;
+const MAX_ITEMS = 20;
 /** 失速した語を減衰させる半減期。最新=1.0 / 30分前=0.5 / 60分前=0.25 */
 const HALF_LIFE_SEC = 1800;
 /** これ以上見かけない語はrunning unionから落とす(古い語が居座らないように) */
@@ -41,7 +41,7 @@ export interface World {
   geos: Record<string, WorldItem[]>;
 }
 
-export function trafficNum(t: string): number {
+function trafficNum(t: string): number {
   const n = parseInt(t.replace(/[^0-9]/g, ""), 10) || 0;
   return /万/.test(t) ? n * 10000 : n;
 }
